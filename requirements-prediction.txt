@@ -9,7 +9,9 @@
 #   joblib.load 는 pickle 이라 클래스 구조가 바뀌면 조용히 깨지거나 값이 달라진다.
 #   특히 scikit-learn 은 econml 0.16.0 이 <1.7 을 요구하므로 올리면 안 된다.
 #   (모델을 재학습하기 전에는 이 표를 건드리지 말 것)
-python-version = 3.11
+#
+# 파이썬은 3.11 로 맞춘다 — .pkl 을 만든 로컬 환경과 같게. railway.json 이 아니라
+# .python-version 파일로 지정한다(빌더가 그걸 읽는다).
 
 # --- 웹 ---
 fastapi==0.139.2
@@ -48,6 +50,14 @@ pyarrow==18.1.0
 anthropic==0.117.0
 httpx==0.28.1
 requests==2.32.3
+
+# --- qmode 마운트용 ---
+# main.py 는 diary_module/qmode 를 /qmode 아래에 마운트한다(챗봇·기업분석·성향분석 등).
+# 이 셋이 없으면 마운트가 조용히 실패하고 /qmode/* 전체가 404 가 된다.
+# (/health 의 status 가 "degraded" 로 떨어지는 게 유일한 단서다)
+kiwipiepy==0.23.2
+pypdf==5.1.0
+cryptography==50.0.0
 
 # --- 모델 아티팩트 내려받기 (fetch_artifacts.py) ---
 huggingface-hub==0.27.0

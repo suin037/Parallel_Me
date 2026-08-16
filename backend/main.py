@@ -13,6 +13,7 @@ import functools
 import httpx
 import json
 import logging
+import os
 import sys
 import threading
 import traceback
@@ -188,14 +189,32 @@ def _on_startup() -> None:
     threading.Thread(target=_warmup, name="warmup", daemon=True).start()
 
 
-# 프론트(Vite 기본 5173) 에서의 호출 허용
+# CORS — 로컬 개발 포트는 늘 허용하고, 배포 프론트 주소는 환경변수로 더한다.
+#
+# 예전엔 regex 가 코드에 박혀 있어 http://localhost:포트 만 통과했다. 그대로 배포하면
+# Vercel(https://…vercel.app) 에서 오는 요청이 전부 CORS 로 막히는데, 브라우저는
+# "네트워크 오류" 로만 보여줘서 서버 로그에도 흔적이 안 남는다.
+#
+#   ALLOWED_ORIGINS   쉼표로 구분한 정확한 주소 목록. qmode/api.py 와 같은 이름을 쓴다
+#                     (한 서버에 마운트돼 있어 이름이 갈리면 한쪽만 열리는 사고가 난다).
+#   CORS_ORIGIN_REGEX 미리보기 배포처럼 주소가 매번 바뀔 때 쓰는 정규식(선택).
+#                     예: https://.*\.vercel\.app
+#
+# iframe 임베드는 CORS 와 무관하다 — 그건 프론트를 감싸는 쪽 문제이고,
+# 여기서 여는 건 브라우저가 이 API 를 직접 부를 수 있는 출처다.
+_LOCAL_ORIGIN_RE = r"http://(localhost|127\.0\.0\.1):\d+"
+_extra_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+_origin_regex = os.getenv("CORS_ORIGIN_REGEX", "").strip() or _LOCAL_ORIGIN_RE
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",  # 로컬 개발/프리뷰 포트 허용
+    allow_origins=_extra_origins,          # 정확히 일치하는 배포 프론트 주소
+    allow_origin_regex=_origin_regex,      # 로컬 포트(기본) 또는 지정한 패턴
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+log.info("CORS 허용 — origins=%s regex=%s", _extra_origins or "(없음)", _origin_regex)
 
 
 def _simulate_without_artifacts(req, diary, safety_level) -> dict:
