@@ -1,0 +1,58 @@
+# 예측 서버(backend/main.py) 배포 의존성.
+#
+# qmode 용 requirements-api.txt 와 **따로 둔다** — 무게가 완전히 다르다.
+#   qmode      fastapi + anthropic + kiwipiepy        ≈ 250MB RSS
+#   예측 서버   + numpy·pandas·sklearn·econml·lifelines ≈ 551MB RSS
+# 한 대에 합치면 AI 기능이 예측 모델 메모리까지 물고 산다.
+#
+# 버전을 못 박은 이유: backend/models/artifacts/*.pkl 이 **이 버전들로 저장돼 있다.**
+#   joblib.load 는 pickle 이라 클래스 구조가 바뀌면 조용히 깨지거나 값이 달라진다.
+#   특히 scikit-learn 은 econml 0.16.0 이 <1.7 을 요구하므로 올리면 안 된다.
+#   (모델을 재학습하기 전에는 이 표를 건드리지 말 것)
+python-version = 3.11
+
+# --- 웹 ---
+fastapi==0.139.2
+uvicorn[standard]==0.51.0
+pydantic==2.13.4
+pydantic-settings==2.7.1
+python-multipart==0.0.32
+
+# --- 수치·모델 (pkl 언피클에 필요) ---
+numpy==2.4.4
+pandas==2.3.3
+scipy==1.17.1
+joblib==1.5.3
+scikit-learn==1.6.1
+econml==0.16.0
+lifelines==0.30.3
+
+# econml·lifelines 가 끌고 오는 것들 — 버전 흔들림 방지로 함께 고정
+statsmodels==0.14.6
+patsy==1.0.2
+formulaic==1.2.2
+autograd==1.9.1
+shap==0.48.0
+sparse==0.19.0
+numba==0.66.0
+llvmlite==0.48.0
+threadpoolctl==3.6.0
+narwhals==2.24.0
+
+# --- KOWEPS 사건 패널(.parquet) 읽기 ---
+# 없으면 koweps_evidence 의 개인화 매칭이 ImportError 로 죽고 집단통계로만 답한다.
+# (로컬에도 빠져 있어 지금까지 그 경로가 한 번도 안 돌았다)
+pyarrow==18.1.0
+
+# --- 외부 호출 ---
+anthropic==0.117.0
+httpx==0.28.1
+requests==2.32.3
+
+# --- 모델 아티팩트 내려받기 (fetch_artifacts.py) ---
+huggingface-hub==0.27.0
+
+# 아래는 일부러 뺐다
+#   chromadb / sentence-transformers — psych RAG 정본. 없으면 카드 JSON 폴백으로
+#     동작한다(rag/psych_retriever.py). 넣으면 이미지가 1GB 넘게 불어난다.
+#   torch / transformers — 감정모델. qmode 가 체크포인트 없으면 LLM 폴백으로 내려간다.
