@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-16T21:53:43.907679+00:00",
-  "git": "da39c60",
+  "generated_at": "2026-08-16T22:30:02.120796+00:00",
+  "git": "216a775",
   "routing": {
     "treatment": "선택 유형 → treatment: 이직=move / 창업=startup / 쉬어가기=break / 진학=매핑 없음(표본 부족)",
     "L2 (knn)": "이직에만 적용. age ≤ 31 이면 GOMS + YP 를 절반씩 섞고, 그 외엔 GOMS 단독",
@@ -363,7 +363,7 @@
       "role": "유사인물 매칭 (GOMS 단면, 전공 포함)",
       "present": true,
       "size_mb": 2.38,
-      "modified": "2026-08-16T18:24:04.129058+00:00",
+      "modified": "2026-08-16T22:27:09.448783+00:00",
       "source": "GOMS",
       "matching": {
         "evaluated_queries": 500,
@@ -405,7 +405,7 @@
       "role": "이직→소득 인과효과 (GOMS 단면, 최후 폴백)",
       "present": true,
       "size_mb": 34.35,
-      "modified": "2026-08-16T18:25:08.090911+00:00",
+      "modified": "2026-08-16T22:27:10.065651+00:00",
       "source": "GOMS 단면",
       "n": 11318,
       "causal_forest": {
@@ -427,24 +427,24 @@
       "layer": "L3",
       "role": "이직→소득 인과효과 (KLIPS 종단)",
       "present": true,
-      "size_mb": 54.67,
-      "modified": "2026-08-16T18:24:18.388488+00:00",
+      "size_mb": 54.76,
+      "modified": "2026-08-16T22:28:59.821623+00:00",
       "source": "KLIPS 18-27차 종단",
       "causal": {
         "method": "LinearDML",
-        "ate_manwon": 10.04,
+        "ate_manwon": 10.11,
         "ci95": [
-          2.93,
-          17.15
+          3.01,
+          17.22
         ],
         "significant": true
       },
       "causal_forest": {
         "method": "CausalForestDML",
-        "ate_manwon": 8.17,
+        "ate_manwon": 8.33,
         "ci95": [
-          -82.75,
-          99.08
+          -83.21,
+          99.87
         ]
       },
       "features": [
@@ -561,8 +561,8 @@
       "role": "재직 생존분석 (KLIPS 스펠)",
       "present": true,
       "size_mb": 2.28,
-      "modified": "2026-08-16T18:24:56.828609+00:00",
-      "source": "KLIPS 스펠",
+      "modified": "2026-08-16T22:29:01.977236+00:00",
+      "source": "KLIPS 18-27차 스펠",
       "n": 16259,
       "survival": {
         "metric": "5-fold C-index",
@@ -673,7 +673,7 @@
       "role": "GOMS 인코더/중앙값 (knn.pkl·econml.pkl 전용)",
       "present": true,
       "size_mb": 0.0,
-      "modified": "2026-08-16T18:24:04.960955+00:00",
+      "modified": "2026-08-16T22:26:57.795803+00:00",
       "features": [
         "sex_enc",
         "major_enc",
