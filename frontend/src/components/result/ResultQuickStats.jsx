@@ -93,12 +93,30 @@ function barShape(a, b) {
   return divergingShape(a.value, b.value);
 }
 
+// survival_months 는 선택 유형마다 **무엇의 기간인지가 다르다**(backend/schemas.py):
+//   이직·유지 = 재직 / 창업 = 자영 유지 / 쉬어가기 = 일에서 떠나 있는 기간(복귀까지)
+// 라벨을 "예상 재직기간" 하나로 고정해두는 바람에, 쉬어가기에서는 **쉬는 기간**을
+// '재직기간' 이라고 말하고 있었다. 일하지 않는 기간을 재직이라 부르는 셈이다.
+const TENURE_LABEL = {
+  이직: "예상 재직기간",
+  유지: "예상 재직기간",
+  창업: "예상 자영 유지기간",
+  휴식: "복귀까지 걸리는 기간",
+};
+
+function tenureLabel(a, b) {
+  // 한쪽에만 붙는 값이라(유지는 처치가 아니라 기준선이라 L4 가 없다) 값이 있는 쪽의
+  // 유형으로 라벨을 정한다.
+  const side = a?.survival_months != null ? a : b?.survival_months != null ? b : null;
+  return TENURE_LABEL[side?.kind] || "예상 지속기간";
+}
+
 export default function ResultQuickStats({ a, b, futureYears = 3 }) {
   const rows = [
     { key: "income", label: "월소득 중앙값" },
     { key: "wellbeing", label: "삶의 만족" },
     { key: "effect", label: "선택에 따른 변화 효과" },
-    { key: "tenure", label: "예상 재직기간" },
+    { key: "tenure", label: tenureLabel(a, b) },
     { key: "score:경제적안정도", label: "경제적 안정도" },
     { key: "score:성장가능성", label: "성장 가능성" },
     { key: "score:삶의질", label: "삶의 질" },

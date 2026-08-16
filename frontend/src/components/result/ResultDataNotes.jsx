@@ -70,10 +70,15 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
   const nominal = nominalNotice(a, b);
   const hasGrowth = quantitativeOk && (growth.A || growth.B);
   const gaps = quantitativeOk ? horizonGaps(a, b, futureYears) : [];
+  // 쉬어가기는 '쉬는 동안 못 번 돈'이 어디에도 안 나온다. KLIPS 로 학습한 효과는
+  // **복귀한 뒤의 임금**을 견주기 때문이다(공백 기간의 0원은 결과변수에 안 들어간다).
+  // 그래서 화면만 보면 반년을 쉬었는데 1년차 소득이 남는 쪽보다 높게 보인다.
+  // 숫자를 고치는 건 재학습이 필요한 일이라, 무엇이 빠졌는지를 밝힌다.
+  const breakSide = [a, b].find((side) => side?.kind === "휴식");
 
   // 그릴 게 하나도 없으면 카드 자체를 내보내지 않는다. 여기에 렌더하지 않는
   // 값(건강 실측 등)을 조건에 남겨두면 제목만 있는 빈 카드가 뜬다.
-  if (!hasGrowth && !gaps.length) return null;
+  if (!hasGrowth && !gaps.length && !breakSide) return null;
 
   return (
     <section className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0B1220]/85" aria-labelledby="data-notes-title">
@@ -81,6 +86,17 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
         <h2 id="data-notes-title" className="text-[13px] font-bold text-ink">숫자를 읽는 배경</h2>
         <p className="mt-0.5 text-[9px] text-mut">위 비교표의 수치가 어떤 조건에서 나온 값인지 함께 봅니다.</p>
       </div>
+
+      {breakSide && (
+        <div className="border-white/[.07] px-4 py-3.5 [&:not(:last-child)]:border-b">
+          <h3 className="text-[11px] font-semibold text-sub">쉬는 동안의 소득은 이 비교에 없습니다</h3>
+          <p className="mt-0.5 text-[9px] leading-4 text-mut">
+            쉬어가기 수치는 <b className="font-semibold text-sub">복귀한 뒤의 임금</b>을 견준 값입니다(KLIPS 공백 스펠).
+            쉬는 동안 못 번 소득은 결과변수에 들어가 있지 않아, 소득 줄에는 그 공백이 나타나지 않습니다.
+            <b className="font-semibold text-sub"> 쉬는 기간의 생활비는 따로 계산해 보셔야 합니다.</b>
+          </p>
+        </div>
+      )}
 
       {gaps.length > 0 && (
         <div className="border-white/[.07] px-4 py-3.5 [&:not(:last-child)]:border-b">
