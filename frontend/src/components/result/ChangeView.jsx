@@ -8,7 +8,8 @@ export default function ChangeView({ a, b, domains = { a: [], b: [] }, dataMode 
   const selected = new Set([...(domains.a || []), ...(domains.b || [])]);
   const incomeRelevant = selected.has("career") || selected.has("finance");
   const businessRelevant = selected.has("business");
-  const hasIncome = incomeRelevant && a.trajectory?.length && b.trajectory?.length;
+  // 길이(숫자)를 그대로 두면 0일 때 React 가 "0" 을 화면에 찍는다.
+  const hasIncome = Boolean(incomeRelevant && a.trajectory?.length && b.trajectory?.length);
   const hasBusinessRisk = businessRelevant && [a, b].some((s) => Object.keys(s.risk_timeline || {}).length);
   const hasCareerTrajectory = [a, b].some((s) => s.parallel_trajectory?.status === "available");
   const hasKowepsTrajectory = [a, b].some((s) => s.koweps_evidence?.available);
