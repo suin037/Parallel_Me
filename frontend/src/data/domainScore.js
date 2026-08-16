@@ -73,7 +73,9 @@ export const DOMAIN_METRIC = {
   },
   career: { kind: "opportunity", label: "진로", why: "일기 몇 줄로 커리어에 점수를 매길 수는 없어요. 대신 아직 안 가본 길을 찾아드려요." },
   relation: { kind: "opportunity", label: "관계", why: "관계는 좋고 나쁨을 한 숫자로 줄이면 오해가 생겨요. 대신 지금 해볼 수 있는 걸 찾아드려요." },
-  growth: { kind: "opportunity", label: "성장성", why: "역량은 점수가 아니라 무엇을 쌓았는지예요. 기록에 나온 방향에서 다음 갈래를 열어드려요." },
+  // 성장성은 점수가 아니라 **분포**로 본다. 무엇을 얼마나 썼는지가 곧 쌓인 것이고,
+  // 비어 있는 칸이 다음에 열어볼 방향이다. 한 숫자로 줄이면 그 정보가 사라진다.
+  growth: { kind: "mix", label: "성장성", why: "역량은 점수가 아니라 무엇을 쌓았는지예요. 쓴 시간의 분포로 보여드려요." },
 };
 
 export function metricOf(planetKey) {
@@ -143,3 +145,48 @@ export function domainScore(planetKey, stars = []) {
  * 몇 개부터 보여줄지 한 곳에서 정한다.
  */
 export const MIN_FOR_SCORE = 5;
+
+// ── 성장성: 역량 분포 ────────────────────────────────────────
+// 체크인의 '오늘 주로 쓴 역량'이 그대로 쌓인다. 이걸 세면 무엇에 시간을 썼는지가
+// 나온다 — 두터운 칸이 쌓은 것, 비어 있는 칸이 아직 안 가본 쪽이다.
+//
+// '휴식'은 역량이 아니라 쉰 날이라 따로 뺀다. 섞으면 "휴식 95일"이 제일 큰 막대가
+// 되어, 쉰 걸 성장으로 읽게 만든다.
+export const SKILL_ORDER = ["기술", "소통", "기획", "리더십", "개인공부"];
+const REST = "휴식";
+
+/**
+ * @returns {{items:[{key,count,pct}], total:number, rest:number,
+ *            top:string|null, gap:string|null}}
+ */
+export function skillMix(checkins = [], windowDays = 56) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - windowDays);
+  const from = cutoff.toISOString().slice(0, 10);
+
+  const count = Object.fromEntries(SKILL_ORDER.map((k) => [k, 0]));
+  let rest = 0;
+  for (const c of checkins) {
+    if (!c || c.empty || !c.skill || (c.date && c.date < from)) continue;
+    if (c.skill === REST) { rest += 1; continue; }
+    if (count[c.skill] != null) count[c.skill] += 1;
+  }
+
+  const total = SKILL_ORDER.reduce((a, k) => a + count[k], 0);
+  const items = SKILL_ORDER.map((k) => ({
+    key: k,
+    count: count[k],
+    pct: total ? Math.round((count[k] / total) * 100) : 0,
+  }));
+
+  const sorted = [...items].sort((a, b) => b.count - a.count);
+  return {
+    items,
+    total,
+    rest,
+    windowDays,
+    top: total ? sorted[0].key : null,
+    // 가장 비어 있는 칸 — 다음에 열어볼 방향. 0인 칸이 있으면 그게 우선이다.
+    gap: total ? sorted[sorted.length - 1].key : null,
+  };
+}

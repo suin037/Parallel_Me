@@ -4,7 +4,7 @@ import { Archive, CalendarDays, ChevronRight, Plus, X } from "lucide-react";
 import UniverseMap from "../components/UniverseMap.jsx";
 import Constellation from "../components/Constellation.jsx";
 import { announceSurface } from "../data/guideAdvice.js";
-import { domainScore, metricOf, MIN_FOR_SCORE } from "../data/domainScore.js";
+import { domainScore, metricOf, skillMix, MIN_FOR_SCORE } from "../data/domainScore.js";
 import { PLANETS } from "../data/result.js";
 import { adaptiveGroups, hasRecord, loadUniverse, resetUniverse, scenariosByPlanet, seedDemoCheckins, starGroupsOf, todayKey } from "../data/myUniverse.js";
 // demoYear.js 는 1년치 기록(87KB)을 들고 있다. 개발용 데모 버튼에서만 쓰므로
@@ -17,7 +17,7 @@ import { useResult } from "../data/ResultContext.jsx";
 import { clearSavedReports, REPORT_UID, loadSpeech } from "../data/dispositionApi.js";
 import { planetSkin } from "../data/petShop.js";
 import { PLANET_TEXTURES } from "../data/planetSurface.js";
-import { josa } from "../lib/josa.js";
+import { josa, hasFinalConsonant } from "../lib/josa.js";
 
 const DESCRIPTIONS = {
   career: "나의 진로와 커리어에 대한 고민, 선택, 방향성을 기록해요.",
@@ -714,6 +714,62 @@ function TrendChart({ series, accent }) {
   </div>;
 }
 
+// 성장성 그래프 — 무엇에 시간을 썼는지의 분포.
+//
+// 막대 길이는 '가장 두터운 칸' 기준으로 잡는다. 전체 대비로 하면 다섯 칸이 다
+// 짧아져서 차이가 안 보인다. 여기서 보고 싶은 건 절대량이 아니라 **치우침**이다.
+function SkillMixChart({ mix, accent, why }) {
+  if (!mix || !mix.total) {
+    return (
+      <div className="mt-4 rounded-2xl border border-white/[.08] bg-white/[.035] px-4 py-3.5">
+        <span className="text-[11px] font-bold text-ink">아직 역량 기록이 없어요</span>
+        <p className="mt-1.5 text-[10px] leading-relaxed text-sub">
+          체크인에서 &apos;오늘 주로 쓴 역량&apos;을 고르면 여기에 쌓여요.
+        </p>
+      </div>
+    );
+  }
+  const max = Math.max(...mix.items.map((i) => i.count), 1);
+  const empty = mix.items.filter((i) => !i.count);
+
+  return (
+    <div className="mt-4 rounded-2xl border border-white/[.08] bg-white/[.035] px-4 py-3.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[11px] font-bold text-ink">무엇을 쌓았나요</span>
+        <span className="shrink-0 text-[9px] text-mut">최근 {mix.windowDays}일 · {mix.total}일 기록</span>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {mix.items.map((it) => (
+          <div key={it.key} className="flex items-center gap-2.5">
+            <span className="w-[46px] shrink-0 text-[10px] text-sub">{it.key}</span>
+            <span className="h-[7px] min-w-0 flex-1 overflow-hidden rounded-full bg-white/[.06]">
+              <span
+                className="block h-full rounded-full transition-[width] duration-500"
+                style={{ width: `${(it.count / max) * 100}%`, background: it.count ? accent : "transparent" }}
+              />
+            </span>
+            <span className="w-[42px] shrink-0 text-right text-[10px] tabular-nums text-mut">
+              {it.count}일<span className="ml-1 text-[9px]">{it.pct}%</span>
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-3 border-t border-white/[.07] pt-2.5 text-[10px] leading-relaxed text-sub">
+        {/* josa() 는 단어까지 붙여서 돌려준다 — 조사만 떼어 쓰려다 '기획기획이' 가 됐었다. */}
+        <b className="font-semibold text-ink">{mix.top}</b>{hasFinalConsonant(mix.top) ? "이" : "가"} 가장 두터워요.
+        {empty.length
+          ? ` ${empty.map((e) => e.key).join(" · ")}${hasFinalConsonant(empty[empty.length - 1].key) ? "은" : "는"} 아직 비어 있어요.`
+          : ` ${mix.gap} 쪽이 가장 얇아요.`}
+      </p>
+      <p className="mt-1 text-[9px] leading-relaxed text-mut">
+        {why} 쉰 날({mix.rest}일)은 역량이 아니라 따로 뒀어요.
+      </p>
+    </div>
+  );
+}
+
 function PlanetModal({ planet, state, onClose, onSimulate }) {
   const entries = useMemo(() => planetEntries(state, planet.key), [state, planet.key]);
   const recent = useMemo(() => entries.slice(-3).reverse(), [entries]);
@@ -727,6 +783,11 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
     [metric.kind, planet.key, entries],
   );
   const scoreReady = score && score.n >= MIN_FOR_SCORE;
+  // 성장성 — 역량은 영역 분류와 무관하게 매일 남는다. 그래서 전체 체크인에서 센다.
+  const mix = useMemo(
+    () => (metric.kind === "mix" ? skillMix(state.checkins || []) : null),
+    [metric.kind, state],
+  );
   const average = analysis?.ok ? Number(analysis.moodAvg) : null;
   const trend = analysis?.ok && Number.isFinite(Number(analysis.trend)) ? Number(analysis.trend) : null;
   const stable = trend == null || Math.abs(trend) < .25;
@@ -769,6 +830,9 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
               : `기록이 ${MIN_FOR_SCORE}일 모이면 점수를 보여드려요. 며칠 치로 영역을 평가할 수는 없어서요.`}
           </p>
         </>
+      ) : metric.kind === "mix" ? (
+        // 성장성 — 한 숫자가 아니라 무엇을 얼마나 썼는지가 본론이다.
+        <SkillMixChart mix={mix} accent={accent} why={metric.why} />
       ) : (
         // 점수를 매기지 않는 영역 — 왜 안 매기는지 밝히고, 대신 할 수 있는 걸 준다.
         <div className="mt-4 rounded-2xl border border-white/[.08] bg-white/[.035] px-4 py-3.5">
@@ -792,9 +856,8 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
           <InsightCard tone="hard" title={`${analysis.worst?.mood <= 2 ? "가장 힘들었던 날" : "그중 무거웠던 날"} · ${analysis.worst?.date ? dateLabel(analysis.worst.date) : "—"}`} text={analysis.worst?.text}/>
         </div>}
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <div className="mt-4">
           <details className="group rounded-xl border border-white/[.06] bg-black/15 px-3 py-2.5"><summary className="cursor-pointer list-none text-[10px] text-sub">최근 기록 {recent.length}개 보기 <ChevronRight size={12} className="float-right transition-transform group-open:rotate-90"/></summary><div className="mt-2 space-y-2 border-t border-white/[.06] pt-2">{recent.length ? recent.map((entry)=><p key={entry.date} className="text-[9.5px] leading-relaxed text-mut"><span className="mr-2" style={{color:accent}}>{dateLabel(entry.date)}</span>{entry.text || entry.note || "짧게 남긴 기록"}</p>) : <p className="text-[9.5px] text-mut">아직 기록이 없어요.</p>}</div></details>
-          <details className="group rounded-xl border border-white/[.06] bg-black/15 px-3 py-2.5"><summary className="cursor-pointer list-none text-[10px] text-sub">분석 기준 보기 <ChevronRight size={12} className="float-right transition-transform group-open:rotate-90"/></summary><p className="mt-2 border-t border-white/[.06] pt-2 text-[9px] leading-relaxed text-mut">이 영역으로 분류된 기록의 기분 점수와 표현을 요약했습니다. 성격 진단이나 미래 예측은 아닙니다.</p></details>
         </div>
       </section>
 
@@ -805,6 +868,28 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
           <p className="mt-2 text-center text-[9px] text-mut">이 영역을 중심으로 미래 시뮬레이션을 시작합니다.</p>
         </div>
       </section>
+
+      {/* 분석 기준 — 모든 영역에서 맨 아래 한 자리에 둔다.
+          숫자를 먼저 보고 궁금해진 사람이 찾아 내려오는 자리라, 위에 있으면
+          읽기 전에 지나치고 중간에 있으면 본론을 끊는다.
+          영역마다 재는 방법이 달라서(domainScore.js) 문구도 그 영역 것을 쓴다. */}
+      <details className="group mt-5 rounded-xl border border-white/[.06] bg-black/15 px-3 py-2.5">
+        <summary className="cursor-pointer list-none text-[10px] text-sub">
+          분석 기준 보기 <ChevronRight size={12} className="float-right transition-transform group-open:rotate-90"/>
+        </summary>
+        <div className="mt-2 space-y-1.5 border-t border-white/[.06] pt-2 text-[9px] leading-relaxed text-mut">
+          {metric.kind === "score" ? (
+            <>
+              <p><b className="text-sub">{metric.label}</b> — {josa(metric.basis, "으로", "로")} 계산해요.</p>
+              <p>{metric.note}</p>
+            </>
+          ) : (
+            <p><b className="text-sub">{metric.label}</b> — {metric.why}</p>
+          )}
+          <p>이 영역으로 분류된 기록만 셉니다. 적지 않은 날은 계산에서 빠지고, 0점으로 치지 않아요.</p>
+          <p>성격 진단이나 미래 예측이 아닙니다.</p>
+        </div>
+      </details>
     </div>
   </aside>;
   /* Legacy modal layout retained below for reference only.
