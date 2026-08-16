@@ -127,7 +127,7 @@ function LevelRule({ label, xp }) {
 export default function Settings() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile, setProfile, setOnboarded, setChoices, setScenarioTexts, setScenarioDomains } = useResult();
+  const { profile, setProfile, setOnboarded, setChoices, setScenarioTexts, setScenarioDomains, resetSession } = useResult();
   const [prefs, setPrefs] = useState(loadPrefs);
   const [editingAvatar, setEditingAvatar] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
@@ -193,6 +193,7 @@ export default function Settings() {
     setProfile((p) => ({ ...p, psych_answers: { ...(p.psych_answers || {}), [qid]: v } }));
   }
   function resetToStart() {
+    resetSession();      // 결과·선택지·담아둔 자료까지 비운다 — 안 비우면 다음 사람 화면에 남는다
     setOnboarded(false); // 랜딩으로 되돌림 (데모: 세션 한정)
     navigate("/");
   }

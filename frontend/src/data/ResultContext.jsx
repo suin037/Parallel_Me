@@ -59,6 +59,11 @@ function loadProfile() {
   }
 }
 
+// 아직 아무것도 돌리지 않은 상태의 결과. 첫 마운트와 resetSession 이 같은 값을 쓴다.
+function blankResult() {
+  return { ...getPredictionPair({ profile: DEFAULT_PROFILE, choiceA: "이직", choiceB: "유지" }), dataMode: "demo" };
+}
+
 function collectDiaryInsights(limit = 7) {
   const checkins = loadUniverse().checkins || [];
   const recent = checkins.filter((item) => item?.insights).slice(-limit);
@@ -95,9 +100,7 @@ export function ResultProvider({ children }) {
   const [scenarioContexts, setScenarioContexts] = useState({ a: {}, b: {} });
   const [futureYears, setFutureYears] = useState(3);
   const [diary, setDiary] = useState("");
-  const [result, setResult] = useState(() =>
-    ({ ...getPredictionPair({ profile: DEFAULT_PROFILE, choiceA: "이직", choiceB: "유지" }), dataMode: "demo" }),
-  );
+  const [result, setResult] = useState(blankResult);
   // 한 번이라도 실제 비교를 실행했다면 시뮬레이션 탭은 입력 화면이 아니라
   // 마지막 결과로 돌아간다. 라우트가 바뀌어도 Provider가 유지되므로 결과도 보존된다.
   const [hasSimulationResult, setHasSimulationResult] = useState(false);
@@ -108,8 +111,13 @@ export function ResultProvider({ children }) {
   const [relResults, setRelResults] = useState([]);
   const [relBusy, setRelBusy] = useState(false);
 
+  // 실행 세대 번호. 늦게 도착한 응답이 이미 지나간 화면을 덮어쓰지 못하게 막는다.
+  // resetSession() 이 이 값을 올리므로 인물을 바꾸면 진행 중이던 호출은 버려진다.
+  const simulationRunRef = useRef(0);
+
   async function analyzeTalks(list = talks) {
     if (!list.length) { setRelResults([]); return; }
+    const runId = simulationRunRef.current;
     setRelBusy(true);
     try {
       const { analyzeRelationship } = await import("./relationshipApi.js");
@@ -118,11 +126,12 @@ export function ResultProvider({ children }) {
       for (const t of list) {
         // eslint-disable-next-line no-await-in-loop
         const data = await analyzeRelationship(t).catch(() => ({ error: "network", label: t.label }));
+        if (simulationRunRef.current !== runId) return;
         results.push({ ...data, label: t.label, tag: t.tag });
         setRelResults([...results]);
       }
     } finally {
-      setRelBusy(false);
+      if (simulationRunRef.current === runId) setRelBusy(false);
     }
   }
 
@@ -134,6 +143,7 @@ export function ResultProvider({ children }) {
   /** 담아둔 공고들을 한꺼번에 분석한다 — 시뮬레이션 시작과 함께 백그라운드로 돌린다. */
   async function analyzePostings(list = postings, choice = null) {
     if (!list.length) { setJobAnalyses([]); return; }
+    const runId = simulationRunRef.current;
     setJobBusy(true);
     try {
       const { analyzeJobPosting } = await import("./jobAnalysis.js");
@@ -144,12 +154,12 @@ export function ResultProvider({ children }) {
             .catch(() => ({ ok: false, label: p.label, reason: "network" })),
         ),
       );
+      if (simulationRunRef.current !== runId) return;
       setJobAnalyses(results);
     } finally {
-      setJobBusy(false);
+      if (simulationRunRef.current === runId) setJobBusy(false);
     }
   }
-  const simulationRunRef = useRef(0);
 
   // 선택(choices)+심정(diary) → 결과 쌍 {a,b} 생성. (지금은 목업)
   async function runSimulation(opts = {}) {
@@ -347,9 +357,38 @@ export function ResultProvider({ children }) {
     setProfile(loadProfile());
   }
 
+  /**
+   * 시뮬레이션 세션을 처음 상태로 되돌린다 — 로그아웃·페르소나 전환에서 부른다.
+   *
+   * 왜 필요한가: 프로필은 슬롯이 갈아끼우고 reloadProfile() 이 읽어오지만, 결과·선택지·
+   * 담아둔 공고와 대화는 이 Provider 의 메모리에만 있다. Provider 는 라우트가 바뀌어도
+   * 언마운트되지 않으므로, 인물을 바꿔도 앞사람의 결과 화면이 그대로 남아 있었다
+   * (프로필은 도현인데 선택지와 아바타는 지원인 상태).
+   *
+   * 세대 번호를 먼저 올린다 — 서사·이미지는 수십 초 걸려서, 돌고 있는 도중에 인물을
+   * 바꾸면 늦게 도착한 응답이 새 인물의 화면을 덮어쓴다.
+   */
+  function resetSession() {
+    simulationRunRef.current += 1;
+    setChoices({ a: "이직", b: "유지" });
+    setScenarioTexts({ a: "", b: "" });
+    setScenarioDomains({ a: [], b: [] });
+    setScenarioContexts({ a: {}, b: {} });
+    setFutureYears(3);
+    setDiary("");
+    setResult(blankResult());
+    setHasSimulationResult(false);
+    setPostings([]);
+    setJobAnalyses([]);
+    setJobBusy(false);
+    setTalks([]);
+    setRelResults([]);
+    setRelBusy(false);
+  }
+
   const value = useMemo(
     () => ({
-      profile, setProfile, reloadProfile,
+      profile, setProfile, reloadProfile, resetSession,
       choices, setChoices,
       scenarioTexts, setScenarioTexts,
       scenarioDomains, setScenarioDomains,

@@ -44,7 +44,7 @@ function Face({ name, ready }) {
 
 export default function Personas() {
   const navigate = useNavigate();
-  const { reloadProfile, setOnboarded } = useResult();
+  const { reloadProfile, resetSession, setOnboarded } = useResult();
   const cards = personaCards();
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
@@ -59,6 +59,7 @@ export default function Personas() {
       setError("이 프로필은 아직 기록이 준비되지 않았어요.");
       return;
     }
+    resetSession();      // 앞사람의 결과·선택지를 비운다 (로그아웃을 안 거치고 와도 섞이지 않게)
     reloadProfile();     // 슬롯이 넣어준 프로필을 컨텍스트에 반영
     setOnboarded(true);  // 이제 '/' 로 돌아가도 랜딩이 아니라 우주로 간다
     navigate("/my");
@@ -67,6 +68,7 @@ export default function Personas() {
   function makeMine() {
     // 슬롯을 먼저 비운 뒤 온보딩으로 — 순서가 바뀌면 방금 입력한 프로필이 지워진다.
     startMyAccount();
+    resetSession();      // 체험하던 인물의 결과가 내 계정 화면에 남지 않게
     reloadProfile();     // 비워진 저장소를 읽어 기본 프로필로 되돌린다
     navigate("/onboarding");
   }
