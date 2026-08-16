@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-16T11:11:12.765005+00:00",
-  "git": "93e960a",
+  "generated_at": "2026-08-16T18:26:16.398648+00:00",
+  "git": "6c222ea",
   "routing": {
     "treatment": "선택 유형 → treatment: 이직=move / 창업=startup / 쉬어가기=break / 진학=매핑 없음(표본 부족)",
     "L2 (knn)": "이직에만 적용. age ≤ 31 이면 GOMS + YP 를 절반씩 섞고, 그 외엔 GOMS 단독",
@@ -332,7 +332,7 @@
       "role": "유사인물 매칭 (GOMS 단면, 전공 포함)",
       "present": true,
       "size_mb": 2.38,
-      "modified": "2026-08-03T11:24:40.787752+00:00",
+      "modified": "2026-08-16T18:24:04.129058+00:00",
       "source": "GOMS",
       "matching": {
         "evaluated_queries": 500,
@@ -357,14 +357,24 @@
     "knn_yp.pkl": {
       "layer": "L2",
       "role": "유사인물 매칭 (YP 청년패널)",
-      "present": false
+      "present": true,
+      "size_mb": 2.6,
+      "modified": "2026-08-16T18:25:09.732486+00:00",
+      "source": "YP2021 청년패널",
+      "features": [
+        "sex",
+        "age",
+        "monthly_wage",
+        "satis_overall",
+        "firm_size"
+      ]
     },
     "econml.pkl": {
       "layer": "L3",
       "role": "이직→소득 인과효과 (GOMS 단면, 최후 폴백)",
       "present": true,
       "size_mb": 34.35,
-      "modified": "2026-08-03T11:24:42.032219+00:00",
+      "modified": "2026-08-16T18:25:08.090911+00:00",
       "source": "GOMS 단면",
       "n": 11318,
       "causal_forest": {
@@ -387,7 +397,7 @@
       "role": "이직→소득 인과효과 (KLIPS 종단)",
       "present": true,
       "size_mb": 54.67,
-      "modified": "2026-08-03T12:01:13.295427+00:00",
+      "modified": "2026-08-16T18:24:18.388488+00:00",
       "source": "KLIPS 18-27차 종단",
       "causal": {
         "method": "LinearDML",
@@ -415,14 +425,39 @@
     "econml_yp.pkl": {
       "layer": "L3",
       "role": "이직→소득 인과효과 (YP 청년패널 종단)",
-      "present": false
+      "present": true,
+      "size_mb": 18.26,
+      "modified": "2026-08-16T18:25:14.435826+00:00",
+      "source": "YP2021 청년패널 종단",
+      "causal": {
+        "method": "LinearDML",
+        "ate_manwon": 27.88,
+        "ci95": [
+          20.95,
+          34.8
+        ],
+        "significant": true
+      },
+      "causal_forest": {
+        "method": "CausalForestDML",
+        "ate_manwon": 27.52,
+        "ci95": [
+          -21.15,
+          76.2
+        ]
+      },
+      "features": [
+        "age",
+        "sex",
+        "edu"
+      ]
     },
     "econml_klips_startup.pkl": {
       "layer": "L3",
       "role": "창업(임금근로→자영)→소득 인과효과 (KLIPS 종단)",
       "present": true,
       "size_mb": 56.8,
-      "modified": "2026-08-13T09:19:06.873729+00:00",
+      "modified": "2026-08-16T18:24:34.017919+00:00",
       "source": "KLIPS 12-27차 종단 (창업)",
       "n": 47717,
       "treatment": "startup",
@@ -454,7 +489,36 @@
     "econml_klips_break.pkl": {
       "layer": "L3",
       "role": "쉬어가기(자발 퇴직 후 2개월 이상 공백)→소득 인과효과 (KLIPS 종단)",
-      "present": false
+      "present": true,
+      "size_mb": 57.17,
+      "modified": "2026-08-16T18:24:55.187377+00:00",
+      "source": "KLIPS 12-27차 종단 (쉬어가기)",
+      "n": 44927,
+      "treatment": "break",
+      "n_treated": 1344,
+      "caveat": "**복귀한 사람만 보고 잰 소득효과다.** 결과변수는 t+h 의 월소득인데, 아직 일로 돌아오지 않았으면 소득이 없어 표본에서 빠진다. 그래서 이 값은 '쉬면 소득이 이만큼 된다' 가 아니라 '쉬었다가 **돌아온 사람의** 소득이 계속 다닌 사람 대비 이만큼 관측된다' 로 읽어야 한다 (→ L4 복귀까지 걸리는 기간과 반드시 함께 볼 것). 또한 자발적으로 쉬는 선택은 쉴 여유가 있어야 가능하다. DML 은 관측된 공변량(나이·성별·학력·소득·근속·직종·규모)만 통제하므로 자산·배우자소득 같은 미관측 여유는 남는다 — 효과가 실제보다 낙관적일 수 있다.",
+      "causal": {
+        "method": "LinearDML",
+        "ate_manwon": 17.97,
+        "ci95": [
+          1.58,
+          34.36
+        ],
+        "significant": true
+      },
+      "causal_forest": {
+        "method": "CausalForestDML",
+        "ate_manwon": 9.53,
+        "ci95": [
+          -142.08,
+          161.15
+        ]
+      },
+      "features": [
+        "age",
+        "sex",
+        "edu"
+      ]
     },
     "lifelines.pkl": {
       "layer": "L4",
@@ -466,7 +530,7 @@
       "role": "재직 생존분석 (KLIPS 스펠)",
       "present": true,
       "size_mb": 2.28,
-      "modified": "2026-08-03T12:01:18.625916+00:00",
+      "modified": "2026-08-16T18:24:56.828609+00:00",
       "source": "KLIPS 스펠",
       "n": 16259,
       "survival": {
@@ -486,14 +550,31 @@
     "lifelines_yp.pkl": {
       "layer": "L4",
       "role": "재직 생존분석 (YP 스펠)",
-      "present": false
+      "present": true,
+      "size_mb": 1.45,
+      "modified": "2026-08-16T18:25:15.619340+00:00",
+      "source": "YP2021 스펠",
+      "n": 10173,
+      "survival": {
+        "metric": "5-fold C-index",
+        "train": 0.755,
+        "test": 0.754,
+        "test_std": 0.013,
+        "gap": 0.001,
+        "max_horizon_years": 5
+      },
+      "features": [
+        "age",
+        "sex",
+        "edu"
+      ]
     },
     "lifelines_klips_startup.pkl": {
       "layer": "L4",
       "role": "자영(창업) 상태 이탈 생존분석 (KLIPS 자영 스펠)",
       "present": true,
       "size_mb": 0.4,
-      "modified": "2026-08-13T09:18:43.841722+00:00",
+      "modified": "2026-08-16T18:24:57.909992+00:00",
       "source": "KLIPS 자영 스펠",
       "n": 2683,
       "treatment": "startup",
@@ -530,7 +611,26 @@
     "lifelines_klips_break.pkl": {
       "layer": "L4",
       "role": "복귀까지 걸리는 기간 (KLIPS 직업력 공백 스펠)",
-      "present": false
+      "present": true,
+      "size_mb": 0.77,
+      "modified": "2026-08-16T18:24:59.259901+00:00",
+      "source": "KLIPS 직업력 공백 스펠",
+      "n": 5209,
+      "treatment": "break",
+      "event_label": "다음 일자리 시작(복귀) — 미관측은 우측 중도절단",
+      "survival": {
+        "metric": "5-fold C-index",
+        "train": 0.565,
+        "test": 0.565,
+        "test_std": 0.011,
+        "gap": -0.0,
+        "max_horizon_years": 5
+      },
+      "features": [
+        "age",
+        "sex",
+        "edu"
+      ]
     },
     "layer1_lookup.pkl": {
       "layer": "L1",
@@ -542,7 +642,7 @@
       "role": "GOMS 인코더/중앙값 (knn.pkl·econml.pkl 전용)",
       "present": true,
       "size_mb": 0.0,
-      "modified": "2026-08-03T11:24:22.375474+00:00",
+      "modified": "2026-08-16T18:24:04.960955+00:00",
       "features": [
         "sex_enc",
         "major_enc",
@@ -557,12 +657,7 @@
     }
   },
   "missing": [
-    "econml_klips_break.pkl",
-    "econml_yp.pkl",
-    "knn_yp.pkl",
     "layer1_lookup.pkl",
-    "lifelines.pkl",
-    "lifelines_klips_break.pkl",
-    "lifelines_yp.pkl"
+    "lifelines.pkl"
   ]
 }
