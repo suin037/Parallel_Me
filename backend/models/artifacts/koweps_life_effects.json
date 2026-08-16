@@ -1,0 +1,586 @@
+{
+  "built_at": "2026-08-15T10:52:49.878937+00:00",
+  "source": "KOWEPS 1~20차 (2006~2025) Long Form",
+  "horizon": 1,
+  "estimator": "LinearDML (RF nuisance, 분석적 95% CI)",
+  "min_treated": 200,
+  "x_cols": [
+    "age",
+    "sex",
+    "edu"
+  ],
+  "w_cols": [
+    "income_now",
+    "occ",
+    "work_hours_type",
+    "household_size"
+  ],
+  "outcomes": {
+    "주거만족": {
+      "src": "p03_7",
+      "unit": "점(1~5)",
+      "top": 5,
+      "reverse": false,
+      "scale": "likert5",
+      "level": "개인",
+      "note": "정방향 — 전반만족과 +0.457 상관으로 확인"
+    },
+    "가족만족": {
+      "src": "p03_8",
+      "unit": "점(1~5)",
+      "top": 5,
+      "reverse": false,
+      "scale": "likert5",
+      "level": "개인",
+      "note": "정방향 — 전반만족과 +0.469 상관으로 확인"
+    },
+    "전반만족": {
+      "src": "p03_12",
+      "unit": "점(1~5)",
+      "top": 5,
+      "reverse": false,
+      "scale": "likert5",
+      "level": "개인",
+      "note": "정방향 — 소득과 +0.249 상관으로 확인"
+    },
+    "정신건강": {
+      "src": "p05_11",
+      "unit": "점(1~4)",
+      "top": 4,
+      "reverse": true,
+      "scale": "likert4",
+      "level": "개인",
+      "note": "'상당히 우울' 문항. 원본은 클수록 우울 — 만족과 -0.343 상관으로 확인 후 역코딩해 '덜 우울할수록 높음'으로 통일. KLIPS 에 없던 축"
+    },
+    "건강": {
+      "src": "h_med2",
+      "unit": "점(1~5)",
+      "top": 5,
+      "reverse": true,
+      "scale": "likert5",
+      "level": "개인",
+      "note": "원본은 클수록 나쁨 — 나이와 +0.573 상관으로 확인 후 역코딩"
+    },
+    "가처분소득": {
+      "src": "h_din",
+      "unit": "만원/년",
+      "top": null,
+      "reverse": false,
+      "scale": "continuous",
+      "level": "가구",
+      "note": "가구 단위 연간 소득 — 개인 월소득인 KLIPS 값과 직접 비교 불가"
+    }
+  },
+  "note": "소득 외 결과변수는 t 시점 같은 문항(outcome_now)을 W 에 넣은 직전 Y 통제본이다. 커리어 예측(L2 유사인물·L5 소득궤적)은 이 선택들에 적용되지 않는다 — 여기서 내는 건 처치효과뿐이다.",
+  "treatments": {
+    "결혼": {
+      "label": "미혼 유지 vs 결혼",
+      "coding": "5=미혼 → 1=유배우. 전이행렬로 확인(5→1 이 1,194건으로 압도적)",
+      "caveat": "가구 가처분소득 증가분의 상당 부분은 **배우자 소득이 가구에 합쳐진 것**이지 개인이 더 벌게 됐다는 뜻이 아니다. 결혼은 정의상 가구 구성이 바뀌는 사건이라 이 축은 특히 조심해서 읽어야 한다.",
+      "bands": {
+        "20-45": {
+          "가족만족": {
+            "ate": 0.2622,
+            "ci": [
+              0.2208,
+              0.3036
+            ],
+            "significant": true,
+            "ate_sd": 0.3836,
+            "control_sd": 0.6834,
+            "control_mean": 3.9094,
+            "naive_diff": 0.2815,
+            "n": 26343,
+            "n_treated": 1053,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "전반만족": {
+            "ate": 0.1481,
+            "ci": [
+              0.111,
+              0.1853
+            ],
+            "significant": true,
+            "ate_sd": 0.2218,
+            "control_sd": 0.6679,
+            "control_mean": 3.5866,
+            "naive_diff": 0.2176,
+            "n": 26327,
+            "n_treated": 1052,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "정신건강": {
+            "ate": 0.0434,
+            "ci": [
+              0.0096,
+              0.0773
+            ],
+            "significant": true,
+            "ate_sd": 0.0751,
+            "control_sd": 0.5784,
+            "control_mean": 3.7283,
+            "naive_diff": 0.0902,
+            "n": 26308,
+            "n_treated": 1052,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "가처분소득": {
+            "ate": 195.1731,
+            "ci": [
+              -141.2801,
+              531.6263
+            ],
+            "significant": false,
+            "ate_sd": 0.0471,
+            "control_sd": 4142.423,
+            "control_mean": 5635.301,
+            "naive_diff": 42.7436,
+            "n": 30957,
+            "n_treated": 1138,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size"
+            ]
+          }
+        },
+        "20-39": {
+          "가족만족": {
+            "ate": 0.2532,
+            "ci": [
+              0.2068,
+              0.2995
+            ],
+            "significant": true,
+            "ate_sd": 0.3761,
+            "control_sd": 0.6731,
+            "control_mean": 3.9308,
+            "naive_diff": 0.2768,
+            "n": 24355,
+            "n_treated": 1016,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "전반만족": {
+            "ate": 0.1478,
+            "ci": [
+              0.1065,
+              0.1891
+            ],
+            "significant": true,
+            "ate_sd": 0.2255,
+            "control_sd": 0.6554,
+            "control_mean": 3.6083,
+            "naive_diff": 0.2045,
+            "n": 24341,
+            "n_treated": 1015,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "정신건강": {
+            "ate": 0.0479,
+            "ci": [
+              0.0107,
+              0.0851
+            ],
+            "significant": true,
+            "ate_sd": 0.0844,
+            "control_sd": 0.5679,
+            "control_mean": 3.737,
+            "naive_diff": 0.0857,
+            "n": 24323,
+            "n_treated": 1015,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "가처분소득": {
+            "ate": 202.6864,
+            "ci": [
+              -187.8101,
+              593.1828
+            ],
+            "significant": false,
+            "ate_sd": 0.0482,
+            "control_sd": 4205.2818,
+            "control_mean": 5814.0428,
+            "naive_diff": -90.7106,
+            "n": 28415,
+            "n_treated": 1099,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size"
+            ]
+          }
+        }
+      }
+    },
+    "자가": {
+      "label": "임차 유지 vs 자가 전환",
+      "coding": "1=자가 2=전세 3=보증부월세 4=월세 5=기타 (코드북 명시)",
+      "caveat": "자가 전환은 대개 대출을 동반한다. 가처분소득에는 원리금 상환이 반영되지 않으므로 '집을 사면 여유가 이만큼 는다'로 읽으면 안 된다. 또한 살 수 있는 사람이 사는 것이라 미관측 자산이 남는다.",
+      "bands": {
+        "20-45": {
+          "주거만족": {
+            "ate": 0.3401,
+            "ci": [
+              0.3109,
+              0.3692
+            ],
+            "significant": true,
+            "ate_sd": 0.381,
+            "control_sd": 0.8926,
+            "control_mean": 3.3505,
+            "naive_diff": 0.4641,
+            "n": 32738,
+            "n_treated": 2918,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "전반만족": {
+            "ate": 0.0782,
+            "ci": [
+              0.0552,
+              0.1012
+            ],
+            "significant": true,
+            "ate_sd": 0.113,
+            "control_sd": 0.6918,
+            "control_mean": 3.5429,
+            "naive_diff": 0.1792,
+            "n": 32685,
+            "n_treated": 2911,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "정신건강": {
+            "ate": 0.0317,
+            "ci": [
+              0.011,
+              0.0524
+            ],
+            "significant": true,
+            "ate_sd": 0.052,
+            "control_sd": 0.6096,
+            "control_mean": 3.7007,
+            "naive_diff": 0.0829,
+            "n": 32694,
+            "n_treated": 2916,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "가처분소득": {
+            "ate": 277.0747,
+            "ci": [
+              138.1771,
+              415.9723
+            ],
+            "significant": true,
+            "ate_sd": 0.057,
+            "control_sd": 4862.4951,
+            "control_mean": 4821.379,
+            "naive_diff": 1171.7627,
+            "n": 35117,
+            "n_treated": 3108,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size"
+            ]
+          }
+        },
+        "20-39": {
+          "주거만족": {
+            "ate": 0.3394,
+            "ci": [
+              0.3054,
+              0.3734
+            ],
+            "significant": true,
+            "ate_sd": 0.3832,
+            "control_sd": 0.8858,
+            "control_mean": 3.3643,
+            "naive_diff": 0.4578,
+            "n": 24258,
+            "n_treated": 2165,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "전반만족": {
+            "ate": 0.0698,
+            "ci": [
+              0.043,
+              0.0966
+            ],
+            "significant": true,
+            "ate_sd": 0.1037,
+            "control_sd": 0.673,
+            "control_mean": 3.5754,
+            "naive_diff": 0.1565,
+            "n": 24222,
+            "n_treated": 2160,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "정신건강": {
+            "ate": 0.0421,
+            "ci": [
+              0.0181,
+              0.0661
+            ],
+            "significant": true,
+            "ate_sd": 0.07,
+            "control_sd": 0.602,
+            "control_mean": 3.7087,
+            "naive_diff": 0.0837,
+            "n": 24228,
+            "n_treated": 2163,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "가처분소득": {
+            "ate": 269.3506,
+            "ci": [
+              118.4921,
+              420.2092
+            ],
+            "significant": true,
+            "ate_sd": 0.0513,
+            "control_sd": 5247.1958,
+            "control_mean": 4795.9254,
+            "naive_diff": 1124.6029,
+            "n": 26119,
+            "n_treated": 2308,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size"
+            ]
+          }
+        }
+      }
+    },
+    "이사": {
+      "label": "현재 거주 유지 vs 이사",
+      "coding": "1=그렇다 2=아니다 ('지난 1년 이사' 문항)",
+      "caveat": "자발적 이사(더 나은 집으로)와 비자발적 이사(계약 만료·경제 사정)가 구분되지 않는다. 문항이 이유를 묻지 않으므로 두 방향이 상쇄될 수 있고, 그 경우 '효과 없음'은 '아무 일도 안 일어난다'가 아니다.",
+      "bands": {
+        "20-45": {
+          "주거만족": {
+            "ate": 0.2008,
+            "ci": [
+              0.1834,
+              0.2183
+            ],
+            "significant": true,
+            "ate_sd": 0.2414,
+            "control_sd": 0.8318,
+            "control_mean": 3.5366,
+            "naive_diff": 0.1577,
+            "n": 70822,
+            "n_treated": 8757,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "전반만족": {
+            "ate": 0.032,
+            "ci": [
+              0.0186,
+              0.0453
+            ],
+            "significant": true,
+            "ate_sd": 0.0491,
+            "control_sd": 0.651,
+            "control_mean": 3.6217,
+            "naive_diff": 0.0579,
+            "n": 70719,
+            "n_treated": 8744,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "정신건강": {
+            "ate": -0.0065,
+            "ci": [
+              -0.0189,
+              0.0059
+            ],
+            "significant": false,
+            "ate_sd": -0.0115,
+            "control_sd": 0.5609,
+            "control_mean": 3.7467,
+            "naive_diff": -0.0067,
+            "n": 70727,
+            "n_treated": 8748,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          }
+        },
+        "20-39": {
+          "주거만족": {
+            "ate": 0.2014,
+            "ci": [
+              0.1814,
+              0.2213
+            ],
+            "significant": true,
+            "ate_sd": 0.2415,
+            "control_sd": 0.8337,
+            "control_mean": 3.5342,
+            "naive_diff": 0.1586,
+            "n": 49712,
+            "n_treated": 6699,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "전반만족": {
+            "ate": 0.0371,
+            "ci": [
+              0.0218,
+              0.0524
+            ],
+            "significant": true,
+            "ate_sd": 0.058,
+            "control_sd": 0.6397,
+            "control_mean": 3.6388,
+            "naive_diff": 0.0574,
+            "n": 49645,
+            "n_treated": 6691,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "정신건강": {
+            "ate": -0.0006,
+            "ci": [
+              -0.0149,
+              0.0136
+            ],
+            "significant": false,
+            "ate_sd": -0.0011,
+            "control_sd": 0.5589,
+            "control_mean": 3.7483,
+            "naive_diff": -0.0026,
+            "n": 49647,
+            "n_treated": 6690,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          }
+        }
+      }
+    }
+  }
+}

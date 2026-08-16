@@ -1,0 +1,301 @@
+{
+  "version": "0.2",
+  "note": "문항 근거는 질문풀_설계.md 참조. evidence='none'인 문항은 파일럿 검증 대상.",
+  "fixed": [
+    {
+      "id": "C1",
+      "text": "오늘 가장 기억에 남는 순간 하나만 편하게 적어주세요.",
+      "layer": "core",
+      "metrics": [
+        "emotion_valence",
+        "emotion_density"
+      ],
+      "axes": [],
+      "risk": "low",
+      "risk_type": null,
+      "evidence": "partial",
+      "evidence_note": "매일 여는 앵커 문항 — 장면 중심 회상으로 진입장벽 낮춤. 그 순간 서술에서 전반적 기분(정서극성·정서밀도) 포착. C2(마음 걸린 순간+거리두기)와 짝: C1은 열린/긍정 앵커, C2는 처리. v0.2: '한 단어로 고르면' 퀴즈 프레임 제거(응답 회피 피드백).",
+      "distancing": false
+    },
+    {
+      "id": "C2",
+      "text": "오늘 가장 마음이 걸린 순간, 그때 나는 무엇을 했나요? 그 장면을 옆에서 지켜본 사람이라면 무엇이 보였을까요?",
+      "layer": "core",
+      "metrics": [
+        "coping_balance",
+        "first_person_ratio"
+      ],
+      "axes": [
+        "stability_vs_challenge"
+      ],
+      "risk": "mid",
+      "risk_type": "self_blame",
+      "evidence": "strong",
+      "evidence_note": "전단부=행동언어로 대처 구분(Lazarus & Folkman 1984). 후단부=자기거리두기(Kross, Ayduk & Mischel 2005).",
+      "distancing": true
+    }
+  ],
+  "rotation": [
+    {
+      "id": "T1",
+      "text": "최근 꽂힌 영화·책·애니·영상 하나. 어떤 장면이나 인물이 남았나요?",
+      "layer": "taste",
+      "metrics": [
+        "insight_ratio",
+        "emotion_valence"
+      ],
+      "axes": [
+        "meaning_vs_reward"
+      ],
+      "risk": "low",
+      "risk_type": null,
+      "evidence": "none",
+      "evidence_note": "리텐션 목적. 신호는 보너스.",
+      "distancing": false,
+      "attachment": true
+    },
+    {
+      "id": "T4",
+      "text": "요즘 시간이 가장 잘 녹아 없어지는 활동은 무엇인가요? 하고 난 뒤 어떤 기분이 남나요?",
+      "layer": "taste",
+      "metrics": [
+        "coping_balance",
+        "emotion_valence"
+      ],
+      "axes": [
+        "stability_vs_challenge"
+      ],
+      "risk": "mid",
+      "risk_type": "burnout",
+      "evidence": "partial",
+      "evidence_note": "회피 대처 탐지(Lazarus & Folkman). v0.1의 '딴짓' 표현 삭제 — 질문이 자책 프레임을 깔면 응답 언어가 오염됨.",
+      "distancing": false,
+      "attachment": true
+    },
+    {
+      "id": "T2",
+      "text": "요즘 반복해서 듣는 노래나 플레이리스트 있나요? 주로 언제 손이 가나요?",
+      "layer": "taste",
+      "metrics": [
+        "emotion_valence"
+      ],
+      "axes": [],
+      "risk": "low",
+      "risk_type": null,
+      "evidence": "none",
+      "evidence_note": "리텐션·라포용(노래). 성향 신호 약함 — interests 메모리로만, 성향축 미반영.",
+      "distancing": false,
+      "attachment": true
+    },
+    {
+      "id": "T6",
+      "text": "요즘 문득 떠오른 추억이나 장면이 있나요? 뭐가 그걸 떠올리게 했나요?",
+      "layer": "taste",
+      "metrics": [
+        "emotion_valence"
+      ],
+      "axes": [],
+      "risk": "low",
+      "risk_type": null,
+      "evidence": "none",
+      "evidence_note": "리텐션·라포용(추억). 성향 신호 약함 — interests 메모리로만. D3(회고)와 달리 가벼운 장면 회상.",
+      "distancing": false
+    },
+    {
+      "id": "R3",
+      "text": "오늘 잘 됐던 일 하나만 꼽는다면? 그게 왜 잘 됐다고 생각하나요?",
+      "layer": "relation",
+      "metrics": [
+        "emotion_valence",
+        "insight_ratio"
+      ],
+      "axes": [],
+      "risk": "low",
+      "risk_type": null,
+      "evidence": "strong",
+      "evidence_note": "Three Good Things (Seligman et al. 2005). 원 프로토콜의 '왜 잘 됐는지' 절 복원. 단 효과크기 작음(White, Uttl & Holder 2019, r≈.10).",
+      "distancing": false,
+      "min_per_week": 2
+    },
+    {
+      "id": "R4",
+      "text": "최근 \"이건 좀 나답지 않다\" 싶었던 순간이 있었나요?",
+      "layer": "relation",
+      "metrics": [
+        "insight_ratio",
+        "first_person_ratio"
+      ],
+      "axes": [
+        "meaning_vs_reward"
+      ],
+      "risk": "mid",
+      "risk_type": "self_blame",
+      "evidence": "none",
+      "evidence_note": "파일럿 검증 대상.",
+      "distancing": false
+    },
+    {
+      "id": "R5",
+      "text": "이번 주 나를 가장 지치게 한 건 무엇이었나요? 같은 상황에 있는 친구를 본다면, 그 친구에게 무엇이 필요해 보일까요?",
+      "layer": "relation",
+      "metrics": [
+        "coping_balance",
+        "absolutist_ratio"
+      ],
+      "axes": [
+        "growth_vs_balance"
+      ],
+      "risk": "high",
+      "risk_type": "burnout",
+      "evidence": "strong",
+      "evidence_note": "거리두기(Ayduk & Kross 2010) + 필요 언어화. v0.1의 1인칭('나에게 무엇이 있었으면')을 3인칭으로 교체.",
+      "distancing": true
+    },
+    {
+      "id": "D1",
+      "text": "최근 망설인 선택이 있나요? 무엇이 마음에 걸렸나요?",
+      "layer": "deep",
+      "metrics": [
+        "absolutist_ratio",
+        "coping_balance"
+      ],
+      "axes": [
+        "stability_vs_challenge"
+      ],
+      "risk": "mid",
+      "risk_type": "self_blame",
+      "evidence": "none",
+      "evidence_note": "근거 없음. 다만 제품 핵심축(선택 갈림길)에 직결되어 유지.",
+      "distancing": false
+    },
+    {
+      "id": "D2",
+      "text": "지금 삶에서 늘리고 싶은 것 하나, 줄이고 싶은 것 하나를 꼽는다면?",
+      "layer": "deep",
+      "metrics": [
+        "insight_ratio"
+      ],
+      "axes": [
+        "stability_vs_challenge",
+        "growth_vs_balance",
+        "relation_vs_autonomy",
+        "meaning_vs_reward"
+      ],
+      "risk": "low",
+      "risk_type": null,
+      "evidence": "none",
+      "evidence_note": "5축 직접 추출용. 근거 없음.",
+      "distancing": false
+    },
+    {
+      "id": "D3",
+      "text": "1년 전의 나와 지금의 나, 무엇이 달라졌나요?",
+      "layer": "deep",
+      "metrics": [
+        "insight_ratio",
+        "emotion_valence"
+      ],
+      "axes": [
+        "growth_vs_balance"
+      ],
+      "risk": "low",
+      "risk_type": null,
+      "evidence": "partial",
+      "evidence_note": "시간적 자기거리두기 — 과거 자기를 대상화하므로 몰입 반추 위험 낮음(Kross & Ayduk 2011). v0.1의 위기 '중'에서 '저'로 하향.",
+      "distancing": true
+    },
+    {
+      "id": "D4",
+      "text": "최근 누군가가 부러웠던 순간이 있나요? 무엇이 부러웠고, \"나도 저렇게 되고 싶다\"에 가까웠나요, \"왜 나는 안 될까\"에 가까웠나요?",
+      "layer": "deep",
+      "metrics": [
+        "first_person_ratio",
+        "emotion_density"
+      ],
+      "axes": [
+        "AXIS_EXTRACT"
+      ],
+      "risk": "mid",
+      "risk_type": "self_blame",
+      "evidence": "strong",
+      "evidence_note": "선의/악의 부러움 구분(Van de Ven, Zeelenberg & Pieters 2009). 선의=상승 동기→가치축 신호. 악의=박탈감→위협 신호이므로 축에 반영 금지.",
+      "distancing": false,
+      "special": "envy_split"
+    },
+    {
+      "id": "D5",
+      "text": "5년 뒤, 모든 게 잘 풀린 어느 평범한 하루를 상상해보세요. 아침에 일어나 무엇을 하고 있나요?",
+      "layer": "deep",
+      "metrics": [
+        "emotion_valence",
+        "insight_ratio"
+      ],
+      "axes": [
+        "meaning_vs_reward",
+        "stability_vs_challenge"
+      ],
+      "risk": "low",
+      "risk_type": null,
+      "evidence": "strong",
+      "evidence_note": "Best Possible Self (King 2001) — 트라우마 글쓰기보다 덜 괴롭고 안녕감 상승, 목표 명료성 증가. 위기 주간에도 안전.",
+      "distancing": false,
+      "crisis_safe": true,
+      "special": "bps"
+    },
+    {
+      "id": "D6",
+      "text": "최근 스스로에게 실망한 순간이 있었나요? 비슷한 일을 겪은 가까운 친구에게 말하듯, 그때의 나에게 무엇을 말해주고 싶나요?",
+      "layer": "deep",
+      "metrics": [
+        "first_person_ratio",
+        "absolutist_ratio"
+      ],
+      "axes": [
+        "meaning_vs_reward"
+      ],
+      "risk": "high",
+      "risk_type": "self_blame",
+      "evidence": "strong",
+      "evidence_note": "자기자비 글쓰기 표준 프롬프트(Leary et al. 2007; Breines & Chen 2012)의 자기친절 절. 후단부 제거 시 출제 금지.",
+      "distancing": true
+    },
+    {
+      "id": "T7",
+      "text": "오늘 에너지를 가장 크게 받은 일이 있다면 무엇인가요? 그게 왜 힘이 됐을까요?",
+      "layer": "taste",
+      "metrics": [
+        "emotion_valence"
+      ],
+      "axes": [],
+      "risk": "low",
+      "risk_type": null,
+      "evidence": "none",
+      "evidence_note": "에너지·활력의 원천. 무엇이 사람을 회복·동기부여시키는지 신호(가치·대처 자원). 긍정 프레임이라 라포에도 좋음.",
+      "distancing": false
+    }
+  ],
+  "benched": [
+    {
+      "id": "T3",
+      "text": "최근에 누군가에게 추천한 것 하나. 왜 하필 그 사람에게 그걸 권했나요?",
+      "reason": "근거 없음"
+    },
+    {
+      "id": "T5",
+      "text": "최근에 쓴 돈 중 제일 잘 썼다 싶은 것. 왜 그렇게 느꼈나요?",
+      "reason": "근거 없음"
+    },
+    {
+      "id": "R1",
+      "text": "이번 주에 누구와 있을 때가 가장 편했나요? 무엇이 편했나요?",
+      "reason": "근거 없음"
+    }
+  ],
+  "removed": [
+    {
+      "id": "R2",
+      "text": "최근 누군가에게 하지 못한 말이 있나요?",
+      "reason": "근거 없음 + 위기 최상 + 억제(inhibition)를 반복 회상시키는 방향. 표현적 글쓰기 이론상 억제는 해소 대상이지 매일 되새길 대상이 아님."
+    }
+  ]
+}

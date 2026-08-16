@@ -1,0 +1,208 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="768" viewBox="0 0 1024 768">
+<defs><symbol id="aries" viewBox="0 0 512 512">
+  <defs>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#B7C8E8" stroke-opacity="0.52" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 8">
+    <polyline points="120,330 150,240 220,180 280,185 330,220 365,300" /><polyline points="220,180 205,125 165,95 125,110 105,150" /><polyline points="280,185 300,125 345,92 390,110 412,150" />
+  </g>
+  <g fill="#DCE8FF">
+    <circle cx="120" cy="330" r="4" class="star"/><circle cx="120" cy="330" r="9.6" class="glow"/><circle cx="150" cy="240" r="3" class="star"/><circle cx="150" cy="240" r="7.199999999999999" class="glow"/><circle cx="220" cy="180" r="5" class="star"/><circle cx="220" cy="180" r="12.0" class="glow"/><circle cx="280" cy="185" r="5" class="star"/><circle cx="280" cy="185" r="12.0" class="glow"/><circle cx="365" cy="300" r="4" class="star"/><circle cx="365" cy="300" r="9.6" class="glow"/><circle cx="205" cy="125" r="3" class="star"/><circle cx="205" cy="125" r="7.199999999999999" class="glow"/><circle cx="165" cy="95" r="4" class="star"/><circle cx="165" cy="95" r="9.6" class="glow"/><circle cx="105" cy="150" r="3" class="star"/><circle cx="105" cy="150" r="7.199999999999999" class="glow"/><circle cx="300" cy="125" r="3" class="star"/><circle cx="300" cy="125" r="7.199999999999999" class="glow"/><circle cx="345" cy="92" r="4" class="star"/><circle cx="345" cy="92" r="9.6" class="glow"/><circle cx="412" cy="150" r="3" class="star"/><circle cx="412" cy="150" r="7.199999999999999" class="glow"/>
+  </g>
+  <style>
+    .glow { fill:#BFD5FF; opacity:.18; filter:url(#softGlow); }
+    .star { opacity:.82; }
+  </style>
+</symbol><symbol id="taurus" viewBox="0 0 512 512">
+  <defs>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#B7C8E8" stroke-opacity="0.52" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 8">
+    <polyline points="130,325 145,240 205,190 300,190 365,245 382,325" /><polyline points="205,190 160,140 105,120 75,145" /><polyline points="300,190 345,140 405,118 438,145" /><polyline points="180,245 225,265 280,265 330,245" />
+  </g>
+  <g fill="#DCE8FF">
+    <circle cx="130" cy="325" r="4" class="star"/><circle cx="130" cy="325" r="9.6" class="glow"/><circle cx="145" cy="240" r="3" class="star"/><circle cx="145" cy="240" r="7.199999999999999" class="glow"/><circle cx="205" cy="190" r="5" class="star"/><circle cx="205" cy="190" r="12.0" class="glow"/><circle cx="300" cy="190" r="5" class="star"/><circle cx="300" cy="190" r="12.0" class="glow"/><circle cx="365" cy="245" r="3" class="star"/><circle cx="365" cy="245" r="7.199999999999999" class="glow"/><circle cx="382" cy="325" r="4" class="star"/><circle cx="382" cy="325" r="9.6" class="glow"/><circle cx="160" cy="140" r="3" class="star"/><circle cx="160" cy="140" r="7.199999999999999" class="glow"/><circle cx="105" cy="120" r="4" class="star"/><circle cx="105" cy="120" r="9.6" class="glow"/><circle cx="75" cy="145" r="3" class="star"/><circle cx="75" cy="145" r="7.199999999999999" class="glow"/><circle cx="345" cy="140" r="3" class="star"/><circle cx="345" cy="140" r="7.199999999999999" class="glow"/><circle cx="405" cy="118" r="4" class="star"/><circle cx="405" cy="118" r="9.6" class="glow"/><circle cx="438" cy="145" r="3" class="star"/><circle cx="438" cy="145" r="7.199999999999999" class="glow"/><circle cx="225" cy="265" r="3" class="star"/><circle cx="225" cy="265" r="7.199999999999999" class="glow"/><circle cx="280" cy="265" r="3" class="star"/><circle cx="280" cy="265" r="7.199999999999999" class="glow"/>
+  </g>
+  <style>
+    .glow { fill:#BFD5FF; opacity:.18; filter:url(#softGlow); }
+    .star { opacity:.82; }
+  </style>
+</symbol><symbol id="gemini" viewBox="0 0 512 512">
+  <defs>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#B7C8E8" stroke-opacity="0.52" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 8">
+    <polyline points="165,110 150,165 150,245 140,340" /><polyline points="345,110 360,165 360,245 370,340" /><polyline points="150,165 255,145 360,165" /><polyline points="150,245 255,270 360,245" /><polyline points="165,110 220,90 255,110 290,90 345,110" />
+  </g>
+  <g fill="#DCE8FF">
+    <circle cx="165" cy="110" r="4" class="star"/><circle cx="165" cy="110" r="9.6" class="glow"/><circle cx="150" cy="165" r="3" class="star"/><circle cx="150" cy="165" r="7.199999999999999" class="glow"/><circle cx="150" cy="245" r="4" class="star"/><circle cx="150" cy="245" r="9.6" class="glow"/><circle cx="140" cy="340" r="4" class="star"/><circle cx="140" cy="340" r="9.6" class="glow"/><circle cx="345" cy="110" r="4" class="star"/><circle cx="345" cy="110" r="9.6" class="glow"/><circle cx="360" cy="165" r="3" class="star"/><circle cx="360" cy="165" r="7.199999999999999" class="glow"/><circle cx="360" cy="245" r="4" class="star"/><circle cx="360" cy="245" r="9.6" class="glow"/><circle cx="370" cy="340" r="4" class="star"/><circle cx="370" cy="340" r="9.6" class="glow"/><circle cx="255" cy="145" r="3" class="star"/><circle cx="255" cy="145" r="7.199999999999999" class="glow"/><circle cx="255" cy="270" r="3" class="star"/><circle cx="255" cy="270" r="7.199999999999999" class="glow"/><circle cx="220" cy="90" r="3" class="star"/><circle cx="220" cy="90" r="7.199999999999999" class="glow"/><circle cx="290" cy="90" r="3" class="star"/><circle cx="290" cy="90" r="7.199999999999999" class="glow"/>
+  </g>
+  <style>
+    .glow { fill:#BFD5FF; opacity:.18; filter:url(#softGlow); }
+    .star { opacity:.82; }
+  </style>
+</symbol><symbol id="cancer" viewBox="0 0 512 512">
+  <defs>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#B7C8E8" stroke-opacity="0.52" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 8">
+    <polyline points="255,210 205,190 160,205 125,245 95,255" /><polyline points="255,210 305,190 350,205 385,245 415,255" /><polyline points="200,230 170,285 130,315" /><polyline points="310,230 340,285 380,315" /><polyline points="220,255 255,280 290,255" />
+  </g>
+  <g fill="#DCE8FF">
+    <circle cx="255" cy="210" r="5" class="star"/><circle cx="255" cy="210" r="12.0" class="glow"/><circle cx="205" cy="190" r="3" class="star"/><circle cx="205" cy="190" r="7.199999999999999" class="glow"/><circle cx="160" cy="205" r="4" class="star"/><circle cx="160" cy="205" r="9.6" class="glow"/><circle cx="125" cy="245" r="3" class="star"/><circle cx="125" cy="245" r="7.199999999999999" class="glow"/><circle cx="95" cy="255" r="4" class="star"/><circle cx="95" cy="255" r="9.6" class="glow"/><circle cx="305" cy="190" r="3" class="star"/><circle cx="305" cy="190" r="7.199999999999999" class="glow"/><circle cx="350" cy="205" r="4" class="star"/><circle cx="350" cy="205" r="9.6" class="glow"/><circle cx="385" cy="245" r="3" class="star"/><circle cx="385" cy="245" r="7.199999999999999" class="glow"/><circle cx="415" cy="255" r="4" class="star"/><circle cx="415" cy="255" r="9.6" class="glow"/><circle cx="170" cy="285" r="3" class="star"/><circle cx="170" cy="285" r="7.199999999999999" class="glow"/><circle cx="130" cy="315" r="4" class="star"/><circle cx="130" cy="315" r="9.6" class="glow"/><circle cx="340" cy="285" r="3" class="star"/><circle cx="340" cy="285" r="7.199999999999999" class="glow"/><circle cx="380" cy="315" r="4" class="star"/><circle cx="380" cy="315" r="9.6" class="glow"/><circle cx="255" cy="280" r="4" class="star"/><circle cx="255" cy="280" r="9.6" class="glow"/>
+  </g>
+  <style>
+    .glow { fill:#BFD5FF; opacity:.18; filter:url(#softGlow); }
+    .star { opacity:.82; }
+  </style>
+</symbol><symbol id="leo" viewBox="0 0 512 512">
+  <defs>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#B7C8E8" stroke-opacity="0.52" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 8">
+    <polyline points="115,300 145,235 205,205 280,210 345,240 395,300" /><polyline points="205,205 180,155 200,105 250,90 300,110 320,160 300,210" /><polyline points="145,235 110,210 85,170" /><polyline points="280,210 310,180 350,175" />
+  </g>
+  <g fill="#DCE8FF">
+    <circle cx="115" cy="300" r="4" class="star"/><circle cx="115" cy="300" r="9.6" class="glow"/><circle cx="145" cy="235" r="3" class="star"/><circle cx="145" cy="235" r="7.199999999999999" class="glow"/><circle cx="205" cy="205" r="5" class="star"/><circle cx="205" cy="205" r="12.0" class="glow"/><circle cx="280" cy="210" r="5" class="star"/><circle cx="280" cy="210" r="12.0" class="glow"/><circle cx="345" cy="240" r="3" class="star"/><circle cx="345" cy="240" r="7.199999999999999" class="glow"/><circle cx="395" cy="300" r="4" class="star"/><circle cx="395" cy="300" r="9.6" class="glow"/><circle cx="180" cy="155" r="3" class="star"/><circle cx="180" cy="155" r="7.199999999999999" class="glow"/><circle cx="200" cy="105" r="4" class="star"/><circle cx="200" cy="105" r="9.6" class="glow"/><circle cx="250" cy="90" r="5" class="star"/><circle cx="250" cy="90" r="12.0" class="glow"/><circle cx="300" cy="110" r="4" class="star"/><circle cx="300" cy="110" r="9.6" class="glow"/><circle cx="320" cy="160" r="3" class="star"/><circle cx="320" cy="160" r="7.199999999999999" class="glow"/><circle cx="110" cy="210" r="3" class="star"/><circle cx="110" cy="210" r="7.199999999999999" class="glow"/><circle cx="85" cy="170" r="4" class="star"/><circle cx="85" cy="170" r="9.6" class="glow"/><circle cx="310" cy="180" r="3" class="star"/><circle cx="310" cy="180" r="7.199999999999999" class="glow"/><circle cx="350" cy="175" r="4" class="star"/><circle cx="350" cy="175" r="9.6" class="glow"/>
+  </g>
+  <style>
+    .glow { fill:#BFD5FF; opacity:.18; filter:url(#softGlow); }
+    .star { opacity:.82; }
+  </style>
+</symbol><symbol id="virgo" viewBox="0 0 512 512">
+  <defs>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#B7C8E8" stroke-opacity="0.52" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 8">
+    <polyline points="255,80 235,135 240,200 220,265 205,345" /><polyline points="240,200 175,235 135,300" /><polyline points="240,200 305,225 355,290" /><polyline points="205,345 255,325 305,345" /><polyline points="235,135 195,115 165,125" />
+  </g>
+  <g fill="#DCE8FF">
+    <circle cx="255" cy="80" r="5" class="star"/><circle cx="255" cy="80" r="12.0" class="glow"/><circle cx="235" cy="135" r="3" class="star"/><circle cx="235" cy="135" r="7.199999999999999" class="glow"/><circle cx="240" cy="200" r="5" class="star"/><circle cx="240" cy="200" r="12.0" class="glow"/><circle cx="220" cy="265" r="3" class="star"/><circle cx="220" cy="265" r="7.199999999999999" class="glow"/><circle cx="205" cy="345" r="4" class="star"/><circle cx="205" cy="345" r="9.6" class="glow"/><circle cx="175" cy="235" r="3" class="star"/><circle cx="175" cy="235" r="7.199999999999999" class="glow"/><circle cx="135" cy="300" r="4" class="star"/><circle cx="135" cy="300" r="9.6" class="glow"/><circle cx="305" cy="225" r="3" class="star"/><circle cx="305" cy="225" r="7.199999999999999" class="glow"/><circle cx="355" cy="290" r="4" class="star"/><circle cx="355" cy="290" r="9.6" class="glow"/><circle cx="255" cy="325" r="3" class="star"/><circle cx="255" cy="325" r="7.199999999999999" class="glow"/><circle cx="305" cy="345" r="4" class="star"/><circle cx="305" cy="345" r="9.6" class="glow"/><circle cx="195" cy="115" r="3" class="star"/><circle cx="195" cy="115" r="7.199999999999999" class="glow"/><circle cx="165" cy="125" r="4" class="star"/><circle cx="165" cy="125" r="9.6" class="glow"/>
+  </g>
+  <style>
+    .glow { fill:#BFD5FF; opacity:.18; filter:url(#softGlow); }
+    .star { opacity:.82; }
+  </style>
+</symbol><symbol id="libra" viewBox="0 0 512 512">
+  <defs>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#B7C8E8" stroke-opacity="0.52" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 8">
+    <polyline points="110,210 400,210" /><polyline points="255,120 255,340" /><polyline points="175,210 140,275 110,275 80,210" /><polyline points="335,210 370,275 400,275 430,210" /><polyline points="205,120 255,95 305,120" />
+  </g>
+  <g fill="#DCE8FF">
+    <circle cx="110" cy="210" r="4" class="star"/><circle cx="110" cy="210" r="9.6" class="glow"/><circle cx="400" cy="210" r="4" class="star"/><circle cx="400" cy="210" r="9.6" class="glow"/><circle cx="255" cy="120" r="5" class="star"/><circle cx="255" cy="120" r="12.0" class="glow"/><circle cx="255" cy="340" r="4" class="star"/><circle cx="255" cy="340" r="9.6" class="glow"/><circle cx="175" cy="210" r="3" class="star"/><circle cx="175" cy="210" r="7.199999999999999" class="glow"/><circle cx="140" cy="275" r="3" class="star"/><circle cx="140" cy="275" r="7.199999999999999" class="glow"/><circle cx="110" cy="275" r="4" class="star"/><circle cx="110" cy="275" r="9.6" class="glow"/><circle cx="80" cy="210" r="3" class="star"/><circle cx="80" cy="210" r="7.199999999999999" class="glow"/><circle cx="335" cy="210" r="3" class="star"/><circle cx="335" cy="210" r="7.199999999999999" class="glow"/><circle cx="370" cy="275" r="3" class="star"/><circle cx="370" cy="275" r="7.199999999999999" class="glow"/><circle cx="400" cy="275" r="4" class="star"/><circle cx="400" cy="275" r="9.6" class="glow"/><circle cx="430" cy="210" r="3" class="star"/><circle cx="430" cy="210" r="7.199999999999999" class="glow"/><circle cx="205" cy="120" r="3" class="star"/><circle cx="205" cy="120" r="7.199999999999999" class="glow"/><circle cx="255" cy="95" r="4" class="star"/><circle cx="255" cy="95" r="9.6" class="glow"/><circle cx="305" cy="120" r="3" class="star"/><circle cx="305" cy="120" r="7.199999999999999" class="glow"/>
+  </g>
+  <style>
+    .glow { fill:#BFD5FF; opacity:.18; filter:url(#softGlow); }
+    .star { opacity:.82; }
+  </style>
+</symbol><symbol id="scorpio" viewBox="0 0 512 512">
+  <defs>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#B7C8E8" stroke-opacity="0.52" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 8">
+    <polyline points="100,200 150,170 220,175 280,210 310,270 295,330 330,370 370,350" /><polyline points="150,170 130,130 95,110" /><polyline points="220,175 235,125 265,105" /><polyline points="370,350 405,325 420,290" />
+  </g>
+  <g fill="#DCE8FF">
+    <circle cx="100" cy="200" r="4" class="star"/><circle cx="100" cy="200" r="9.6" class="glow"/><circle cx="150" cy="170" r="3" class="star"/><circle cx="150" cy="170" r="7.199999999999999" class="glow"/><circle cx="220" cy="175" r="5" class="star"/><circle cx="220" cy="175" r="12.0" class="glow"/><circle cx="280" cy="210" r="4" class="star"/><circle cx="280" cy="210" r="9.6" class="glow"/><circle cx="310" cy="270" r="3" class="star"/><circle cx="310" cy="270" r="7.199999999999999" class="glow"/><circle cx="295" cy="330" r="4" class="star"/><circle cx="295" cy="330" r="9.6" class="glow"/><circle cx="330" cy="370" r="4" class="star"/><circle cx="330" cy="370" r="9.6" class="glow"/><circle cx="370" cy="350" r="4" class="star"/><circle cx="370" cy="350" r="9.6" class="glow"/><circle cx="130" cy="130" r="3" class="star"/><circle cx="130" cy="130" r="7.199999999999999" class="glow"/><circle cx="95" cy="110" r="4" class="star"/><circle cx="95" cy="110" r="9.6" class="glow"/><circle cx="235" cy="125" r="3" class="star"/><circle cx="235" cy="125" r="7.199999999999999" class="glow"/><circle cx="265" cy="105" r="4" class="star"/><circle cx="265" cy="105" r="9.6" class="glow"/><circle cx="405" cy="325" r="3" class="star"/><circle cx="405" cy="325" r="7.199999999999999" class="glow"/><circle cx="420" cy="290" r="4" class="star"/><circle cx="420" cy="290" r="9.6" class="glow"/>
+  </g>
+  <style>
+    .glow { fill:#BFD5FF; opacity:.18; filter:url(#softGlow); }
+    .star { opacity:.82; }
+  </style>
+</symbol><symbol id="sagittarius" viewBox="0 0 512 512">
+  <defs>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#B7C8E8" stroke-opacity="0.52" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 8">
+    <polyline points="145,330 190,270 250,235 305,200 370,145" /><polyline points="315,145 370,145 365,200" /><polyline points="250,235 220,180 180,145" /><polyline points="250,235 290,285 335,330" />
+  </g>
+  <g fill="#DCE8FF">
+    <circle cx="145" cy="330" r="4" class="star"/><circle cx="145" cy="330" r="9.6" class="glow"/><circle cx="190" cy="270" r="3" class="star"/><circle cx="190" cy="270" r="7.199999999999999" class="glow"/><circle cx="250" cy="235" r="5" class="star"/><circle cx="250" cy="235" r="12.0" class="glow"/><circle cx="305" cy="200" r="3" class="star"/><circle cx="305" cy="200" r="7.199999999999999" class="glow"/><circle cx="370" cy="145" r="5" class="star"/><circle cx="370" cy="145" r="12.0" class="glow"/><circle cx="315" cy="145" r="3" class="star"/><circle cx="315" cy="145" r="7.199999999999999" class="glow"/><circle cx="365" cy="200" r="3" class="star"/><circle cx="365" cy="200" r="7.199999999999999" class="glow"/><circle cx="220" cy="180" r="3" class="star"/><circle cx="220" cy="180" r="7.199999999999999" class="glow"/><circle cx="180" cy="145" r="4" class="star"/><circle cx="180" cy="145" r="9.6" class="glow"/><circle cx="290" cy="285" r="3" class="star"/><circle cx="290" cy="285" r="7.199999999999999" class="glow"/><circle cx="335" cy="330" r="4" class="star"/><circle cx="335" cy="330" r="9.6" class="glow"/>
+  </g>
+  <style>
+    .glow { fill:#BFD5FF; opacity:.18; filter:url(#softGlow); }
+    .star { opacity:.82; }
+  </style>
+</symbol><symbol id="capricorn" viewBox="0 0 512 512">
+  <defs>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#B7C8E8" stroke-opacity="0.52" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 8">
+    <polyline points="110,220 165,180 235,190 300,230 340,290 325,350" /><polyline points="165,180 140,125 100,105" /><polyline points="235,190 260,135 300,115" /><polyline points="340,290 390,275 420,235" />
+  </g>
+  <g fill="#DCE8FF">
+    <circle cx="110" cy="220" r="4" class="star"/><circle cx="110" cy="220" r="9.6" class="glow"/><circle cx="165" cy="180" r="4" class="star"/><circle cx="165" cy="180" r="9.6" class="glow"/><circle cx="235" cy="190" r="5" class="star"/><circle cx="235" cy="190" r="12.0" class="glow"/><circle cx="300" cy="230" r="3" class="star"/><circle cx="300" cy="230" r="7.199999999999999" class="glow"/><circle cx="340" cy="290" r="4" class="star"/><circle cx="340" cy="290" r="9.6" class="glow"/><circle cx="325" cy="350" r="4" class="star"/><circle cx="325" cy="350" r="9.6" class="glow"/><circle cx="140" cy="125" r="3" class="star"/><circle cx="140" cy="125" r="7.199999999999999" class="glow"/><circle cx="100" cy="105" r="4" class="star"/><circle cx="100" cy="105" r="9.6" class="glow"/><circle cx="260" cy="135" r="3" class="star"/><circle cx="260" cy="135" r="7.199999999999999" class="glow"/><circle cx="300" cy="115" r="4" class="star"/><circle cx="300" cy="115" r="9.6" class="glow"/><circle cx="390" cy="275" r="3" class="star"/><circle cx="390" cy="275" r="7.199999999999999" class="glow"/><circle cx="420" cy="235" r="4" class="star"/><circle cx="420" cy="235" r="9.6" class="glow"/>
+  </g>
+  <style>
+    .glow { fill:#BFD5FF; opacity:.18; filter:url(#softGlow); }
+    .star { opacity:.82; }
+  </style>
+</symbol><symbol id="aquarius" viewBox="0 0 512 512">
+  <defs>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#B7C8E8" stroke-opacity="0.52" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 8">
+    <polyline points="150,115 205,145 255,120 310,150 365,125" /><polyline points="165,190 220,220 270,195 325,225 380,200" /><polyline points="255,120 255,195 235,285 205,345" /><polyline points="270,195 295,285 325,345" />
+  </g>
+  <g fill="#DCE8FF">
+    <circle cx="150" cy="115" r="4" class="star"/><circle cx="150" cy="115" r="9.6" class="glow"/><circle cx="205" cy="145" r="3" class="star"/><circle cx="205" cy="145" r="7.199999999999999" class="glow"/><circle cx="255" cy="120" r="5" class="star"/><circle cx="255" cy="120" r="12.0" class="glow"/><circle cx="310" cy="150" r="3" class="star"/><circle cx="310" cy="150" r="7.199999999999999" class="glow"/><circle cx="365" cy="125" r="4" class="star"/><circle cx="365" cy="125" r="9.6" class="glow"/><circle cx="165" cy="190" r="4" class="star"/><circle cx="165" cy="190" r="9.6" class="glow"/><circle cx="220" cy="220" r="3" class="star"/><circle cx="220" cy="220" r="7.199999999999999" class="glow"/><circle cx="270" cy="195" r="5" class="star"/><circle cx="270" cy="195" r="12.0" class="glow"/><circle cx="325" cy="225" r="3" class="star"/><circle cx="325" cy="225" r="7.199999999999999" class="glow"/><circle cx="380" cy="200" r="4" class="star"/><circle cx="380" cy="200" r="9.6" class="glow"/><circle cx="235" cy="285" r="3" class="star"/><circle cx="235" cy="285" r="7.199999999999999" class="glow"/><circle cx="205" cy="345" r="4" class="star"/><circle cx="205" cy="345" r="9.6" class="glow"/><circle cx="295" cy="285" r="3" class="star"/><circle cx="295" cy="285" r="7.199999999999999" class="glow"/><circle cx="325" cy="345" r="4" class="star"/><circle cx="325" cy="345" r="9.6" class="glow"/>
+  </g>
+  <style>
+    .glow { fill:#BFD5FF; opacity:.18; filter:url(#softGlow); }
+    .star { opacity:.82; }
+  </style>
+</symbol><symbol id="pisces" viewBox="0 0 512 512">
+  <defs>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke="#B7C8E8" stroke-opacity="0.52" stroke-width="2.2"
+     stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 8">
+    <polyline points="110,200 150,165 205,170 245,210 205,250 150,255 110,220" /><polyline points="265,210 305,170 360,165 405,200 405,220 360,255 305,250 265,210" /><polyline points="245,210 265,210" />
+  </g>
+  <g fill="#DCE8FF">
+    <circle cx="110" cy="200" r="4" class="star"/><circle cx="110" cy="200" r="9.6" class="glow"/><circle cx="150" cy="165" r="3" class="star"/><circle cx="150" cy="165" r="7.199999999999999" class="glow"/><circle cx="205" cy="170" r="4" class="star"/><circle cx="205" cy="170" r="9.6" class="glow"/><circle cx="245" cy="210" r="5" class="star"/><circle cx="245" cy="210" r="12.0" class="glow"/><circle cx="205" cy="250" r="3" class="star"/><circle cx="205" cy="250" r="7.199999999999999" class="glow"/><circle cx="150" cy="255" r="4" class="star"/><circle cx="150" cy="255" r="9.6" class="glow"/><circle cx="110" cy="220" r="3" class="star"/><circle cx="110" cy="220" r="7.199999999999999" class="glow"/><circle cx="265" cy="210" r="5" class="star"/><circle cx="265" cy="210" r="12.0" class="glow"/><circle cx="305" cy="170" r="4" class="star"/><circle cx="305" cy="170" r="9.6" class="glow"/><circle cx="360" cy="165" r="3" class="star"/><circle cx="360" cy="165" r="7.199999999999999" class="glow"/><circle cx="405" cy="200" r="4" class="star"/><circle cx="405" cy="200" r="9.6" class="glow"/><circle cx="405" cy="220" r="3" class="star"/><circle cx="405" cy="220" r="7.199999999999999" class="glow"/><circle cx="360" cy="255" r="4" class="star"/><circle cx="360" cy="255" r="9.6" class="glow"/><circle cx="305" cy="250" r="3" class="star"/><circle cx="305" cy="250" r="7.199999999999999" class="glow"/>
+  </g>
+  <style>
+    .glow { fill:#BFD5FF; opacity:.18; filter:url(#softGlow); }
+    .star { opacity:.82; }
+  </style>
+</symbol></defs>
+<use href="#aries" x="0" y="0" width="256" height="256"/><use href="#taurus" x="256" y="0" width="256" height="256"/><use href="#gemini" x="512" y="0" width="256" height="256"/><use href="#cancer" x="768" y="0" width="256" height="256"/><use href="#leo" x="0" y="256" width="256" height="256"/><use href="#virgo" x="256" y="256" width="256" height="256"/><use href="#libra" x="512" y="256" width="256" height="256"/><use href="#scorpio" x="768" y="256" width="256" height="256"/><use href="#sagittarius" x="0" y="512" width="256" height="256"/><use href="#capricorn" x="256" y="512" width="256" height="256"/><use href="#aquarius" x="512" y="512" width="256" height="256"/><use href="#pisces" x="768" y="512" width="256" height="256"/>
+</svg>

@@ -1,0 +1,399 @@
+{
+  "coarse": {
+    "E10": "분노",
+    "E20": "슬픔",
+    "E30": "불안",
+    "E40": "상처",
+    "E50": "당황",
+    "E60": "기쁨"
+  },
+  "fine": {
+    "E10": {
+      "name": "분노",
+      "coarse": "E10",
+      "valence": -0.75,
+      "arousal": 0.85
+    },
+    "E11": {
+      "name": "툴툴대는",
+      "coarse": "E10",
+      "valence": -0.4,
+      "arousal": 0.45
+    },
+    "E12": {
+      "name": "좌절한",
+      "coarse": "E10",
+      "valence": -0.7,
+      "arousal": 0.55
+    },
+    "E13": {
+      "name": "짜증내는",
+      "coarse": "E10",
+      "valence": -0.6,
+      "arousal": 0.65
+    },
+    "E14": {
+      "name": "방어적인",
+      "coarse": "E10",
+      "valence": -0.4,
+      "arousal": 0.6
+    },
+    "E15": {
+      "name": "악의적인",
+      "coarse": "E10",
+      "valence": -0.7,
+      "arousal": 0.7
+    },
+    "E16": {
+      "name": "안달하는",
+      "coarse": "E10",
+      "valence": -0.4,
+      "arousal": 0.75
+    },
+    "E17": {
+      "name": "구역질 나는",
+      "coarse": "E10",
+      "valence": -0.8,
+      "arousal": 0.6
+    },
+    "E18": {
+      "name": "노여워하는",
+      "coarse": "E10",
+      "valence": -0.75,
+      "arousal": 0.8
+    },
+    "E19": {
+      "name": "성가신",
+      "coarse": "E10",
+      "valence": -0.5,
+      "arousal": 0.5
+    },
+    "E20": {
+      "name": "슬픔",
+      "coarse": "E20",
+      "valence": -0.75,
+      "arousal": 0.3
+    },
+    "E21": {
+      "name": "실망한",
+      "coarse": "E20",
+      "valence": -0.65,
+      "arousal": 0.35
+    },
+    "E22": {
+      "name": "비통한",
+      "coarse": "E20",
+      "valence": -0.9,
+      "arousal": 0.5
+    },
+    "E23": {
+      "name": "후회되는",
+      "coarse": "E20",
+      "valence": -0.6,
+      "arousal": 0.4
+    },
+    "E24": {
+      "name": "우울한",
+      "coarse": "E20",
+      "valence": -0.8,
+      "arousal": 0.2
+    },
+    "E25": {
+      "name": "마비된",
+      "coarse": "E20",
+      "valence": -0.6,
+      "arousal": 0.05
+    },
+    "E26": {
+      "name": "염세적인",
+      "coarse": "E20",
+      "valence": -0.65,
+      "arousal": 0.25
+    },
+    "E27": {
+      "name": "눈물이 나는",
+      "coarse": "E20",
+      "valence": -0.7,
+      "arousal": 0.5
+    },
+    "E28": {
+      "name": "낙담한",
+      "coarse": "E20",
+      "valence": -0.7,
+      "arousal": 0.25
+    },
+    "E29": {
+      "name": "환멸을 느끼는",
+      "coarse": "E20",
+      "valence": -0.7,
+      "arousal": 0.4
+    },
+    "E30": {
+      "name": "불안",
+      "coarse": "E30",
+      "valence": -0.6,
+      "arousal": 0.7
+    },
+    "E31": {
+      "name": "두려운",
+      "coarse": "E30",
+      "valence": -0.75,
+      "arousal": 0.8
+    },
+    "E32": {
+      "name": "스트레스 받는",
+      "coarse": "E30",
+      "valence": -0.65,
+      "arousal": 0.75
+    },
+    "E33": {
+      "name": "취약한",
+      "coarse": "E30",
+      "valence": -0.55,
+      "arousal": 0.45
+    },
+    "E34": {
+      "name": "혼란스러운",
+      "coarse": "E30",
+      "valence": -0.4,
+      "arousal": 0.55
+    },
+    "E35": {
+      "name": "당혹스러운",
+      "coarse": "E30",
+      "valence": -0.45,
+      "arousal": 0.6
+    },
+    "E36": {
+      "name": "회의적인",
+      "coarse": "E30",
+      "valence": -0.35,
+      "arousal": 0.35
+    },
+    "E37": {
+      "name": "걱정스러운",
+      "coarse": "E30",
+      "valence": -0.55,
+      "arousal": 0.55
+    },
+    "E38": {
+      "name": "조심스러운",
+      "coarse": "E30",
+      "valence": -0.2,
+      "arousal": 0.45
+    },
+    "E39": {
+      "name": "초조한",
+      "coarse": "E30",
+      "valence": -0.55,
+      "arousal": 0.75
+    },
+    "E40": {
+      "name": "상처",
+      "coarse": "E40",
+      "valence": -0.75,
+      "arousal": 0.5
+    },
+    "E41": {
+      "name": "질투하는",
+      "coarse": "E40",
+      "valence": -0.5,
+      "arousal": 0.6
+    },
+    "E42": {
+      "name": "배신당한",
+      "coarse": "E40",
+      "valence": -0.85,
+      "arousal": 0.65
+    },
+    "E43": {
+      "name": "고립된",
+      "coarse": "E40",
+      "valence": -0.75,
+      "arousal": 0.35
+    },
+    "E44": {
+      "name": "충격 받은",
+      "coarse": "E40",
+      "valence": -0.7,
+      "arousal": 0.85
+    },
+    "E45": {
+      "name": "가난한 불우한",
+      "coarse": "E40",
+      "valence": -0.65,
+      "arousal": 0.3
+    },
+    "E46": {
+      "name": "희생된",
+      "coarse": "E40",
+      "valence": -0.6,
+      "arousal": 0.45
+    },
+    "E47": {
+      "name": "억울한",
+      "coarse": "E40",
+      "valence": -0.7,
+      "arousal": 0.65
+    },
+    "E48": {
+      "name": "괴로워하는",
+      "coarse": "E40",
+      "valence": -0.8,
+      "arousal": 0.55
+    },
+    "E49": {
+      "name": "오해받은",
+      "coarse": "E40",
+      "valence": -0.6,
+      "arousal": 0.55
+    },
+    "E50": {
+      "name": "당황",
+      "coarse": "E50",
+      "valence": -0.4,
+      "arousal": 0.7
+    },
+    "E51": {
+      "name": "고립된(당황한)",
+      "coarse": "E50",
+      "valence": -0.7,
+      "arousal": 0.4
+    },
+    "E52": {
+      "name": "남의 시선을 의식하는",
+      "coarse": "E50",
+      "valence": -0.45,
+      "arousal": 0.6
+    },
+    "E53": {
+      "name": "외로운",
+      "coarse": "E50",
+      "valence": -0.7,
+      "arousal": 0.3
+    },
+    "E54": {
+      "name": "열등감",
+      "coarse": "E50",
+      "valence": -0.7,
+      "arousal": 0.45
+    },
+    "E55": {
+      "name": "죄책감의",
+      "coarse": "E50",
+      "valence": -0.65,
+      "arousal": 0.5
+    },
+    "E56": {
+      "name": "부끄러운",
+      "coarse": "E50",
+      "valence": -0.5,
+      "arousal": 0.55
+    },
+    "E57": {
+      "name": "혐오스러운",
+      "coarse": "E50",
+      "valence": -0.7,
+      "arousal": 0.6
+    },
+    "E58": {
+      "name": "한심한",
+      "coarse": "E50",
+      "valence": -0.65,
+      "arousal": 0.4
+    },
+    "E59": {
+      "name": "혼란스러운(당황한)",
+      "coarse": "E50",
+      "valence": -0.4,
+      "arousal": 0.6
+    },
+    "E60": {
+      "name": "기쁨",
+      "coarse": "E60",
+      "valence": 0.8,
+      "arousal": 0.65
+    },
+    "E61": {
+      "name": "감사하는",
+      "coarse": "E60",
+      "valence": 0.75,
+      "arousal": 0.45
+    },
+    "E62": {
+      "name": "신뢰하는",
+      "coarse": "E60",
+      "valence": 0.6,
+      "arousal": 0.35
+    },
+    "E63": {
+      "name": "편안한",
+      "coarse": "E60",
+      "valence": 0.7,
+      "arousal": 0.15
+    },
+    "E64": {
+      "name": "만족스러운",
+      "coarse": "E60",
+      "valence": 0.75,
+      "arousal": 0.35
+    },
+    "E65": {
+      "name": "흥분",
+      "coarse": "E60",
+      "valence": 0.65,
+      "arousal": 0.9
+    },
+    "E66": {
+      "name": "느긋",
+      "coarse": "E60",
+      "valence": 0.6,
+      "arousal": 0.1
+    },
+    "E67": {
+      "name": "안도",
+      "coarse": "E60",
+      "valence": 0.55,
+      "arousal": 0.25
+    },
+    "E68": {
+      "name": "신이 난",
+      "coarse": "E60",
+      "valence": 0.85,
+      "arousal": 0.85
+    },
+    "E69": {
+      "name": "자신하는",
+      "coarse": "E60",
+      "valence": 0.7,
+      "arousal": 0.55
+    }
+  },
+  "situation": {
+    "S01": "가족관계",
+    "S02": "학업·성적",
+    "S03": "학교폭력·따돌림",
+    "S04": "대인관계·친구",
+    "S05": "연애·결혼",
+    "S06": "직장·업무",
+    "S07": "자녀·배우자",
+    "S08": "은퇴",
+    "S09": "노화·건강",
+    "S10": "직장 내 소외",
+    "S11": "질병·건강",
+    "S13": "노후·요양",
+    "UNK": "미상"
+  },
+  "display_merge": {
+    "_note": "실제 일기 검증 결과 E40(상처)/E50(당황) 구분 불가. UI 표시 시 병합.",
+    "map": {
+      "상처": "속상함",
+      "당황": "속상함"
+    },
+    "eval": {
+      "6class_f1": 0.636,
+      "5class_f1": 0.737,
+      "n": 58
+    }
+  }
+}

@@ -1,0 +1,306 @@
+{
+  "built_at": "2026-08-15T08:34:11.773786+00:00",
+  "source": "KOWEPS 1~20차 (2006~2025) Long Form",
+  "treatment": "p02_1 1(임금근로자) → 2(자영업·고용주). 대조 = 임금근로 유지",
+  "treatment_coding_source": "결합데이터(1-20차) 코드북 문항내용 — 추론이 아님",
+  "horizon": 1,
+  "estimator": "LinearDML (RF nuisance, 분석적 95% CI)",
+  "min_treated": 200,
+  "x_cols": [
+    "age",
+    "sex",
+    "edu"
+  ],
+  "w_cols": [
+    "income_now",
+    "occ",
+    "work_hours_type",
+    "household_size"
+  ],
+  "primary_outcomes": [
+    "전반만족",
+    "건강",
+    "정신건강"
+  ],
+  "outcomes": {
+    "전반만족": {
+      "src": "p03_12",
+      "unit": "점(1~5)",
+      "top": 5,
+      "reverse": false,
+      "scale": "likert5",
+      "level": "개인",
+      "note": "정방향 — 소득과 +0.249 상관으로 확인"
+    },
+    "건강": {
+      "src": "h_med2",
+      "unit": "점(1~5)",
+      "top": 5,
+      "reverse": true,
+      "scale": "likert5",
+      "level": "개인",
+      "note": "원본은 클수록 나쁨 — 나이와 +0.573 상관으로 확인 후 역코딩"
+    },
+    "정신건강": {
+      "src": "p05_11",
+      "unit": "점(1~4)",
+      "top": 4,
+      "reverse": true,
+      "scale": "likert4",
+      "level": "개인",
+      "note": "'상당히 우울' 문항. 원본은 클수록 우울 — 만족과 -0.343 상관으로 확인 후 역코딩해 '덜 우울할수록 높음'으로 통일. KLIPS 에 없던 축"
+    },
+    "가처분소득": {
+      "src": "h_din",
+      "unit": "만원/년",
+      "top": null,
+      "reverse": false,
+      "scale": "continuous",
+      "level": "가구",
+      "note": "가구 단위 연간 소득 — 개인 월소득인 KLIPS 값과 직접 비교 불가"
+    }
+  },
+  "caveats": {
+    "household_income": "`h_din` 은 **가구** 가처분소득이다. 창업한 본인의 소득이 아니라 배우자·동거가구원의 소득이 함께 들어가므로 개인 창업효과가 희석된다. KLIPS 창업효과(+47.2만원/월, 개인 월소득)와 **단위도 대상도 달라 나란히 비교하면 안 된다.** 다만 KLIPS 처럼 '자영이 되면 임금 문항이 결측이 되어 표본에서 빠지는' 생존편의는 여기엔 없다 — 가구소득은 폐업해도 관측된다.",
+    "self_report": "만족·건강·정신건강은 자기보고 척도다. 등간 척도가 아니므로 점 단위보다 `ate_sd`(대조군 표준편차 대비)로 읽을 것. 창업 직후엔 같은 처지를 더 후하게 평가하는 쪽으로 기준이 이동할 수 있다(response shift).",
+    "control_group": "대조군은 '그 해에 임금근로를 유지한 사람'이다. 기존 first-event 패널의 대조군('25~35세 내내 한 번도 창업하지 않은 사람')과 다르며, 그쪽을 쓰면 창업 성향이 없는 사람이 대조군에 몰려 효과가 부풀려진다."
+  },
+  "bands": {
+    "20-45": {
+      "전반만족": {
+        "ate": -0.0155,
+        "ci": [
+          -0.0578,
+          0.0269
+        ],
+        "significant": false,
+        "ate_sd": -0.0256,
+        "control_sd": 0.6027,
+        "control_mean": 3.6952,
+        "naive_diff": -0.0825,
+        "n": 39652,
+        "n_treated": 852,
+        "w_cols": [
+          "income_now",
+          "occ",
+          "work_hours_type",
+          "household_size",
+          "outcome_now"
+        ],
+        "baseline_controlled": true,
+        "without_baseline_control": {
+          "ate": -0.0105,
+          "ci": [
+            -0.0536,
+            0.0326
+          ],
+          "significant": false,
+          "ate_sd": -0.0173,
+          "control_sd": 0.6042,
+          "control_mean": 3.693,
+          "naive_diff": -0.0816,
+          "n": 40698,
+          "n_treated": 880,
+          "w_cols": [
+            "income_now",
+            "occ",
+            "work_hours_type",
+            "household_size"
+          ]
+        }
+      },
+      "건강": {
+        "ate": 0.0878,
+        "ci": [
+          0.044,
+          0.1315
+        ],
+        "significant": true,
+        "ate_sd": 0.1328,
+        "control_sd": 0.6609,
+        "control_mean": 4.0636,
+        "naive_diff": 0.061,
+        "n": 42498,
+        "n_treated": 907,
+        "w_cols": [
+          "income_now",
+          "occ",
+          "work_hours_type",
+          "household_size",
+          "outcome_now"
+        ],
+        "baseline_controlled": true,
+        "without_baseline_control": {
+          "ate": 0.0923,
+          "ci": [
+            0.0474,
+            0.1372
+          ],
+          "significant": true,
+          "ate_sd": 0.1396,
+          "control_sd": 0.6608,
+          "control_mean": 4.0636,
+          "naive_diff": 0.0609,
+          "n": 42512,
+          "n_treated": 908,
+          "w_cols": [
+            "income_now",
+            "occ",
+            "work_hours_type",
+            "household_size"
+          ]
+        }
+      },
+      "정신건강": {
+        "ate": -0.0368,
+        "ci": [
+          -0.0795,
+          0.0059
+        ],
+        "significant": false,
+        "ate_sd": -0.0735,
+        "control_sd": 0.5015,
+        "control_mean": 3.7949,
+        "naive_diff": -0.0241,
+        "n": 39682,
+        "n_treated": 855,
+        "w_cols": [
+          "income_now",
+          "occ",
+          "work_hours_type",
+          "household_size",
+          "outcome_now"
+        ],
+        "baseline_controlled": true,
+        "without_baseline_control": {
+          "ate": -0.0395,
+          "ci": [
+            -0.0823,
+            0.0034
+          ],
+          "significant": false,
+          "ate_sd": -0.0787,
+          "control_sd": 0.5015,
+          "control_mean": 3.7947,
+          "naive_diff": -0.0299,
+          "n": 40707,
+          "n_treated": 880,
+          "w_cols": [
+            "income_now",
+            "occ",
+            "work_hours_type",
+            "household_size"
+          ]
+        }
+      },
+      "가처분소득": {
+        "ate": 200.7982,
+        "ci": [
+          -258.5107,
+          660.107
+        ],
+        "significant": false,
+        "ate_sd": 0.0551,
+        "control_sd": 3645.174,
+        "control_mean": 6044.1433,
+        "naive_diff": -251.1979,
+        "n": 42477,
+        "n_treated": 900,
+        "w_cols": [
+          "income_now",
+          "occ",
+          "work_hours_type",
+          "household_size"
+        ]
+      }
+    },
+    "20-39": {
+      "전반만족": {
+        "ate": -0.0092,
+        "ci": [
+          -0.0619,
+          0.0436
+        ],
+        "significant": false,
+        "ate_sd": -0.0155,
+        "control_sd": 0.5918,
+        "control_mean": 3.7097,
+        "naive_diff": -0.0858,
+        "n": 27208,
+        "n_treated": 529,
+        "w_cols": [
+          "income_now",
+          "occ",
+          "work_hours_type",
+          "household_size",
+          "outcome_now"
+        ],
+        "baseline_controlled": true
+      },
+      "건강": {
+        "ate": 0.1017,
+        "ci": [
+          0.0464,
+          0.157
+        ],
+        "significant": true,
+        "ate_sd": 0.1585,
+        "control_sd": 0.6417,
+        "control_mean": 4.1131,
+        "naive_diff": 0.0788,
+        "n": 29266,
+        "n_treated": 563,
+        "w_cols": [
+          "income_now",
+          "occ",
+          "work_hours_type",
+          "household_size",
+          "outcome_now"
+        ],
+        "baseline_controlled": true
+      },
+      "정신건강": {
+        "ate": -0.0643,
+        "ci": [
+          -0.1222,
+          -0.0065
+        ],
+        "significant": true,
+        "ate_sd": -0.128,
+        "control_sd": 0.5026,
+        "control_mean": 3.7951,
+        "naive_diff": -0.0409,
+        "n": 27223,
+        "n_treated": 529,
+        "w_cols": [
+          "income_now",
+          "occ",
+          "work_hours_type",
+          "household_size",
+          "outcome_now"
+        ],
+        "baseline_controlled": true
+      },
+      "가처분소득": {
+        "ate": 297.8011,
+        "ci": [
+          -358.4235,
+          954.0258
+        ],
+        "significant": false,
+        "ate_sd": 0.0815,
+        "control_sd": 3651.8659,
+        "control_mean": 5965.111,
+        "naive_diff": -132.4831,
+        "n": 29256,
+        "n_treated": 560,
+        "w_cols": [
+          "income_now",
+          "occ",
+          "work_hours_type",
+          "household_size"
+        ]
+      }
+    }
+  }
+}

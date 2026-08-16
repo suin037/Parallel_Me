@@ -1,0 +1,34 @@
+{
+  "theory_ko": "자기거리두기",
+  "theory_en": "Self-Distancing",
+  "schema_version": "v1",
+  "cards": [
+    {
+      "card_id": "self_distancing_reflection_002",
+      "theory_ko": "자기거리두기",
+      "theory_en": "Self-Distancing",
+      "theorist": "Kross, Ayduk & Mischel",
+      "year": 2005,
+      "concept_ko": "거리두기 성찰 (Self-distanced reflection)",
+      "summary": "힘든 경험을 곱씹을 때, 그 안에 잠긴 채 1인칭으로 '왜'를 되묻는 몰입적 반추는 감정을 다시 점화한다. 반면 마치 옆에서 지켜보듯 한 발 물러나 바라보는 거리두기 성찰은 같은 사건을 덜 고통스럽게 재해석하게 한다. 회복과 재점화의 갈림길은 '왜냐'가 아니라 '어느 시점에서 보느냐'다.",
+      "applicable_situations": {
+        "indicator": ["삶의_질"],
+        "direction": "낮을수록_적용",
+        "emotion_keywords": ["반추", "자책", "곱씹음", "소진"],
+        "decision_types": ["이직", "진학", "결혼", "거주지_이동"]
+      },
+      "interventions": [
+        "그 장면을 '나'가 아니라 '한 발 떨어진 관찰자'의 시점에서 다시 서술해보기.",
+        "같은 상황에 있는 친구를 본다면 무엇이 보이고 그 친구에게 무엇이 필요해 보이는지 적어보기."
+      ],
+      "narrative_guidance": "반추 신호에는 감정을 더 파고들게 하는 '왜 그렇게 느꼈나' 식 질문을 던지지 말 것. 대신 관찰자 시점으로 재서술하도록 유도한다. 거리두기 절('옆에서 지켜본다면', '친구에게 하듯')을 제거한 채 사용하지 말 것 — 안전장치가 아니라 효과의 조건이다.",
+      "source": {
+        "citation": "Kross, E., Ayduk, O., & Mischel, W. (2005). When asking 'why' does not hurt: Distinguishing rumination from reflective processing of negative emotions. Psychological Science, 16(9), 709-715.",
+        "doi_or_url": "https://doi.org/10.1111/j.1467-9280.2005.01600.x",
+        "evidence_level": "실증연구"
+      },
+      "tags": ["자기거리두기", "반추", "성찰", "관찰자시점", "정서조절"],
+      "version": "v1"
+    }
+  ]
+}

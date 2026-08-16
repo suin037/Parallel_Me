@@ -1,0 +1,34 @@
+{
+  "theory_ko": "자기자비",
+  "theory_en": "Self-Compassion",
+  "schema_version": "v1",
+  "cards": [
+    {
+      "card_id": "self_compassion_kindness_001",
+      "theory_ko": "자기자비",
+      "theory_en": "Self-Compassion",
+      "theorist": "Leary et al.",
+      "year": 2007,
+      "concept_ko": "자기친절 (Self-kindness)",
+      "summary": "실패나 실망의 순간에 자신을 몰아세우는 대신, 비슷한 일을 겪은 가까운 친구에게 하듯 따뜻하게 대하는 태도. 부정적 사건을 '나라는 사람 전체'에 대한 평가로 일반화하는 경향을 줄이고, 그 사건에 대한 정서적 반응을 완화해 회복을 돕는다.",
+      "applicable_situations": {
+        "indicator": ["삶의_질"],
+        "direction": "낮을수록_적용",
+        "emotion_keywords": ["자책", "실망", "수치심", "자기비난"],
+        "decision_types": ["이직", "진학", "결혼"]
+      },
+      "interventions": [
+        "지금의 나에게, 같은 일을 겪은 친한 친구에게 하듯 비난 없이 두세 문장 적어보기.",
+        "이 일이 '나라는 사람 전체'가 아니라 '이번 한 상황'임을 한 문장으로 구분해 적기."
+      ],
+      "narrative_guidance": "자기친절의 언어로 톤을 잡되, 고통을 축소하거나 '괜찮다'고 단정하지 말 것. 자책 신호에는 감정을 더 파고들게 하는 질문 대신, 관점을 넓히고 자신을 대상화하지 않는 방향으로 안내한다.",
+      "source": {
+        "citation": "Leary, M. R., Tate, E. B., Adams, C. E., Allen, A. B., & Hancock, J. (2007). Self-compassion and reactions to unpleasant self-relevant events: The implications of treating oneself kindly. Journal of Personality and Social Psychology, 92(5), 887-904.",
+        "doi_or_url": "https://doi.org/10.1037/0022-3514.92.5.887",
+        "evidence_level": "실증연구"
+      },
+      "tags": ["자기자비", "자기친절", "자책완화", "정서회복"],
+      "version": "v1"
+    }
+  ]
+}

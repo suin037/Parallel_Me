@@ -1,0 +1,145 @@
+{
+  "built_at": "2026-08-14T15:49:21.661230+00:00",
+  "age_band": [
+    20,
+    45
+  ],
+  "min_treated": 200,
+  "source": "KLIPS 12-27차",
+  "treatments": {
+    "move": {
+      "label": "이직",
+      "n_rows": 55287,
+      "n_treated": 5498,
+      "trained": true,
+      "artifacts": [],
+      "note": "기존 klips_train.py 산출물 사용(econml_klips.pkl) — 여기서는 동적 효과 프로파일만 추가"
+    },
+    "startup": {
+      "label": "창업",
+      "n_rows": 47717,
+      "n_treated": 703,
+      "trained": true,
+      "artifacts": [
+        "econml_klips_startup.pkl",
+        "lifelines_klips_startup.pkl"
+      ],
+      "ate": 47.15,
+      "linear_ate": 47.23,
+      "linear_ci": [
+        31.45,
+        63.01
+      ],
+      "n_spells": 2683,
+      "caveat": "결과변수가 임금근로자는 '월평균임금'(p{w}1642), 자영은 '월평균 사업소득'(p{w}1672)로 **서로 다른 개념**이다(사업소득은 사업 관련 비용·변동성이 다르게 반영됨). 따라서 이 효과는 '창업하면 소득이 이만큼 오른다'가 아니라 '창업으로 전환한 사람의 신고 소득이 임금 대비 이만큼 높게 관측된다'로 읽어야 한다. 또한 폐업해 소득이 끊긴 사람은 결과 관측에서 빠져 생존편의가 남는다 (→ L4 자영 이탈확률과 반드시 함께 볼 것).",
+      "l4_industry": {
+        "used": true,
+        "reference": "G",
+        "kept_sections": [
+          "A",
+          "C",
+          "F",
+          "G",
+          "H",
+          "I",
+          "J",
+          "K",
+          "L",
+          "M",
+          "N",
+          "P",
+          "Q",
+          "R",
+          "S"
+        ],
+        "spells_by_section": {
+          "G": 606,
+          "I": 358,
+          "P": 331,
+          "S": 242,
+          "C": 172,
+          "H": 159,
+          "F": 139,
+          "K": 116,
+          "M": 102,
+          "R": 98,
+          "A": 85,
+          "J": 78,
+          "N": 73,
+          "L": 62,
+          "Q": 55,
+          "기타": 7
+        },
+        "cv_gain": 0.0165,
+        "cv_concordance": {
+          "train": 0.648,
+          "test": 0.638,
+          "test_std": 0.01,
+          "gap": 0.01
+        },
+        "min_spells_per_section": 40,
+        "note": "KSIC 10차 대분류. 교차검증 C-index 이득이 0.005 미만이면 채택하지 않는다"
+      }
+    },
+    "enroll": {
+      "label": "진학",
+      "n_rows": 55287,
+      "n_treated": 178,
+      "trained": false,
+      "reason": "처치군 178건 < 최소 200건 — 신뢰구간이 너무 넓어 모델을 만들지 않음"
+    },
+    "break": {
+      "label": "쉬어가기",
+      "n_rows": 44927,
+      "n_treated": 1344,
+      "trained": true,
+      "artifacts": [
+        "econml_klips_break.pkl",
+        "lifelines_klips_break.pkl"
+      ],
+      "ate": 9.53,
+      "linear_ate": 17.97,
+      "linear_ci": [
+        1.58,
+        34.36
+      ],
+      "n_spells": 5209,
+      "n_returned": 3932,
+      "min_break_months": 2,
+      "caveat": "**복귀한 사람만 보고 잰 소득효과다.** 결과변수는 t+h 의 월소득인데, 아직 일로 돌아오지 않았으면 소득이 없어 표본에서 빠진다. 그래서 이 값은 '쉬면 소득이 이만큼 된다' 가 아니라 '쉬었다가 **돌아온 사람의** 소득이 계속 다닌 사람 대비 이만큼 관측된다' 로 읽어야 한다 (→ L4 복귀까지 걸리는 기간과 반드시 함께 볼 것). 또한 자발적으로 쉬는 선택은 쉴 여유가 있어야 가능하다. DML 은 관측된 공변량(나이·성별·학력·소득·근속·직종·규모)만 통제하므로 자산·배우자소득 같은 미관측 여유는 남는다 — 효과가 실제보다 낙관적일 수 있다.",
+      "l4_break": {
+        "median_months_km": 13.0,
+        "cv_concordance": {
+          "train": 0.565,
+          "test": 0.565,
+          "test_std": 0.011,
+          "gap": -0.0
+        },
+        "event_label": "다음 일자리 시작(복귀) — 미관측은 우측 중도절단"
+      }
+    }
+  },
+  "dynamic_effects": {
+    "move": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "startup": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "break": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ]
+  }
+}

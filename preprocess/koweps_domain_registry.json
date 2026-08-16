@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "target_age": [25, 35],
+  "horizons": [1, 3, 5, 10],
+  "missing_values": {
+    "h_g3": [9], "h_g6": [9], "h_g10": [9], "h_eco6": [9], "p02_1": [9],
+    "h_med2": [9], "p03_5": [9], "p03_7": [9], "p03_8": [9],
+    "p03_9": [9], "p03_10": [9], "p03_11": [9], "p03_12": [9], "p05_11": [9],
+    "p05_2": [9], "p05_3aq6": [99, 999]
+  },
+  "core": ["h_pid", "h_merkey", "year", "wv", "h_g3", "h_g4"],
+  "covariates": [
+    "h_g3", "h_g4", "h_g6", "h_g10", "h01_1", "h_eco9", "h_eco6", "p02_1",
+    "h_din", "h_med2", "h06_1", "h06_3", "p03_5", "p03_7", "p03_8",
+    "p03_9", "p03_10", "p03_11", "p03_12", "p05_11"
+  ],
+  "outcomes": {
+    "disposable_income": {"variable": "h_din", "domain": "finance", "direction": "higher_is_better", "unit": "annual_10k_krw"},
+    "bank_deposits": {"variable": "h10_aq6", "domain": "finance", "direction": "higher_is_better", "unit": "10k_krw"},
+    "installment_savings": {"variable": "h10_aq7", "domain": "finance", "direction": "higher_is_better", "unit": "10k_krw"},
+    "stocks_bonds": {"variable": "h10_aq8", "domain": "finance", "direction": "higher_is_better", "unit": "10k_krw"},
+    "financial_loan": {"variable": "h09_aq1", "domain": "finance", "direction": "lower_is_better", "unit": "10k_krw"},
+    "card_debt": {"variable": "h09_aq3", "domain": "finance", "direction": "lower_is_better", "unit": "10k_krw"},
+    "living_expenses": {"variable": "h07_9", "domain": "finance", "direction": "context_dependent", "unit": "monthly_10k_krw"},
+    "medical_expenses": {"variable": "h07_3aq8", "domain": "health", "direction": "context_dependent", "unit": "monthly_10k_krw"},
+    "health_status": {"variable": "h_med2", "domain": "health", "direction": "codebook_validation_required"},
+    "medical_visits": {"variable": "h_med3", "domain": "health", "direction": "context_dependent", "unit": "visits_per_year"},
+    "chronic_disease": {"variable": "h_g9_1", "domain": "health", "direction": "codebook_validation_required"},
+    "alcohol_frequency": {"variable": "p05_2", "domain": "health", "direction": "non_monotonic_code"},
+    "smoking_amount": {"variable": "p05_3aq6", "domain": "health", "direction": "lower_is_better", "unit": "cigarettes_per_day"},
+    "health_satisfaction": {"variable": "p03_5", "domain": "health", "direction": "higher_is_better", "scale": [1, 5]},
+    "depressive_feeling": {"variable": "p05_11", "domain": "health", "direction": "codebook_validation_required"},
+    "housing_type": {"variable": "h06_1", "domain": "housing", "direction": "nominal"},
+    "housing_tenure": {"variable": "h06_3", "domain": "housing", "direction": "nominal"},
+    "housing_satisfaction": {"variable": "p03_7", "domain": "housing", "direction": "higher_is_better", "scale": [1, 5]},
+    "family_satisfaction": {"variable": "p03_8", "domain": "relationship", "direction": "higher_is_better", "scale": [1, 5]},
+    "social_satisfaction": {"variable": "p03_10", "domain": "relationship", "direction": "higher_is_better", "scale": [1, 5]},
+    "job_satisfaction": {"variable": "p03_9", "domain": "career", "direction": "higher_is_better", "scale": [1, 5]},
+    "leisure_satisfaction": {"variable": "p03_11", "domain": "lifestyle", "direction": "higher_is_better", "scale": [1, 5]},
+    "weekly_work_hours": {"variable": "p02_8", "domain": "lifestyle", "direction": "context_dependent", "unit": "hours_per_week"},
+    "overall_satisfaction": {"variable": "p03_12", "domain": "long_term_values", "direction": "higher_is_better", "scale": [1, 5]}
+  },
+  "scenarios": {
+    "career.occupation_change": {"domain": "career", "source": "h_eco9", "mode": "change", "exclude_waves": [4, 14], "status": "ready_for_panel", "label": "직종 유지 vs 변경", "coding": "직종분류 개정 경계 4·14차 전환은 제외한 관측 사건"},
+    "career.employment_entry": {"domain": "career", "source": "h_eco9", "mode": "became_observed", "status": "hold", "label": "미취업 유지 vs 취업", "coding": "직종 결측을 미취업으로 보는 proxy라 고용상태 변수 교차검증 필요"},
+    "education.level_increase": {"domain": "education", "source": "h_g6", "mode": "increase", "status": "ready_for_panel", "label": "교육수준 유지 vs 상승", "coding": "1~9 순서형 교육수준의 상승. 진학·졸업·정정이 섞일 수 있어 관측 사건으로만 사용"},
+    "business.self_income_entry": {"domain": "business", "source": "h_pers_income3", "mode": "positive_entry", "status": "hold", "label": "임금근로 유지 vs 자영업소득 발생", "coding": "소득 발생은 창업의 불완전한 proxy라 사용 보류"},
+    "business.self_employment_start": {"domain": "business", "source": "p02_1", "mode": "transition", "from_values": [1], "to_values": [2], "status": "ready_for_panel", "label": "임금근로 유지 vs 자영업·고용주 전환", "coding": "공식 개인용 근로유형: 1=임금근로자, 2=자영업·고용주. 연속 조사차수의 1→2 최초 전환"},
+    "finance.savings_increase": {"domain": "finance", "source": "h10_aq7", "mode": "increase", "status": "ready_for_panel", "label": "적금 유지 vs 증가", "coding": "연속 조사차수의 적금 보유액 증가. 납입과 자산가격 변화가 섞일 수 있어 관측 사건으로만 사용"},
+    "finance.debt_start": {"domain": "finance", "source": "h09_aq1", "mode": "positive_entry", "status": "ready_for_panel", "label": "금융기관 대출 없음 유지 vs 발생", "coding": "연속 조사차수에서 금융기관대출 0→양수 최초 전환"},
+    "finance": {"domain": "finance", "status": "outcome_only", "label": "재무", "coding": "재무 일반 질문은 결과축이며 적금 증가·대출 발생처럼 구체적인 사건만 비교"},
+    "health": {"domain": "health", "status": "outcome_only", "label": "건강", "coding": "건강 악화는 사용자 선택 사건이 아님"},
+    "housing.move": {"domain": "housing", "source": "h06_aq1", "mode": "yes", "yes_value": 1, "status": "ready_for_panel", "label": "현재 거주 유지 vs 이사", "coding": "1=그렇다, 2=아니다"},
+    "housing.homeownership_start": {"domain": "housing", "source": "h06_3", "mode": "transition", "from_values": [2, 3, 4, 5], "to_values": [1], "status": "ready_for_panel", "label": "임차 유지 vs 자가 전환", "coding": "1=자가, 2=전세, 3=보증부월세, 4=월세(사글세), 5=기타"},
+    "relationship.marriage_start": {"domain": "relationship", "source": "h_g10", "mode": "transition", "from_values": [5], "to_values": [1], "status": "ready_for_panel", "label": "미혼 유지 vs 결혼", "coding": "실측 전환행렬 기준 5=미혼, 1=유배우; 공식 값표 최종 대조 필요"},
+    "relationship.marriage_end": {"domain": "relationship", "source": "h_g10", "mode": "transition", "from_values": [1], "to_values": [3, 4], "status": "candidate", "label": "혼인 유지 vs 이혼·별거", "coding": "표본 및 공식 값표 추가 검증 필요"},
+    "relationship.household_increase": {"domain": "relationship", "source": "h01_1", "mode": "increase", "status": "ready_for_panel", "label": "가구원 수 유지 vs 증가", "coding": "연속형 인원수 증가. 출산·합가 등 원인은 구분되지 않아 관측 사건으로만 사용"},
+    "relationship.household_decrease": {"domain": "relationship", "source": "h01_1", "mode": "decrease", "status": "ready_for_panel", "label": "가구원 수 유지 vs 감소", "coding": "연속형 인원수 감소. 독립·사별·분가 등 원인은 구분되지 않아 관측 사건으로만 사용"},
+    "lifestyle.work_hours_decrease": {"domain": "lifestyle", "source": "p02_8", "mode": "decrease", "status": "ready_for_panel", "label": "주당 근로시간 유지 vs 감소", "coding": "규칙적으로 일하는 응답자의 연속 조사차수 주당 평균 근로시간 감소"},
+    "lifestyle.work_schedule_change": {"domain": "lifestyle", "source": "h_eco6", "mode": "change", "status": "hold", "label": "근로시간형태 유지 vs 변화", "coding": "코드 의미와 변화 방향 검증 필요"},
+    "long_term_values": {"domain": "long_term_values", "status": "outcome_only", "label": "장기 가치", "coding": "만족·가치관은 결과/개인화 변수"}
+  }
+}

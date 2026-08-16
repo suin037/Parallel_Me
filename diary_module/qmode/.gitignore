@@ -1,0 +1,9 @@
+# 로컬 RAG 실험 산출물 — 복사본 카드 + 벡터DB. 원본이 source of truth라 커밋하지 않는다.
+rag_local/
+
+# 파이썬 캐시
+__pycache__/
+*.pyc
+
+qmode_store.db
+__pycache__/

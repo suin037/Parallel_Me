@@ -1,0 +1,68 @@
+# Secrets and local environments
+.env
+.env.*
+!.env.example
+!frontend/.env.production.example
+.venv/
+venv/
+
+# Python caches and test output
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Frontend dependencies and generated output
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.vite-dev*.log
+*.log
+
+# Local temporary files
+tmp/
+*.tmp
+*.bak
+
+# Private/raw datasets and generated tables
+data/raw/
+data/clean/
+data/processed/*.csv
+data/goms_clean.csv
+data/klips_clean.csv
+data/klips_survival.csv
+*.sav
+*.SAV
+*.sas7bdat
+*.pkl
+*_2025*.csv
+*_2026*.csv
+*.xlsx
+*.hwp
+*.hwpx
+*.pdf
+
+# Generated model/vector artifacts
+backend/models/artifacts/*.pkl
+data/vectordb/chroma.sqlite3
+data/vectordb/*-*-*-*-*/
+data/vectordb/psychology/*_preview.json
+data/vectordb/psychology/*_preview.txt
+
+# Backend scratch requests and local encryption key
+backend/req*.json
+backend/resp*.json
+backend/smoke_check.py
+diary_module/qmode/.pm_at_rest.key
+
+# OS and editors
+.DS_Store
+Thumbs.db
+~$*.xlsx
+.vscode/
+.idea/
+
+# Claude Code 로컬 설정(권한 등) — 개인 환경이라 공유하지 않음
+.claude/settings.local.json

@@ -1,0 +1,692 @@
+{
+  "_note": "스키마 형태 예시. 필드 구조·타입은 실제와 동일, 숫자는 임시(placeholder). 실제 값은 python test_compare.py 로 생성.",
+  "profile": {
+    "age": 27,
+    "sex": "2",
+    "major": "사회",
+    "gpa": null,
+    "monthly_wage": 250.0,
+    "satis_overall": null,
+    "life_satis": null,
+    "happy": null,
+    "is_regular": null,
+    "firm_size": null,
+    "edu_level": 7
+  },
+  "snapshots": [
+    1,
+    3,
+    5,
+    10
+  ],
+  "choice_a": "이직",
+  "choice_b": "대학원 진학",
+  "scenarios": {
+    "A": {
+      "choice": "이직",
+      "kind": "이직",
+      "coverage": "이직: 개인단위 매칭(L2)·인과(L3)·생존(L4) + 생활지표(L1)",
+      "satisfaction": [
+        {
+          "year": 1,
+          "available": true,
+          "value": 3.75,
+          "p25": 3.4,
+          "p75": 4.2,
+          "unit": "점(1~5)",
+          "sample_n": 58,
+          "source": "YP 청년패널 만족도 궤적(L5)",
+          "note": null
+        },
+        {
+          "year": 3,
+          "available": true,
+          "value": 3.65,
+          "p25": 3.4,
+          "p75": 4.2,
+          "unit": "점(1~5)",
+          "sample_n": 58,
+          "source": "YP 청년패널 만족도 궤적(L5)",
+          "note": null
+        },
+        {
+          "year": 5,
+          "available": false,
+          "value": null,
+          "p25": null,
+          "p75": null,
+          "unit": null,
+          "sample_n": null,
+          "source": null,
+          "note": "청년패널(YP) 관측범위(약 4년) 밖"
+        },
+        {
+          "year": 10,
+          "available": false,
+          "value": null,
+          "p25": null,
+          "p75": null,
+          "unit": null,
+          "sample_n": null,
+          "source": null,
+          "note": "청년패널(YP) 관측범위(약 4년) 밖"
+        }
+      ],
+      "satisfaction_summary": {
+        "start_year": 0,
+        "start": 3.8,
+        "latest_year": 3,
+        "latest": 3.65,
+        "delta": -0.15,
+        "direction": "하락",
+        "span_years": 3,
+        "sample_n": 58,
+        "scale": "1~5",
+        "source": "YP 청년패널 만족도 궤적(L5)"
+      },
+      "satisfaction_facets": [
+        {
+          "key": "satis_work",
+          "label": "직무 만족",
+          "dimension": "직무",
+          "points": [
+            {
+              "year": 0,
+              "value": 3.9,
+              "sample_n": 58
+            },
+            {
+              "year": 1,
+              "value": 3.88,
+              "sample_n": 58
+            },
+            {
+              "year": 2,
+              "value": 3.86,
+              "sample_n": 58
+            },
+            {
+              "year": 3,
+              "value": 3.84,
+              "sample_n": 58
+            }
+          ],
+          "start": 3.9,
+          "latest": 3.84,
+          "delta": -0.06,
+          "direction": "하락",
+          "scale": "1~5",
+          "source": "YP 청년패널(L5)"
+        },
+        {
+          "key": "satis_income",
+          "label": "소득 만족",
+          "dimension": "소득",
+          "points": [
+            {
+              "year": 0,
+              "value": 3.6,
+              "sample_n": 58
+            },
+            {
+              "year": 1,
+              "value": 3.59,
+              "sample_n": 58
+            },
+            {
+              "year": 2,
+              "value": 3.58,
+              "sample_n": 58
+            },
+            {
+              "year": 3,
+              "value": 3.57,
+              "sample_n": 58
+            }
+          ],
+          "start": 3.6,
+          "latest": 3.57,
+          "delta": -0.03,
+          "direction": "유지",
+          "scale": "1~5",
+          "source": "YP 청년패널(L5)"
+        },
+        {
+          "key": "satis_future",
+          "label": "장래성 만족",
+          "dimension": "미래",
+          "points": [
+            {
+              "year": 0,
+              "value": 3.75,
+              "sample_n": 58
+            },
+            {
+              "year": 1,
+              "value": 3.69,
+              "sample_n": 58
+            },
+            {
+              "year": 2,
+              "value": 3.63,
+              "sample_n": 58
+            },
+            {
+              "year": 3,
+              "value": 3.57,
+              "sample_n": 58
+            }
+          ],
+          "start": 3.75,
+          "latest": 3.57,
+          "delta": -0.18,
+          "direction": "하락",
+          "scale": "1~5",
+          "source": "YP 청년패널(L5)"
+        }
+      ],
+      "income": [
+        {
+          "year": 1,
+          "available": true,
+          "value": 268.4,
+          "p25": 250.9,
+          "p75": 288.9,
+          "unit": "만원",
+          "sample_n": 260,
+          "source": "KLIPS 종단 소득 궤적(L5) + 이직 인과(L3)",
+          "note": null
+        },
+        {
+          "year": 3,
+          "available": true,
+          "value": 288.4,
+          "p25": 265.9,
+          "p75": 313.9,
+          "unit": "만원",
+          "sample_n": 180,
+          "source": "KLIPS 종단 소득 궤적(L5) + 이직 인과(L3)",
+          "note": null
+        },
+        {
+          "year": 5,
+          "available": true,
+          "value": 308.4,
+          "p25": 280.9,
+          "p75": 338.9,
+          "unit": "만원",
+          "sample_n": 100,
+          "source": "KLIPS 종단 소득 궤적(L5) + 이직 인과(L3)",
+          "note": null
+        },
+        {
+          "year": 10,
+          "available": false,
+          "value": null,
+          "p25": null,
+          "p75": null,
+          "unit": null,
+          "sample_n": null,
+          "source": null,
+          "note": "해당 연차까지 추적된 유사 표본 부족(관측범위 밖)"
+        }
+      ],
+      "regret": [
+        {
+          "year": 1,
+          "available": true,
+          "value": 2.8,
+          "p25": null,
+          "p75": null,
+          "unit": "%(이탈확률)",
+          "sample_n": null,
+          "source": "lifelines 생존분석(L4)",
+          "note": null
+        },
+        {
+          "year": 3,
+          "available": true,
+          "value": 18.0,
+          "p25": null,
+          "p75": null,
+          "unit": "%(이탈확률)",
+          "sample_n": null,
+          "source": "lifelines 생존분석(L4)",
+          "note": null
+        },
+        {
+          "year": 5,
+          "available": true,
+          "value": 33.6,
+          "p25": null,
+          "p75": null,
+          "unit": "%(이탈확률)",
+          "sample_n": null,
+          "source": "lifelines 생존분석(L4)",
+          "note": null
+        },
+        {
+          "year": 10,
+          "available": false,
+          "value": null,
+          "p25": null,
+          "p75": null,
+          "unit": null,
+          "sample_n": null,
+          "source": null,
+          "note": "모델 신뢰 관측범위 밖(과대추정 방지로 미제공)"
+        }
+      ],
+      "regret_summary": {
+        "label": "이탈확률",
+        "worst_year": 5,
+        "worst_value": 33.6,
+        "unit": "%",
+        "source": "lifelines 생존분석(L4)"
+      },
+      "growth_potential": [
+        {
+          "year": 1,
+          "available": true,
+          "value": 3.9,
+          "p25": null,
+          "p75": null,
+          "unit": "%(현재 대비 소득)",
+          "sample_n": 260,
+          "source": "L5 소득 궤적 기울기(현재 대비)",
+          "note": null
+        },
+        {
+          "year": 3,
+          "available": true,
+          "value": 11.6,
+          "p25": null,
+          "p75": null,
+          "unit": "%(현재 대비 소득)",
+          "sample_n": 180,
+          "source": "L5 소득 궤적 기울기(현재 대비)",
+          "note": null
+        },
+        {
+          "year": 5,
+          "available": true,
+          "value": 19.3,
+          "p25": null,
+          "p75": null,
+          "unit": "%(현재 대비 소득)",
+          "sample_n": 100,
+          "source": "L5 소득 궤적 기울기(현재 대비)",
+          "note": null
+        },
+        {
+          "year": 10,
+          "available": false,
+          "value": null,
+          "p25": null,
+          "p75": null,
+          "unit": null,
+          "sample_n": null,
+          "source": null,
+          "note": "기준(현재) 또는 해당 연차 소득 궤적 없음"
+        }
+      ],
+      "health_context": [
+        {
+          "dimension": "정신건강",
+          "indicator": "스트레스인지율",
+          "value": 26.3,
+          "unit": "%",
+          "group": "성별×연령",
+          "source": "KNHANES"
+        }
+      ],
+      "choice_context": [],
+      "confidence": {
+        "survival_c_index": {
+          "metric": "5-fold C-index",
+          "c_index_test": 0.75,
+          "c_index_train": 0.79,
+          "overfit_gap": 0.04,
+          "n_spells": 10173,
+          "source": "YP2021 스펠",
+          "max_horizon_years": 5
+        },
+        "causal_effect_ci": {
+          "ate": 27.8,
+          "ci95_low": 21.0,
+          "ci95_high": 34.6,
+          "unit": "만원",
+          "method": "LinearDML (analytic 95% CI)",
+          "source": "YP2021 청년패널 종단"
+        }
+      },
+      "raw": "<원본 /predict 응답 전체 — 지면 생략>"
+    },
+    "B": {
+      "choice": "대학원 진학",
+      "kind": "진학",
+      "coverage": "진학: 생활지표(L1) + 계열별 취업률·진학률(KEDI). 개인단위 인과·매칭은 진학 추적 데이터 부재로 미제공",
+      "satisfaction": [
+        {
+          "year": 1,
+          "available": true,
+          "value": 3.75,
+          "p25": 3.4,
+          "p75": 4.2,
+          "unit": "점(1~5)",
+          "sample_n": 58,
+          "source": "YP 청년패널 만족도 궤적(L5)",
+          "note": null
+        },
+        {
+          "year": 3,
+          "available": true,
+          "value": 3.65,
+          "p25": 3.4,
+          "p75": 4.2,
+          "unit": "점(1~5)",
+          "sample_n": 58,
+          "source": "YP 청년패널 만족도 궤적(L5)",
+          "note": null
+        },
+        {
+          "year": 5,
+          "available": false,
+          "value": null,
+          "p25": null,
+          "p75": null,
+          "unit": null,
+          "sample_n": null,
+          "source": null,
+          "note": "청년패널(YP) 관측범위(약 4년) 밖"
+        },
+        {
+          "year": 10,
+          "available": false,
+          "value": null,
+          "p25": null,
+          "p75": null,
+          "unit": null,
+          "sample_n": null,
+          "source": null,
+          "note": "청년패널(YP) 관측범위(약 4년) 밖"
+        }
+      ],
+      "satisfaction_summary": {
+        "start_year": 0,
+        "start": 3.8,
+        "latest_year": 3,
+        "latest": 3.65,
+        "delta": -0.15,
+        "direction": "하락",
+        "span_years": 3,
+        "sample_n": 58,
+        "scale": "1~5",
+        "source": "YP 청년패널 만족도 궤적(L5)"
+      },
+      "satisfaction_facets": [
+        {
+          "key": "satis_work",
+          "label": "직무 만족",
+          "dimension": "직무",
+          "points": [
+            {
+              "year": 0,
+              "value": 3.9,
+              "sample_n": 58
+            },
+            {
+              "year": 1,
+              "value": 3.88,
+              "sample_n": 58
+            },
+            {
+              "year": 2,
+              "value": 3.86,
+              "sample_n": 58
+            },
+            {
+              "year": 3,
+              "value": 3.84,
+              "sample_n": 58
+            }
+          ],
+          "start": 3.9,
+          "latest": 3.84,
+          "delta": -0.06,
+          "direction": "하락",
+          "scale": "1~5",
+          "source": "YP 청년패널(L5)"
+        },
+        {
+          "key": "satis_income",
+          "label": "소득 만족",
+          "dimension": "소득",
+          "points": [
+            {
+              "year": 0,
+              "value": 3.6,
+              "sample_n": 58
+            },
+            {
+              "year": 1,
+              "value": 3.59,
+              "sample_n": 58
+            },
+            {
+              "year": 2,
+              "value": 3.58,
+              "sample_n": 58
+            },
+            {
+              "year": 3,
+              "value": 3.57,
+              "sample_n": 58
+            }
+          ],
+          "start": 3.6,
+          "latest": 3.57,
+          "delta": -0.03,
+          "direction": "유지",
+          "scale": "1~5",
+          "source": "YP 청년패널(L5)"
+        },
+        {
+          "key": "satis_future",
+          "label": "장래성 만족",
+          "dimension": "미래",
+          "points": [
+            {
+              "year": 0,
+              "value": 3.75,
+              "sample_n": 58
+            },
+            {
+              "year": 1,
+              "value": 3.69,
+              "sample_n": 58
+            },
+            {
+              "year": 2,
+              "value": 3.63,
+              "sample_n": 58
+            },
+            {
+              "year": 3,
+              "value": 3.57,
+              "sample_n": 58
+            }
+          ],
+          "start": 3.75,
+          "latest": 3.57,
+          "delta": -0.18,
+          "direction": "하락",
+          "scale": "1~5",
+          "source": "YP 청년패널(L5)"
+        }
+      ],
+      "income": [
+        {
+          "year": 1,
+          "available": true,
+          "value": 260.0,
+          "p25": 242.5,
+          "p75": 280.5,
+          "unit": "만원",
+          "sample_n": 260,
+          "source": "KLIPS 종단 소득 궤적(L5)",
+          "note": null
+        },
+        {
+          "year": 3,
+          "available": true,
+          "value": 280.0,
+          "p25": 257.5,
+          "p75": 305.5,
+          "unit": "만원",
+          "sample_n": 180,
+          "source": "KLIPS 종단 소득 궤적(L5)",
+          "note": null
+        },
+        {
+          "year": 5,
+          "available": true,
+          "value": 300.0,
+          "p25": 272.5,
+          "p75": 330.5,
+          "unit": "만원",
+          "sample_n": 100,
+          "source": "KLIPS 종단 소득 궤적(L5)",
+          "note": null
+        },
+        {
+          "year": 10,
+          "available": false,
+          "value": null,
+          "p25": null,
+          "p75": null,
+          "unit": null,
+          "sample_n": null,
+          "source": null,
+          "note": "해당 연차까지 추적된 유사 표본 부족(관측범위 밖)"
+        }
+      ],
+      "regret": [
+        {
+          "year": 1,
+          "available": false,
+          "value": null,
+          "p25": null,
+          "p75": null,
+          "unit": null,
+          "sample_n": null,
+          "source": null,
+          "note": "진학은 개인단위 이탈 추적 데이터 없음 — choice_context 의 계열 취업률/진학률로 대체"
+        },
+        {
+          "year": 3,
+          "available": false,
+          "value": null,
+          "p25": null,
+          "p75": null,
+          "unit": null,
+          "sample_n": null,
+          "source": null,
+          "note": "진학은 개인단위 이탈 추적 데이터 없음 — choice_context 의 계열 취업률/진학률로 대체"
+        },
+        {
+          "year": 5,
+          "available": false,
+          "value": null,
+          "p25": null,
+          "p75": null,
+          "unit": null,
+          "sample_n": null,
+          "source": null,
+          "note": "진학은 개인단위 이탈 추적 데이터 없음 — choice_context 의 계열 취업률/진학률로 대체"
+        },
+        {
+          "year": 10,
+          "available": false,
+          "value": null,
+          "p25": null,
+          "p75": null,
+          "unit": null,
+          "sample_n": null,
+          "source": null,
+          "note": "진학은 개인단위 이탈 추적 데이터 없음 — choice_context 의 계열 취업률/진학률로 대체"
+        }
+      ],
+      "regret_summary": null,
+      "growth_potential": [
+        {
+          "year": 1,
+          "available": true,
+          "value": 4.0,
+          "p25": null,
+          "p75": null,
+          "unit": "%(현재 대비 소득)",
+          "sample_n": 260,
+          "source": "L5 소득 궤적 기울기(현재 대비)",
+          "note": null
+        },
+        {
+          "year": 3,
+          "available": true,
+          "value": 12.0,
+          "p25": null,
+          "p75": null,
+          "unit": "%(현재 대비 소득)",
+          "sample_n": 180,
+          "source": "L5 소득 궤적 기울기(현재 대비)",
+          "note": null
+        },
+        {
+          "year": 5,
+          "available": true,
+          "value": 20.0,
+          "p25": null,
+          "p75": null,
+          "unit": "%(현재 대비 소득)",
+          "sample_n": 100,
+          "source": "L5 소득 궤적 기울기(현재 대비)",
+          "note": null
+        },
+        {
+          "year": 10,
+          "available": false,
+          "value": null,
+          "p25": null,
+          "p75": null,
+          "unit": null,
+          "sample_n": null,
+          "source": null,
+          "note": "기준(현재) 또는 해당 연차 소득 궤적 없음"
+        }
+      ],
+      "health_context": [
+        {
+          "dimension": "정신건강",
+          "indicator": "스트레스인지율",
+          "value": 26.3,
+          "unit": "%",
+          "group": "성별×연령",
+          "source": "KNHANES"
+        }
+      ],
+      "choice_context": [
+        {
+          "dimension": "진학/취업",
+          "indicator": "사회 계열 취업률",
+          "value": 68.2,
+          "unit": "%",
+          "group": "사회",
+          "source": "KEDI"
+        }
+      ],
+      "confidence": {},
+      "raw": "<원본 /predict 응답 전체 — 지면 생략>"
+    }
+  },
+  "note": "만족도 궤적은 현재 프로필 기준(선택 A/B로 아직 분기 안 됨) — '비슷한 사람들의 전반적 만족도 변화' 배경으로 해석(선택별 분기는 데이터 확장 과제)"
+}

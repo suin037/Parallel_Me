@@ -1,0 +1,34 @@
+{
+  "theory_ko": "최선의 미래 자기",
+  "theory_en": "Best Possible Self",
+  "schema_version": "v1",
+  "cards": [
+    {
+      "card_id": "future_self_bps_001",
+      "theory_ko": "최선의 미래 자기",
+      "theory_en": "Best Possible Self",
+      "theorist": "King",
+      "year": 2001,
+      "concept_ko": "최선의 미래 자기 글쓰기 (Best Possible Self)",
+      "summary": "모든 게 잘 풀린 미래의 하루를 구체적으로 상상해 적는 개입. 트라우마 글쓰기보다 정서적으로 덜 괴로우면서도 주관적 안녕감을 높이고, 자신이 무엇을 원하는지 목표를 또렷하게 만든다. 고통을 직접 헤집지 않고 방향을 그리게 하므로 위기 상황에서도 비교적 안전하다.",
+      "applicable_situations": {
+        "indicator": ["삶의_질", "성장_가능성"],
+        "direction": "낮을수록_적용",
+        "emotion_keywords": ["막막함", "무기력", "방향상실", "불안"],
+        "decision_types": ["이직", "진학", "창업", "거주지_이동"]
+      },
+      "interventions": [
+        "5년 뒤 잘 풀린 어느 평범한 하루의 아침을 장소·사람·하는 일까지 구체적으로 한 단락 적어보기.",
+        "그 장면에서 오늘의 내가 당장 시작할 수 있는 가장 작은 한 가지를 찾아 적기."
+      ],
+      "narrative_guidance": "미래 자기 상상을 '목표 명료화'로 연결하되, 현재의 고통을 성급히 뛰어넘게 만들지 말 것. '반드시 그렇게 된다'는 약속이 아니라 방향을 탐색하는 재료로 다룬다.",
+      "source": {
+        "citation": "King, L. A. (2001). The health benefits of writing about life goals. Personality and Social Psychology Bulletin, 27(7), 798-807.",
+        "doi_or_url": "https://doi.org/10.1177/0146167201277003",
+        "evidence_level": "실증연구"
+      },
+      "tags": ["미래자기", "BPS", "목표명료화", "안녕감", "희망"],
+      "version": "v1"
+    }
+  ]
+}

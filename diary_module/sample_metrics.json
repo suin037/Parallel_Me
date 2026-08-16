@@ -1,0 +1,9 @@
+[
+  {"sleep_score": 65, "sleep_hours": 6.0, "exercise_min": 0},
+  {"sleep_score": 52, "sleep_hours": 4.5, "exercise_min": 0},
+  {"sleep_score": 58, "sleep_hours": 5.0, "exercise_min": 0},
+  {"sleep_score": 60, "sleep_hours": 5.5, "exercise_min": 0},
+  {"sleep_score": 70, "sleep_hours": 6.5, "exercise_min": 20},
+  {"sleep_score": 88, "sleep_hours": 8.5, "exercise_min": 40},
+  {"sleep_score": 82, "sleep_hours": 7.5, "exercise_min": 30}
+]

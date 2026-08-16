@@ -1,0 +1,33 @@
+# Render 배포 설정 — 이 파일을 레포에 두면 Render 에서 "Blueprint" 로 바로 잡힌다.
+#
+# 왜 이게 필요한가: 프론트를 배포해도 AI 기능은 전부 이 서버를 부른다.
+# 서버가 없으면 챗봇·N년 뒤·기회 찾기·오늘 제안·노래·공고/기업/관계 분석이 모두 죽는다.
+#
+# 배포 후 할 일 (둘 다 해야 동작한다)
+#   1) Render 대시보드 > Environment 에 키를 넣는다 (아래 sync:false 항목).
+#   2) 프론트 빌드 환경에 VITE_QMODE_BASE = https://<이 서비스 주소> 를 넣고 다시 빌드.
+#      그리고 여기 ALLOWED_ORIGINS 에 그 프론트 주소를 넣는다(키 도용 방지).
+services:
+  - type: web
+    name: parallel-me-api
+    runtime: python
+    plan: free
+    # 레포 루트에서 띄운다 — qmode 가 backend/rag 를 함께 쓴다.
+    buildCommand: pip install -r requirements-api.txt
+    startCommand: uvicorn qmode.api:app --host 0.0.0.0 --port $PORT --app-dir diary_module
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      # backend/rag 를 import 할 수 있게 레포 루트를 경로에 넣는다.
+      - key: PYTHONPATH
+        value: "."
+      - key: ANTHROPIC_API_KEY
+        sync: false      # 대시보드에서 직접 입력(레포에 올리지 않는다)
+      - key: DART_API_KEY
+        sync: false
+      - key: CAREERNET_API_KEY
+        sync: false
+      # 배포한 프론트 주소만 허용. 비워두면 전부 허용되니 반드시 채운다.
+      - key: ALLOWED_ORIGINS
+        sync: false

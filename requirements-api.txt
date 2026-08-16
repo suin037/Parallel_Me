@@ -1,0 +1,11 @@
+# 배포용 최소 의존성 — diary_module/qmode/api.py 를 띄우는 데 실제로 필요한 것만.
+# 감정모델(torch/transformers)은 부팅에 안 쓰고 체크포인트가 있을 때만 지연 로드하므로
+# 여기 넣지 않는다. 그래서 빌드가 가볍고 무료 티어에서도 뜬다.
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+pydantic==2.13.3
+python-multipart==0.0.20
+anthropic>=0.40
+cryptography>=42
+kiwipiepy==0.23.2
+pypdf>=4

@@ -1,0 +1,568 @@
+{
+  "generated_at": "2026-08-16T11:11:12.765005+00:00",
+  "git": "93e960a",
+  "routing": {
+    "treatment": "선택 유형 → treatment: 이직=move / 창업=startup / 쉬어가기=break / 진학=매핑 없음(표본 부족)",
+    "L2 (knn)": "이직에만 적용. age ≤ 31 이면 GOMS + YP 를 절반씩 섞고, 그 외엔 GOMS 단독",
+    "L3 (econml)": "move: age ≤ 31 → yp → klips → goms, 그 외 → klips → yp → goms / startup: klips 단독(연령 라우팅 대상 없음) / break: klips 단독",
+    "L4 (lifelines)": "move: age ≤ 31 → yp → klips → goms, 그 외 → klips → yp → goms / startup: klips 자영 스펠 단독 / break: klips 공백 스펠 단독. **이벤트가 '복귀' 라 방향이 반대** — 곡선을 그대로 후회 리스크로 부르면 뒤집힌다(core.py 의 return_timeline 참조)",
+    "동적효과": "dynamic_effects.json 의 상대시간별 ATE 로 연차별 효과·CI 밴드 구성 (관측 밖 연차는 마지막 관측값 유지 + extrapolated 표시)",
+    "L5 (궤적 매칭)": "가중 z-거리 + 직종 목적변수 인코딩. 요청에 없는 항목은 거리에서 제외(중앙값 대체 안 함). 가중치는 scripts/eval_matching.py --tune 로 탐색",
+    "3지표": "indicator_reference.json 의 나이대별 분포에 대는 백분위 순위 (예전 손튜닝 상수 폐기). 소득은 실현 시점 나이대에 댄다"
+  },
+  "treatments": {
+    "built_at": "2026-08-14T15:49:21.661230+00:00",
+    "age_band": [
+      20,
+      45
+    ],
+    "min_treated": 200,
+    "source": "KLIPS 12-27차",
+    "treatments": {
+      "move": {
+        "label": "이직",
+        "n_rows": 55287,
+        "n_treated": 5498,
+        "trained": true,
+        "artifacts": [],
+        "note": "기존 klips_train.py 산출물 사용(econml_klips.pkl) — 여기서는 동적 효과 프로파일만 추가"
+      },
+      "startup": {
+        "label": "창업",
+        "n_rows": 47717,
+        "n_treated": 703,
+        "trained": true,
+        "artifacts": [
+          "econml_klips_startup.pkl",
+          "lifelines_klips_startup.pkl"
+        ],
+        "ate": 47.15,
+        "linear_ate": 47.23,
+        "linear_ci": [
+          31.45,
+          63.01
+        ],
+        "n_spells": 2683,
+        "caveat": "결과변수가 임금근로자는 '월평균임금'(p{w}1642), 자영은 '월평균 사업소득'(p{w}1672)로 **서로 다른 개념**이다(사업소득은 사업 관련 비용·변동성이 다르게 반영됨). 따라서 이 효과는 '창업하면 소득이 이만큼 오른다'가 아니라 '창업으로 전환한 사람의 신고 소득이 임금 대비 이만큼 높게 관측된다'로 읽어야 한다. 또한 폐업해 소득이 끊긴 사람은 결과 관측에서 빠져 생존편의가 남는다 (→ L4 자영 이탈확률과 반드시 함께 볼 것).",
+        "l4_industry": {
+          "used": true,
+          "reference": "G",
+          "kept_sections": [
+            "A",
+            "C",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J",
+            "K",
+            "L",
+            "M",
+            "N",
+            "P",
+            "Q",
+            "R",
+            "S"
+          ],
+          "spells_by_section": {
+            "G": 606,
+            "I": 358,
+            "P": 331,
+            "S": 242,
+            "C": 172,
+            "H": 159,
+            "F": 139,
+            "K": 116,
+            "M": 102,
+            "R": 98,
+            "A": 85,
+            "J": 78,
+            "N": 73,
+            "L": 62,
+            "Q": 55,
+            "기타": 7
+          },
+          "cv_gain": 0.0165,
+          "cv_concordance": {
+            "train": 0.648,
+            "test": 0.638,
+            "test_std": 0.01,
+            "gap": 0.01
+          },
+          "min_spells_per_section": 40,
+          "note": "KSIC 10차 대분류. 교차검증 C-index 이득이 0.005 미만이면 채택하지 않는다"
+        }
+      },
+      "enroll": {
+        "label": "진학",
+        "n_rows": 55287,
+        "n_treated": 178,
+        "trained": false,
+        "reason": "처치군 178건 < 최소 200건 — 신뢰구간이 너무 넓어 모델을 만들지 않음"
+      },
+      "break": {
+        "label": "쉬어가기",
+        "n_rows": 44927,
+        "n_treated": 1344,
+        "trained": true,
+        "artifacts": [
+          "econml_klips_break.pkl",
+          "lifelines_klips_break.pkl"
+        ],
+        "ate": 9.53,
+        "linear_ate": 17.97,
+        "linear_ci": [
+          1.58,
+          34.36
+        ],
+        "n_spells": 5209,
+        "n_returned": 3932,
+        "min_break_months": 2,
+        "caveat": "**복귀한 사람만 보고 잰 소득효과다.** 결과변수는 t+h 의 월소득인데, 아직 일로 돌아오지 않았으면 소득이 없어 표본에서 빠진다. 그래서 이 값은 '쉬면 소득이 이만큼 된다' 가 아니라 '쉬었다가 **돌아온 사람의** 소득이 계속 다닌 사람 대비 이만큼 관측된다' 로 읽어야 한다 (→ L4 복귀까지 걸리는 기간과 반드시 함께 볼 것). 또한 자발적으로 쉬는 선택은 쉴 여유가 있어야 가능하다. DML 은 관측된 공변량(나이·성별·학력·소득·근속·직종·규모)만 통제하므로 자산·배우자소득 같은 미관측 여유는 남는다 — 효과가 실제보다 낙관적일 수 있다.",
+        "l4_break": {
+          "median_months_km": 13.0,
+          "cv_concordance": {
+            "train": 0.565,
+            "test": 0.565,
+            "test_std": 0.011,
+            "gap": -0.0
+          },
+          "event_label": "다음 일자리 시작(복귀) — 미관측은 우측 중도절단"
+        }
+      }
+    },
+    "dynamic_effects": {
+      "move": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "startup": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "break": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ]
+    }
+  },
+  "dynamic_effects": {
+    "move": {
+      "label": "이직",
+      "years": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "startup": {
+      "label": "창업",
+      "years": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "break": {
+      "label": "쉬어가기",
+      "years": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    }
+  },
+  "matching_eval": {
+    "measured_at": "2026-08-11T13:52:18.753154+00:00",
+    "queries": 400,
+    "k": 300,
+    "weights": {
+      "나이": 1.5,
+      "월임금_실질": 2.0,
+      "학력": 0.3,
+      "종업원규모": 0.3,
+      "근속기간_log": 0.0,
+      "직종소득지수": 0.3
+    },
+    "paired_vs_legacy": {
+      "baseline(나이·성별·임금·학력·정규)": {
+        "1": {
+          "delta_mae": -5.142875,
+          "ci95": 2.779757532748877,
+          "n": 400
+        },
+        "3": {
+          "delta_mae": -1.5777499999999998,
+          "ci95": 2.2600168653682924,
+          "n": 400
+        },
+        "5": {
+          "delta_mae": 0.012624999999998181,
+          "ci95": 2.2336927983680166,
+          "n": 400
+        }
+      },
+      "+기업규모": {
+        "1": {
+          "delta_mae": -5.282874999999999,
+          "ci95": 2.7752272273203302,
+          "n": 400
+        },
+        "3": {
+          "delta_mae": -2.39625,
+          "ci95": 2.4069281921463963,
+          "n": 400
+        },
+        "5": {
+          "delta_mae": -0.685250000000002,
+          "ci95": 2.4227842484248967,
+          "n": 400
+        }
+      },
+      "+기업규모+근속": {
+        "1": {
+          "delta_mae": -5.282874999999999,
+          "ci95": 2.7752272273203302,
+          "n": 400
+        },
+        "3": {
+          "delta_mae": -2.39625,
+          "ci95": 2.4069281921463963,
+          "n": 400
+        },
+        "5": {
+          "delta_mae": -0.685250000000002,
+          "ci95": 2.4227842484248967,
+          "n": 400
+        }
+      },
+      "+기업규모+근속+직종": {
+        "1": {
+          "delta_mae": -5.225749999999998,
+          "ci95": 2.748273075413058,
+          "n": 400
+        },
+        "3": {
+          "delta_mae": -2.769625000000001,
+          "ci95": 2.4196162175197635,
+          "n": 400
+        },
+        "5": {
+          "delta_mae": -0.7331250000000006,
+          "ci95": 2.4124158613838906,
+          "n": 400
+        }
+      }
+    },
+    "metric_note": "MAE=중앙값 예측의 절대오차(만원), band_hit=실제값이 p25~p75 안에 든 비율(정직하면 ≈0.5), band_width=밴드 폭 중앙값"
+  },
+  "indicator_reference": {
+    "built_at": "2026-08-11T13:53:38.945277+00:00",
+    "age_bands": [
+      [
+        22,
+        26
+      ],
+      [
+        27,
+        31
+      ],
+      [
+        32,
+        36
+      ],
+      [
+        37,
+        45
+      ]
+    ],
+    "sources": {
+      "income_level": "KLIPS 12-27차 월임금_실질(2024년 기준 실질)",
+      "income_growth": "KLIPS 같은 사람 t→t+5 소득 증가율(%), ±300% 절단",
+      "satisfaction": "YP 청년패널 5개 facet 평균(1~5)",
+      "exit_risk": "서빙 Cox 모델의 연차별 이탈확률 예측 분포"
+    },
+    "dists": {
+      "income_level": [
+        "22-26",
+        "27-31",
+        "32-36",
+        "37-45",
+        "all"
+      ],
+      "income_growth": [
+        "22-26",
+        "27-31",
+        "32-36",
+        "37-45",
+        "all"
+      ],
+      "satisfaction": [
+        "22-26",
+        "27-31",
+        "all"
+      ],
+      "exit_risk": [
+        "1",
+        "10",
+        "3",
+        "5"
+      ]
+    }
+  },
+  "data_vintage": {},
+  "artifacts": {
+    "knn.pkl": {
+      "layer": "L2",
+      "role": "유사인물 매칭 (GOMS 단면, 전공 포함)",
+      "present": true,
+      "size_mb": 2.38,
+      "modified": "2026-08-03T11:24:40.787752+00:00",
+      "source": "GOMS",
+      "matching": {
+        "evaluated_queries": 500,
+        "neighbors_per_query": 5,
+        "mean_age_gap_years": 0.771,
+        "mean_wage_gap_manwon": 24.222,
+        "same_major_rate": 0.6636,
+        "same_sex_rate": 0.9968
+      },
+      "features": [
+        "sex_enc",
+        "major_enc",
+        "age",
+        "monthly_wage",
+        "satis_overall",
+        "life_satis",
+        "happy",
+        "is_regular",
+        "firm_size"
+      ]
+    },
+    "knn_yp.pkl": {
+      "layer": "L2",
+      "role": "유사인물 매칭 (YP 청년패널)",
+      "present": false
+    },
+    "econml.pkl": {
+      "layer": "L3",
+      "role": "이직→소득 인과효과 (GOMS 단면, 최후 폴백)",
+      "present": true,
+      "size_mb": 34.35,
+      "modified": "2026-08-03T11:24:42.032219+00:00",
+      "source": "GOMS 단면",
+      "n": 11318,
+      "causal_forest": {
+        "method": "CausalForestDML",
+        "ate_manwon": -16.23,
+        "ci95": [
+          -53.64,
+          21.19
+        ]
+      },
+      "features": [
+        "age",
+        "sex_enc",
+        "major_enc",
+        "satis_overall"
+      ]
+    },
+    "econml_klips.pkl": {
+      "layer": "L3",
+      "role": "이직→소득 인과효과 (KLIPS 종단)",
+      "present": true,
+      "size_mb": 54.67,
+      "modified": "2026-08-03T12:01:13.295427+00:00",
+      "source": "KLIPS 18-27차 종단",
+      "causal": {
+        "method": "LinearDML",
+        "ate_manwon": 10.04,
+        "ci95": [
+          2.93,
+          17.15
+        ],
+        "significant": true
+      },
+      "causal_forest": {
+        "method": "CausalForestDML",
+        "ate_manwon": 8.17,
+        "ci95": [
+          -82.75,
+          99.08
+        ]
+      },
+      "features": [
+        "age",
+        "sex",
+        "edu"
+      ]
+    },
+    "econml_yp.pkl": {
+      "layer": "L3",
+      "role": "이직→소득 인과효과 (YP 청년패널 종단)",
+      "present": false
+    },
+    "econml_klips_startup.pkl": {
+      "layer": "L3",
+      "role": "창업(임금근로→자영)→소득 인과효과 (KLIPS 종단)",
+      "present": true,
+      "size_mb": 56.8,
+      "modified": "2026-08-13T09:19:06.873729+00:00",
+      "source": "KLIPS 12-27차 종단 (창업)",
+      "n": 47717,
+      "treatment": "startup",
+      "n_treated": 703,
+      "caveat": "결과변수가 임금근로자는 '월평균임금'(p{w}1642), 자영은 '월평균 사업소득'(p{w}1672)로 **서로 다른 개념**이다(사업소득은 사업 관련 비용·변동성이 다르게 반영됨). 따라서 이 효과는 '창업하면 소득이 이만큼 오른다'가 아니라 '창업으로 전환한 사람의 신고 소득이 임금 대비 이만큼 높게 관측된다'로 읽어야 한다. 또한 폐업해 소득이 끊긴 사람은 결과 관측에서 빠져 생존편의가 남는다 (→ L4 자영 이탈확률과 반드시 함께 볼 것).",
+      "causal": {
+        "method": "LinearDML",
+        "ate_manwon": 47.23,
+        "ci95": [
+          31.45,
+          63.01
+        ],
+        "significant": true
+      },
+      "causal_forest": {
+        "method": "CausalForestDML",
+        "ate_manwon": 45.28,
+        "ci95": [
+          -347.89,
+          438.46
+        ]
+      },
+      "features": [
+        "age",
+        "sex",
+        "edu"
+      ]
+    },
+    "econml_klips_break.pkl": {
+      "layer": "L3",
+      "role": "쉬어가기(자발 퇴직 후 2개월 이상 공백)→소득 인과효과 (KLIPS 종단)",
+      "present": false
+    },
+    "lifelines.pkl": {
+      "layer": "L4",
+      "role": "재직 생존분석 (GOMS 폴백)",
+      "present": false
+    },
+    "lifelines_klips.pkl": {
+      "layer": "L4",
+      "role": "재직 생존분석 (KLIPS 스펠)",
+      "present": true,
+      "size_mb": 2.28,
+      "modified": "2026-08-03T12:01:18.625916+00:00",
+      "source": "KLIPS 스펠",
+      "n": 16259,
+      "survival": {
+        "metric": "5-fold C-index",
+        "train": 0.58,
+        "test": 0.58,
+        "test_std": 0.007,
+        "gap": 0.0,
+        "max_horizon_years": 10
+      },
+      "features": [
+        "age_start",
+        "sex",
+        "edu"
+      ]
+    },
+    "lifelines_yp.pkl": {
+      "layer": "L4",
+      "role": "재직 생존분석 (YP 스펠)",
+      "present": false
+    },
+    "lifelines_klips_startup.pkl": {
+      "layer": "L4",
+      "role": "자영(창업) 상태 이탈 생존분석 (KLIPS 자영 스펠)",
+      "present": true,
+      "size_mb": 0.4,
+      "modified": "2026-08-13T09:18:43.841722+00:00",
+      "source": "KLIPS 자영 스펠",
+      "n": 2683,
+      "treatment": "startup",
+      "event_label": "자영(창업) 상태 이탈 — 폐업·업종전환·재취업 포함",
+      "survival": {
+        "metric": "5-fold C-index",
+        "train": 0.648,
+        "test": 0.638,
+        "test_std": 0.01,
+        "gap": 0.01,
+        "max_horizon_years": 10
+      },
+      "features": [
+        "age",
+        "sex",
+        "edu",
+        "ind_A",
+        "ind_C",
+        "ind_F",
+        "ind_H",
+        "ind_I",
+        "ind_J",
+        "ind_K",
+        "ind_L",
+        "ind_M",
+        "ind_N",
+        "ind_P",
+        "ind_Q",
+        "ind_R",
+        "ind_S",
+        "ind_기타"
+      ]
+    },
+    "lifelines_klips_break.pkl": {
+      "layer": "L4",
+      "role": "복귀까지 걸리는 기간 (KLIPS 직업력 공백 스펠)",
+      "present": false
+    },
+    "layer1_lookup.pkl": {
+      "layer": "L1",
+      "role": "룰베이스 생활지표 조회표",
+      "present": false
+    },
+    "encoders.pkl": {
+      "layer": "-",
+      "role": "GOMS 인코더/중앙값 (knn.pkl·econml.pkl 전용)",
+      "present": true,
+      "size_mb": 0.0,
+      "modified": "2026-08-03T11:24:22.375474+00:00",
+      "features": [
+        "sex_enc",
+        "major_enc",
+        "age",
+        "monthly_wage",
+        "satis_overall",
+        "life_satis",
+        "happy",
+        "is_regular",
+        "firm_size"
+      ]
+    }
+  },
+  "missing": [
+    "econml_klips_break.pkl",
+    "econml_yp.pkl",
+    "knn_yp.pkl",
+    "layer1_lookup.pkl",
+    "lifelines.pkl",
+    "lifelines_klips_break.pkl",
+    "lifelines_yp.pkl"
+  ]
+}

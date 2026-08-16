@@ -1,0 +1,408 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useResult } from "../data/ResultContext.jsx";
+import { useDiary } from "../data/DiaryContext.jsx";
+import { labelOf } from "../data/prediction.js";
+import { detectLifeDomains } from "../data/choices.js";
+import { occupationLabel } from "../data/profileOptions.js";
+import { redactPII, redactEntries } from "../data/piiRedact.js";
+import { saveMe, getScenario, getThirdPath } from "../data/api.js";
+import { listUniverses, saveUniverse, universeFromResult } from "../data/savedUniverses.js";
+import { Eyebrow } from "../components/ui.jsx";
+import { Bookmark, Check, ChevronLeft, ChevronRight, LockKeyhole } from "lucide-react";
+import LifeView from "../components/result/LifeView.jsx";
+import ChangeView from "../components/result/ChangeView.jsx";
+import EvidenceView, { hasEvidenceDetail } from "../components/result/EvidenceView.jsx";
+import ActionView from "../components/result/ActionView.jsx";
+import AvatarComparison from "../components/result/AvatarComparison.jsx";
+import DiarySignalCard from "../components/result/DiarySignalCard.jsx";
+import KowepsEvidenceCard from "../components/result/KowepsEvidenceCard.jsx";
+import JobAnalysisView from "../components/result/JobAnalysisView.jsx";
+import RelationshipView from "../components/result/RelationshipView.jsx";
+import SoftCompareView from "../components/result/SoftCompareView.jsx";
+import ResultQuickStats from "../components/result/ResultQuickStats.jsx";
+import { softDomainOf } from "../data/softCompare.js";
+import { DOMAIN_LABEL } from "../data/diarySignals.js";
+
+const RESULT_STEPS = ["결과 요약", "비교 분석", "다음 선택", "저장하고 완료"];
+
+export default function Result() {
+  const navigate = useNavigate();
+  const { result, profile, scenarioDomains, retryVisuals, jobAnalyses, postings, relResults, talks } = useResult();
+  const { a, b } = result;
+  // 온보딩·설정의 직종(8분류) → 없으면 입력 화면의 KSCO 대분류. 둘 다 없으면 빈 문자열.
+  const myOccupation = occupationLabel(profile);
+
+  // 진로가 아닌 영역(관계·건강·일상·성장)은 KLIPS 수치가 맞지 않는다.
+  // 그대로 두면 지표 필터에 하나도 안 걸려 '핵심 지표'가 빈 화면이 된다(관계가 그랬다).
+  // 그 자리를 기록 기반 장면 비교로 바꾸고, 수치 탭은 뒤로 물린다.
+  const softPlanet = softDomainOf([...(result.domains?.a || scenarioDomains?.a || []),
+                                   ...(result.domains?.b || scenarioDomains?.b || [])]);
+
+  const tabs = [
+    ...(softPlanet
+      ? [{ key: "soft", label: "두 길의 하루",
+           View: (p) => <SoftCompareView {...p} planet={softPlanet} planetLabel={DOMAIN_LABEL[softPlanet] || ""} /> }]
+      : []),
+    { key: "indicators", label: softPlanet ? "참고 지표" : "핵심 지표", View: LifeView },
+    // 내용이 없으면 탭 자체를 만들지 않는다 — 열어봐야 "없습니다" 한 줄인 탭은
+    // 고를 것만 늘린다. 공고·관계 분석이 이미 같은 방식이다.
+    ...(hasEvidenceDetail(a, b, result.dataMode || "demo")
+      ? [{ key: "evidence", label: "분석 상세", View: EvidenceView }]
+      : []),
+    // 입력에서 공고를 분석했을 때만 — 예측 수치 옆에서 그 공고를 다시 확인한다.
+    ...(jobAnalyses?.length || postings?.length
+      ? [{ key: "job", label: `공고 분석${(jobAnalyses?.length || postings?.length) > 1 ? ` ${jobAnalyses?.length || postings?.length}` : ""}`, View: JobAnalysisView }]
+      : []),
+    // 관계 선택지에서 대화를 담았을 때만.
+    ...(relResults?.length || talks?.length
+      ? [{ key: "rel", label: `관계 분석${(relResults?.length || talks?.length) > 1 ? ` ${relResults?.length || talks?.length}` : ""}`, View: RelationshipView }]
+      : []),
+  ];
+
+  const [tab, setTab] = useState(softPlanet ? "soft" : "indicators");
+  const [step, setStep] = useState(0);
+  const Active = (tabs.find((t) => t.key === tab) || tabs[0]).View;
+
+  // 보관함 저장 — 화면에 보이는 A/B 그대로 담는다. 같은 비교를 같은 날 두 번 담지 않는다.
+  const title = `${a.choice} vs ${b.choice}`;
+  const today = new Date().toISOString().slice(0, 10);
+  const [saved, setSaved] = useState(() =>
+    listUniverses().some((u) => u.title === title && u.savedAt === today),
+  );
+  // 서사가 아직 오는 중이면 반쪽짜리 스냅샷이 저장된다 → 준비된 뒤에 담게 한다.
+  const savable = !saved && !result.narrativeLoading;
+
+  function saveToArchive() {
+    saveUniverse(
+      universeFromResult(result, profile, { a: a.choice, b: b.choice }, result.domains || scenarioDomains),
+    );
+    setSaved(true);
+  }
+
+  return (
+    <div className="relative">
+      <Eyebrow>결과 · CHART No.0427</Eyebrow>
+      <h1 className="text-[21px] font-bold leading-[1.2] lg:text-[28px]">
+        {/* 헤더는 '지금 내 프로필'을 그대로 보여준다. 예전엔 결과 객체 안의 스냅샷
+            (a.meta)을 읽어서, 설정에서 나이·직종을 고친 뒤 결과 화면으로 돌아오면
+            시뮬레이션을 돌리던 시점의 옛 값이 그대로 남아 있었다. */}
+        {profile.age}세{myOccupation ? ` · ${myOccupation}` : ""}
+      </h1>
+      <p className="mt-1 text-[13px]">
+        <span className="font-bold text-cyan">{labelOf(a.choice)}</span>
+        <span className="text-mut"> vs </span>
+        <span className="font-bold text-gold">{labelOf(b.choice)}</span>
+      </p>
+      <div className="mt-2 flex flex-col items-start gap-2 lg:flex-row lg:items-center lg:justify-between">
+        <div className="inline-flex h-7 items-center rounded-full border border-violet-400/30 bg-violet-500/10 px-3 text-[11px] font-semibold text-violet-200">
+          지금부터 {result.futureYears ?? 3}년 뒤의 두 미래
+        </div>
+        {step !== 1 && <EvidenceModeBadge a={a} b={b} domains={result.domains || scenarioDomains} />}
+      </div>
+      <ol className="mt-5 grid grid-cols-4 gap-2" aria-label="결과 확인 단계">
+        {RESULT_STEPS.map((label, index) => (
+          <li key={label} className="min-w-0">
+            <div className={`h-1 rounded-full ${index <= step ? "bg-violet-400" : "bg-white/10"}`} />
+            <span className={`mt-2 block truncate text-[10px] font-semibold lg:text-[11px] ${index === step ? "text-violet-300" : "text-mut"}`}>{index + 1}. {label}</span>
+          </li>
+        ))}
+      </ol>
+
+      {/* 근거 모드 배지는 '비교 분석'에서는 빼둔다 — 그 단계에는 항목별 근거가
+          바로 아래에 있고, 배지는 A·B 중 가장 강한 근거만 골라 한 줄로 쓴 것이라
+          나란히 놓으면 실제보다 단단해 보인다. 다른 단계에는 이 한 줄이 유일한
+          "확정 예측이 아니다" 표시라 그대로 둔다. */}
+      {step === 0 && <section className="mt-5 animate-fade">
+      <AvatarComparison
+        avatar={profile.avatarConfig}
+        a={a}
+        b={b}
+        visuals={result.visuals}
+        narrative={result.narrative}
+        narrativeLoading={result.narrativeLoading}
+        loading={result.imageLoading}
+        error={result.visualError || result.narrativeError}
+        onRetry={result.visualError ? retryVisuals : null}
+      />
+      <div className="mt-4 grid items-start gap-4 xl:grid-cols-2 xl:gap-5">
+        <div className="min-w-0 [&>section]:mt-0">
+          <ResultQuickStats a={a} b={b} futureYears={result.futureYears ?? 3} />
+        </div>
+        <div className="min-w-0 [&>div>div:first-child]:mt-0 [&>div>section:first-child]:mt-0">
+          <ChangeView
+            a={a}
+            b={b}
+            domains={result.domains || scenarioDomains}
+            dataMode={result.dataMode || "demo"}
+          />
+        </div>
+      </div>
+      </section>}
+
+      {step === 1 && <section className="mt-5 animate-fade lg:grid lg:grid-cols-[minmax(280px,.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-7">
+        <div>
+          <DiarySignalCard />
+          <KowepsEvidenceCard a={a} b={b} domains={result.domains || scenarioDomains} />
+        </div>
+        <div>
+      <div className="no-scrollbar my-2.5 flex gap-1.5 overflow-x-auto pb-1">
+        {tabs.map((t) => {
+          const on = t.key === tab;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`tap whitespace-nowrap rounded-2xl border px-3.5 py-2 text-xs transition-colors ${
+                on ? "border-[#3a4a70] bg-[#2b3859] text-white" : "border-line bg-[#0E1424] text-sub"
+              }`}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div key={tab} className="animate-fade">
+        <Active a={a} b={b} domains={result.domains || scenarioDomains} dataMode={result.dataMode || "demo"} />
+      </div>
+        </div>
+      </section>}
+
+      {step === 2 && <section className="mt-5 animate-fade">
+        <div className="mt-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-7">
+          <div><ActionView a={a} b={b} domains={result.domains || scenarioDomains} dataMode={result.dataMode || "demo"} /></div>
+          <div>
+            <PersonaScenario a={a} b={b} />
+            <ThirdPath a={a} b={b} />
+          </div>
+        </div>
+      </section>}
+
+      {step === 3 && <section className="mx-auto mt-6 max-w-[680px] animate-fade rounded-[24px] border border-white/10 bg-card/70 p-5 text-center lg:p-8">
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-violet-500/15 text-violet-300"><Bookmark size={21}/></span>
+        <h2 className="mt-4 text-[18px] font-bold text-ink">비교 결과를 보관할까요?</h2>
+        <p className="mt-2 text-[12px] leading-5 text-mut">결과를 보관함에 저장해야 이번 비교를 마치고 다른 메뉴로 이동할 수 있어요.</p>
+      <div className="mt-5 grid gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={saveToArchive}
+          disabled={!savable}
+          className={`tap flex items-center justify-center gap-1.5 rounded-2xl border px-3 py-3 text-[14px] font-semibold transition-colors ${
+            savable
+              ? "border-cyan/45 bg-cyan/[.12] text-cyan hover:bg-cyan/[.18]"
+              : "border-white/10 bg-white/[.04] text-mut"
+          }`}
+        >
+          {saved ? (
+            <>
+              <Check size={16} strokeWidth={2.4} />
+              보관함에 저장됨
+            </>
+          ) : result.narrativeLoading ? (
+            "결과 준비 중…"
+          ) : (
+            <>
+              <Bookmark size={16} strokeWidth={2.1} />
+              보관함에 저장
+            </>
+          )}
+        </button>
+        <button
+          type="button"
+          disabled={!saved}
+          onClick={() => navigate("/archive", { replace: true })}
+          className="tap flex items-center justify-center gap-1.5 rounded-2xl bg-violet-500 px-3 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-violet-400 disabled:cursor-not-allowed disabled:bg-white/[.06] disabled:text-mut"
+        >
+          {saved ? <>최종 나가기 <ChevronRight size={16}/></> : <><LockKeyhole size={15}/> 저장 후 나갈 수 있어요</>}
+        </button>
+      </div>
+      </section>}
+
+      <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
+        {step > 0 ? (
+          <button type="button" onClick={() => setStep((current) => current - 1)} className="tap flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-semibold text-sub hover:bg-white/[.05]"><ChevronLeft size={15}/> 이전</button>
+        ) : <span />}
+        {step < RESULT_STEPS.length - 1 && (
+        <button
+          type="button"
+          onClick={() => setStep((current) => current + 1)}
+          className="tap flex items-center gap-1.5 rounded-xl bg-violet-500 px-4 py-2.5 text-[12px] font-semibold text-white hover:bg-violet-400"
+        >
+          다음 단계 <ChevronRight size={15}/>
+        </button>
+      )}
+      </div>
+    </div>
+  );
+}
+
+function EvidenceModeBadge({ a, b, domains }) {
+  const selected = new Set([...(domains?.a || []), ...(domains?.b || [])]);
+  const hasModel = [a, b].some((side) => side.evidence_level === "model" || side.parallel_trajectory?.status === "available");
+  const hasMatched = [a, b].some((side) => side.koweps_evidence?.evidence_level === "personalized_matched_observation");
+  const hasObserved = [a, b].some((side) => side.koweps_evidence?.available || Object.values(side.domain_stats || {}).some((item) => item.status === "available"));
+  const mode = hasModel
+    ? ["개인 조건 모델", "입력 조건을 모델과 유사사례 매칭에 사용했습니다.", "#9B72F2"]
+    : hasMatched
+      ? ["유사 조건 종단 관측", "나와 가까운 조건의 사건 발생군과 미발생군을 비교합니다.", "#7E9EFF"]
+      : hasObserved
+        ? ["집단 관측·참고 통계", "개인의 확정 미래가 아니라 관련 집단의 기준값입니다.", "#65C8B0"]
+        : selected.has("relationship")
+          ? ["관계 행동 시뮬레이션", "예측 점수 대신 실행 단계와 기록할 변화를 제시합니다.", "#F39A4A"]
+          : ["설명 기반 탐색", "검증된 수치가 없는 부분은 서사와 행동 제안만 제공합니다.", "#8791A8"];
+  return (
+    <div
+      className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/[.035] px-3 py-2.5 lg:h-7 lg:items-center lg:rounded-full lg:bg-[#0D1727]/90 lg:py-0 lg:shadow-[0_8px_24px_rgba(0,0,0,.22)] lg:backdrop-blur"
+      title={mode[1]}
+    >
+      <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full lg:mt-0" style={{ backgroundColor: mode[2] }} />
+      <div>
+        <div className="text-[10px] font-bold" style={{ color: mode[2] }}>{mode[0]}</div>
+        <div className="mt-0.5 text-[9px] leading-4 text-mut lg:hidden">{mode[1]}</div>
+      </div>
+    </div>
+  );
+}
+
+// A/B 외의 '제3의 길' — 성향+일기신호로 LLM이 생성 (재구성 제안, 수치 예측 아님)
+function ThirdPath({ a, b }) {
+  const { profile } = useResult();
+  const { entries } = useDiary();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const [res, setRes] = useState(null);
+
+  async function run() {
+    setBusy(true); setErr(null); setRes(null);
+    try {
+      // 진로 계열일 때만 일기 entries(→ 이직 신호)를 넘긴다. 관계 등은 선택지만으로
+      // 제안받아 이직 프레임이 섞이지 않게 한다(LLM은 선택지를 보고 해당 분야로 제안).
+      const isJob = detectLifeDomains(`${a.choice} ${b.choice}`).some((k) => ["career", "finance", "business"].includes(k))
+        || /이직|퇴사|유지|창업|진학|직장|커리어/.test(`${a.choice}${b.choice}`);
+      // 외부 AI 전송 전 PII 마스킹 — 이름·연봉·연락처 등 원문 개인정보를 가린다.
+      const known = { name: profile.name, company: "" };
+      const rawEntries = entries.map((e) => ({
+        date: e.date, mood: e.mood, text: e.text, answers: e.answers || {},
+        energy: e.energy, competency: e.competency, emotion: e.emotion,
+      }));
+      const r = await getThirdPath({
+        choice_a: redactPII(a.choice, known).masked,
+        choice_b: redactPII(b.choice, known).masked,
+        // 결과 스냅샷(a.meta)이 아니라 지금 프로필을 보낸다 — 프로필을 고친 뒤
+        // 생성하면 옛 나이·직종으로 서사가 쓰이던 자리다.
+        age: profile.age,
+        major: occupationLabel(profile),
+        entries: isJob ? redactEntries(rawEntries, known).entries : [],
+      });
+      if (!r.ok) throw new Error(r.reason === "no_api_key" ? "서버에 ANTHROPIC_API_KEY 미설정" : r.reason || "생성 실패");
+      setRes(r);
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mb-3 rounded-2xl border border-gold/50 bg-[#211a10] p-3.5">
+      <div className="flex items-center justify-between">
+        <div className="text-[13px] font-bold text-gold">💡 생각지 못한 제3의 길</div>
+        <button
+          onClick={run}
+          disabled={busy}
+          className="tap rounded-xl bg-gold px-3 py-1.5 text-[11px] font-bold text-[#2a1e05] disabled:opacity-60"
+        >
+          {busy ? "찾는 중…" : res ? "다시" : "제안 받기"}
+        </button>
+      </div>
+      {err && <p className="mt-2 text-[10px] text-[#F0736F]">API 실패 — 서버(:8000) 켜졌나요? {err}</p>}
+      {res ? (
+        <>
+          <p className="mt-2 text-[13px] font-semibold leading-relaxed text-ink">{res.title}</p>
+          {res.rationale && <p className="mt-1.5 whitespace-pre-line text-[12px] leading-relaxed text-sub">{res.rationale}</p>}
+          <p className="mt-1.5 text-[10px] text-mut">
+            {res.signal_used ? "✓ 내 일기 신호 반영 · " : ""}정답이 아니라 재구성 제안이에요 — 수치 예측이 아닙니다.
+          </p>
+        </>
+      ) : (
+        !busy && (
+          <p className="mt-2 text-[11px] leading-relaxed text-mut">
+            {a.choice} vs {b.choice} 두 갈래 말고, 내 성향·일기에 맞는 제3의 길을 제안받아요.
+          </p>
+        )
+      )}
+    </div>
+  );
+}
+
+// 저장된 내 성향(온보딩+일기) → 이 이직 예측 서사에 반영 (수치 불변, 순서·톤만)
+function PersonaScenario({ a, b }) {
+  const { profile } = useResult();
+  const { entries } = useDiary();
+  const jc = a.choice === "이직" ? a : b.choice === "이직" ? b : null;
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const [res, setRes] = useState(null);
+
+  if (!jc) return null; // 이직 시나리오 없으면 표시 안 함
+
+  async function run() {
+    setBusy(true); setErr(null); setRes(null);
+    try {
+      await saveMe({
+        ranked_cards: profile.values,
+        mbti: profile.mbti,
+        profile: { age: profile.age, occupation: profile.occupation, income: profile.income },
+        entries: entries.map((e) => ({
+          date: e.date, mood: e.mood, text: e.text, answers: e.answers || {},
+          energy: e.energy, competency: e.competency, emotion: e.emotion,
+        })),
+      });
+      const r = await getScenario({
+        uid: "me", choice: "이직",
+        expected_wage: jc.expected_wage || 0,
+        causal_effect: jc.causal_effect || 0,
+        survival_months: jc.survival_months || 0,
+        age: profile.age, major: occupationLabel(profile),
+      });
+      setRes(r);
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mb-3 mt-1 rounded-2xl border border-cyan bg-[#1D1730] p-3.5">
+      <div className="flex items-center justify-between">
+        <div className="text-[13px] font-bold text-cyan">🔮 내 성향이 반영된 이직 서사</div>
+        <button
+          onClick={run}
+          disabled={busy}
+          className="tap rounded-xl bg-cyan px-3 py-1.5 text-[11px] font-bold text-[#04203a] disabled:opacity-60"
+        >
+          {busy ? "생성 중…" : res ? "다시" : "생성"}
+        </button>
+      </div>
+      {err && <p className="mt-2 text-[10px] text-[#F0736F]">API 실패 — 서버(:8000) 켜졌나요? {err}</p>}
+      {res ? (
+        <>
+          <p className="mt-2 whitespace-pre-line text-[12px] leading-relaxed text-sub">{res.narrative}</p>
+          <p className="mt-1.5 text-[10px] text-mut">
+            {res.persona_used
+              ? "✓ 저장된 내 성향(온보딩+일기) 반영 — 예측 수치는 동일, 서술 순서·톤만 조정"
+              : "성향 미반영(저장된 데이터 없음)"}
+          </p>
+        </>
+      ) : (
+        !busy && (
+          <p className="mt-2 text-[11px] text-mut">
+            온보딩+일기로 만든 내 성향을 저장하고, 이 이직 예측에 반영한 서사를 생성해요.
+          </p>
+        )
+      )}
+    </div>
+  );
+}

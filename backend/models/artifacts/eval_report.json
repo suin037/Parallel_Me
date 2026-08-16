@@ -1,0 +1,58 @@
+{
+  "version": "d757cb6",
+  "generated_at_utc": "2026-08-07T11:29:44.472606+00:00",
+  "data_source": "GOMS2019 · YP2021 (생존모델은 KLIPS 별도)",
+  "n_total": 11318,
+  "n_train": 8488,
+  "n_test": 2830,
+  "treatment_rate": 0.225,
+  "test_size": 0.25,
+  "seed": 42,
+  "features": {
+    "knn": [
+      "sex_enc",
+      "major_enc",
+      "age",
+      "monthly_wage",
+      "satis_overall",
+      "life_satis",
+      "happy",
+      "is_regular",
+      "firm_size"
+    ],
+    "econml_X": [
+      "age",
+      "sex_enc",
+      "major_enc",
+      "satis_overall"
+    ]
+  },
+  "causal": {
+    "descriptive_diff_manwon": -21.5,
+    "causal_forest": {
+      "ate_test_manwon": -14.65,
+      "ci95": [
+        -49.57,
+        20.26
+      ]
+    },
+    "linear_dml": {
+      "ate_test_manwon": -14.52,
+      "ci95": [
+        -18.27,
+        -10.76
+      ],
+      "distinguishable_from_zero": true
+    }
+  },
+  "knn": {
+    "wage_mae_manwon": 18.0,
+    "baseline_median_mae_manwon": 57.3,
+    "improvement_vs_baseline_pct": 68.7,
+    "neighbor_age_gap_yr": 0.9,
+    "neighbor_same_major_ratio": 0.601
+  },
+  "survival": {
+    "skipped": "tenure_months 없음 — 생존모델은 KLIPS 데이터 필요"
+  }
+}

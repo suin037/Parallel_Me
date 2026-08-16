@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+    background: #050A12;
+    margin: 0;
+    letter-spacing: -0.018em;
+  }
+  /* 터치 하이라이트 제거 */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+  /* 앱 전반의 선형 기능 아이콘은 보라색을 기본으로 사용한다. */
+  svg.lucide {
+    color: #8b6ccf;
+  }
+}
+
+@layer utilities {
+  /* 스크롤바 숨김 (폰 화면 느낌) */
+  .no-scrollbar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  /* 최소 터치 타겟 44px */
+  .tap {
+    min-height: 44px;
+  }
+
+  /* 입력 화면의 progressive disclosure: 내용 높이와 투명도를 함께 전환한다. */
+  .smooth-details > .details-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 280ms cubic-bezier(.22,.8,.25,1), opacity 180ms ease-out;
+  }
+  .smooth-details[open] > .details-body {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+  .smooth-details > .details-body > .details-body-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .smooth-details > .details-body {
+      transition: none;
+    }
+  }
+}
