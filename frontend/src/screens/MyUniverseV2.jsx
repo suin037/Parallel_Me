@@ -722,7 +722,7 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
   const factors = analysis?.topEmotions?.slice(0, 3) || KEYWORDS[planet.key].slice(0, 3);
   const changeText = trend == null ? "—" : `${trend >= 0 ? "+" : ""}${trend.toFixed(1)}`;
 
-  return <aside className="absolute inset-y-2 right-2 z-40 w-[min(430px,calc(100%-16px))] overflow-y-auto rounded-[26px] border border-white/10 bg-[#070E1B]/95 shadow-[0_30px_100px_rgba(0,0,0,.72)] backdrop-blur-2xl lg:inset-y-4 lg:right-4 lg:w-[520px] xl:w-[610px]">
+  return <aside className="absolute inset-y-2 right-2 z-40 w-[min(430px,calc(100%-16px))] overflow-y-auto rounded-[26px] border border-white/10 bg-[#070E1B]/95 shadow-[0_30px_100px_rgba(0,0,0,.72)] backdrop-blur-2xl lg:inset-y-4 lg:right-4 lg:w-[calc(50vw-1.5rem)] xl:w-[calc(50vw-1.5rem)]">
     <div className="p-5 lg:p-6">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4"><PlanetOrb planet={planet} /><div><p className="text-[9px] font-semibold tracking-[.2em]" style={{color:accent}}>FUTURE PLANET</p><h2 className="mt-1 text-[25px] font-bold tracking-[-.035em] lg:text-[29px]">{planet.label}</h2></div></div>
