@@ -10,7 +10,6 @@
 from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 import functools
-import httpx
 import json
 import logging
 import os
@@ -434,11 +433,13 @@ async def visualize(
             scene_a, scene_b, character_spec, future_years,
             visual_width, visual_height, visual_format,
         )
-    except (httpx.HTTPStatusError, httpx.RequestError) as exc:
-        raise HTTPException(
-            502, f"Cloudflare returned HTTP {exc.response.status_code}"
-        ) from exc
     except Exception as exc:
+        # 사유를 로그에도 남긴다. 예전에는 502 본문으로만 나가서 터미널에는
+        # "502 Bad Gateway" 한 줄뿐이었고, Cloudflare 의 일시적 거절인지 설정 문제인지
+        # 브라우저 개발자도구를 열기 전에는 구분할 수 없었다.
+        # (httpx 전용 except 는 지웠다 — 이 경로는 requests 를 쓰므로 걸린 적이 없고,
+        #  httpx.RequestError 에는 .response 가 없어 걸렸다면 AttributeError 가 났다.)
+        log.error("이미지 생성 실패(%dx%d): %s", visual_width, visual_height, exc)
         raise HTTPException(502, str(exc)[:300]) from exc
     return {"images": images, "model": settings.cloudflare_reference_model}
 
