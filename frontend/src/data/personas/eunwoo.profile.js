@@ -12,11 +12,12 @@ export const profile = {
   tenure_years: 4,
   mbti: "INFP",
   value_ranking: ["freedom", "stability", "meaning", "friends", "family", "growth", "money", "status"],
-  tagline: "광고대행사 AE 4년차 · 저녁이 있는 삶을 찾는 중",
+  tagline: "광고대행사 AE 4년차 · 워라밸 찾아 옮길지 남을지",
   choices: { a: "워라밸을 위해 이직한다", b: "지금 회사에 남는다" },
+  // 카드 얼굴. 값은 avatarOptions.js 의 id 를 그대로 쓴다(없는 id 는 조용히 무시된다).
   avatarConfig: {
-    face: "oval", hairStyle: "bobLong", beard: null, eyes: "happy", lashes: true,
-    eyebrows: "happy", browThickness: "thin", glasses: "none", mouth: "smile",
-    clothes: "shirt", skinColor: "d08b5b", hairColor: "d6b370", clothesColor: "a7ffc4",
+    face: "oval", hairStyle: "wavyParted", hairColor: "724133", skinColor: "f2d3b1",
+    eyes: "happy", eyebrows: "happy", browThickness: "thin",
+    mouth: "smile", clothes: "shirt", clothesColor: "ffafb9",
   },
 };

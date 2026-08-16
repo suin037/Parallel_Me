@@ -17,11 +17,12 @@ export const profile = {
   tenure_years: 4,
   mbti: "INFJ",
   value_ranking: ["growth", "meaning", "stability", "friends", "freedom", "family", "money", "status"],
-  tagline: "프로덕트 디자이너 4년차 · 합격했는데 못 옮기고 있다",
+  tagline: "프로덕트 디자이너 4년차 · 합격한 곳으로 옮길지 남을지",
   choices: { a: "합격한 회사로 이직한다", b: "지금 회사에 남는다" },
+  // 카드 얼굴. 값은 avatarOptions.js 의 id 를 그대로 쓴다(없는 id 는 조용히 무시된다).
   avatarConfig: {
-    face: "oval", hairStyle: "wavyBangs", beard: null, eyes: "happy", lashes: true,
-    eyebrows: "happy", browThickness: "thin", glasses: "round", mouth: "smile",
-    clothes: "turtleNeck", skinColor: "edb98a", hairColor: "724133", clothesColor: "ffafb9",
+    face: "oval", hairStyle: "bobLong", hairColor: "2c1b18", skinColor: "f2d3b1",
+    eyes: "wide", eyebrows: "neutral", browThickness: "thin",
+    mouth: "smile", clothes: "turtleNeck", clothesColor: "3c4f5c",
   },
 };

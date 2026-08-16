@@ -119,9 +119,10 @@ export function saveActiveSlot(nowIso = null) {
 
 /**
  * 슬롯을 활성화한다.
- *  · 현재 슬롯이 있으면 먼저 담아둔다(작업 내용 보존).
+ *  · **이미 그 슬롯이면** 지금 상태를 담아두기만 한다(복원하지 않는다).
+ *  · 다른 슬롯에 있었으면 그쪽을 먼저 담아둔다(작업 내용 보존).
  *  · 대상 슬롯이 이미 있으면 그 내용을 복원한다.
- *  · 없으면 빈 상태로 만들고 `seeded:false` 를 돌려준다 → 호출측이 초기 데이터를 심는다.
+ *  · 없으면 빈 상태로 만들고 `restored:false` 를 돌려준다 → 호출측이 초기 데이터를 심는다.
  *
  * @returns {{restored: boolean}} restored=false 면 새 슬롯이라 심을 게 필요하다는 뜻.
  */
@@ -129,7 +130,21 @@ export function activateSlot(id, opts = {}) {
   const { reload = false, nowIso = null } = opts;
   const st = readSlots();
 
-  if (st.active && st.active !== id) {
+  // 이미 그 슬롯에 있는 경우. 살아 있는 값이 스냅샷보다 최신이므로 **되돌리면 안 된다.**
+  //   스냅샷은 슬롯을 떠날 때만 뜨는데(saveActiveSlot 호출처 참고), 설정에서 아바타를
+  //   바꾸는 것 같은 변경은 그 사이에 일어난다. 예전엔 여기서 restoreLive 를 그대로 타서
+  //   체험하기로 돌아가 같은 인물을 다시 누르면 방금 바꾼 게 사라졌다.
+  //   지금 상태를 담아두고 끝낸다 — 복원할 것도, 심을 것도 없다.
+  if (st.active === id) {
+    const snap = snapshotLive();
+    if (nowIso) snap.__savedAt = nowIso;
+    st.slots[id] = snap;
+    writeSlots(st);
+    if (reload && typeof window !== "undefined") window.location.reload();
+    return { restored: true };
+  }
+
+  if (st.active) {
     const snap = snapshotLive();
     if (nowIso) snap.__savedAt = nowIso;
     st.slots[st.active] = snap;

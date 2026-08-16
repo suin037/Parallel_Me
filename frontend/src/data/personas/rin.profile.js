@@ -14,11 +14,12 @@ export const profile = {
   tenure_years: 0,
   mbti: "ENFP",
   value_ranking: ["growth", "freedom", "meaning", "friends", "status", "money", "family", "stability"],
-  tagline: "런던 석사 마무리 · 돌아올지 남을지",
+  tagline: "런던 석사 마무리 · 귀국할지 현지에 남을지",
   choices: { a: "귀국해서 이직한다", b: "런던에 남아 현지 취업을 한다" },
+  // 카드 얼굴. 값은 avatarOptions.js 의 id 를 그대로 쓴다(없는 id 는 조용히 무시된다).
   avatarConfig: {
-    face: "original", hairStyle: "bun", beard: null, eyes: "wide", lashes: true,
-    eyebrows: "raised", browThickness: "normal", glasses: "none", mouth: "laugh",
-    clothes: "tShirt", skinColor: "614335", hairColor: "c93305", clothesColor: "ff5c5c",
+    face: "pointedShort", hairStyle: "bun", hairColor: "a55728", skinColor: "f2d3b1",
+    eyes: "wide", eyebrows: "raised", browThickness: "normal",
+    mouth: "laugh", clothes: "tShirt", clothesColor: "a7ffc4",
   },
 };
