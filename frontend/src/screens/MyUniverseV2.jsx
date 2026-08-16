@@ -717,6 +717,74 @@ function TrendChart({ series, accent }) {
   </div>;
 }
 
+// 이 행성에 붙은 별들 — 7개씩 순서대로 묶어 하나씩 넘겨 본다.
+//
+// 기간(주·달)으로 나누지 않는다. 기록이 띄엄띄엄한 사람은 '이번 주 별자리'가
+// 계속 비어 보이는데, 그건 안 쓴 게 아니라 그 주에 이 영역 이야기가 없었을 뿐이다.
+// 쌓인 순서대로 7개씩 채우면 빈 별자리가 안 생기고, 넘길수록 시간이 흐른다.
+function StarGroups({ groups, accent, onClose }) {
+  const [at, setAt] = useState(groups.length - 1); // 최근 묶음부터 본다
+  const g = groups[at];
+  if (!g) return null;
+
+  const dated = g.stars.map((s) => s.date);
+  const go = (d) => setAt((i) => Math.min(groups.length - 1, Math.max(0, i + d)));
+
+  return (
+    <div className="mt-4 rounded-2xl border border-white/[.08] bg-[#070D19] p-4">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[9px] tracking-[.15em] text-[#A88BE8]">RECORD CONSTELLATION</p>
+          <p className="mt-0.5 text-[12px] font-bold text-ink">
+            {at + 1}번째 별자리 <span className="ml-1 text-[10px] font-medium text-mut">/ 전체 {groups.length}개</span>
+          </p>
+        </div>
+        <Close onClick={onClose} />
+      </div>
+
+      <div className="mt-3 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => go(-1)}
+          disabled={at === 0}
+          aria-label="이전 별자리"
+          className="tap flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 text-sub disabled:opacity-25"
+        >
+          <ChevronRight size={16} className="rotate-180" />
+        </button>
+
+        <div className="min-w-0 flex-1 rounded-[18px] border border-white/[.06] bg-black/25 py-2">
+          <Constellation size={220} stars={g.stars} todayDate={todayKey()} seed={g.weekStart} />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => go(1)}
+          disabled={at === groups.length - 1}
+          aria-label="다음 별자리"
+          className="tap flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 text-sub disabled:opacity-25"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      <p className="mt-2.5 text-center text-[10px] text-sub">
+        {dated[0]?.slice(5)} ~ {dated[dated.length - 1]?.slice(5)}
+        <span className="ml-2 text-mut">별 {g.filled}개{g.complete ? "" : " · 채우는 중"}</span>
+      </p>
+
+      <div className="mt-3 space-y-1.5 border-t border-white/[.07] pt-2.5">
+        {g.stars.map((s) => (
+          <p key={s.date} className="text-[9.5px] leading-relaxed text-mut">
+            <span className="mr-2" style={{ color: accent }}>{dateLabel(s.date)}</span>
+            {s.text || s.note || s.chatSummary || "짧게 남긴 기록"}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // 관계 그래프 — 누구와의 이야기였나.
 //
 // 통짜 "관계 52번"은 연인 문제인지 직장 문제인지 모르는 숫자다. 나눠야
@@ -902,6 +970,10 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
     () => (metric.kind === "people" ? relationMix(entries, detectRelationSubtype) : null),
     [metric.kind, entries],
   );
+  // 이 행성에 붙은 별 — 7개씩 순서대로. 기간이 아니라 쌓인 순서로 묶는다.
+  const [starsOpen, setStarsOpen] = useState(false);
+  const starGroups = useMemo(() => starGroupsOf(planet.key, state), [planet.key, state]);
+  useEffect(() => { setStarsOpen(false); }, [planet.key]);
   const average = analysis?.ok ? Number(analysis.moodAvg) : null;
   const trend = analysis?.ok && Number.isFinite(Number(analysis.trend)) ? Number(analysis.trend) : null;
   const stable = trend == null || Math.abs(trend) < .25;
@@ -927,9 +999,39 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
   return <aside className="absolute inset-y-2 right-2 z-40 w-[min(430px,calc(100%-16px))] overflow-y-auto rounded-[26px] border border-white/10 bg-[#070E1B]/95 shadow-[0_30px_100px_rgba(0,0,0,.72)] backdrop-blur-2xl lg:inset-y-4 lg:right-4 lg:w-[calc(50vw-1.5rem)] xl:w-[calc(50vw-1.5rem)]">
     <div className="p-5 lg:p-6">
       <div className="flex items-start justify-between">
-        <div className="flex items-center gap-4"><PlanetOrb planet={planet} /><div><p className="text-[9px] font-semibold tracking-[.2em]" style={{color:accent}}>FUTURE PLANET</p><h2 className="mt-1 text-[25px] font-bold tracking-[-.035em] lg:text-[29px]">{planet.label}</h2></div></div>
+        <div className="flex items-center gap-4"><PlanetOrb planet={planet} /><div><p className="text-[9px] font-semibold tracking-[.2em]" style={{color:accent}}>FUTURE PLANET</p>
+          <div className="mt-1 flex items-center gap-2">
+            <h2 className="text-[25px] font-bold tracking-[-.035em] lg:text-[29px]">{planet.label}</h2>
+            {/* 이 행성에 붙은 별을 펼쳐 본다. 이름 옆이라 '이 행성의 별'인 게 분명하다. */}
+            {starGroups.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setStarsOpen((v) => !v)}
+                aria-label={starsOpen ? "별자리 닫기" : `별자리 보기 (${starGroups.length}개)`}
+                aria-pressed={starsOpen}
+                className="tap flex h-8 w-8 items-center justify-center rounded-full border transition-colors"
+                style={{
+                  borderColor: starsOpen ? accent : "rgba(255,255,255,.14)",
+                  background: starsOpen ? `${accent}22` : "transparent",
+                }}
+              >
+                <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+                  <path
+                    d="M12 2.6l2.7 6.1 6.6.6-5 4.4 1.5 6.5L12 16.8 6.2 20.2l1.5-6.5-5-4.4 6.6-.6L12 2.6Z"
+                    fill={starsOpen ? accent : "none"}
+                    stroke={accent}
+                    strokeWidth="1.6"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div></div>
         <Close onClick={onClose}/>
       </div>
+
+      {starsOpen && <StarGroups groups={starGroups} accent={accent} onClose={() => setStarsOpen(false)} />}
 
       <p className="mt-5 text-[13px] font-semibold leading-relaxed text-ink">{status}</p>
       {/* 점수를 내는 영역(삶의 만족·건강)만 숫자를 앞세운다. */}
