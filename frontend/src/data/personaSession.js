@@ -29,6 +29,29 @@ function writeProfile(profile) {
 }
 
 /**
+ * 프로필에 **없는 키만** 채운다. 이미 있는 값은 건드리지 않는다.
+ *
+ * 왜 필요한가: 아래 enterPersona 는 슬롯을 처음 만들 때만 writeProfile 을 부른다.
+ *   그래서 한 번이라도 들어가 본 인물은, 나중에 페르소나 프로필에 새로 생긴 값이
+ *   그 슬롯에 영영 안 들어간다. avatarConfig 를 추가했을 때 실제로 그랬다 —
+ *   카드에는 얼굴이 뜨는데 그 인물로 들어가면 기본 아바타였다.
+ *
+ *   덮어쓰기로 고치면 안 된다. 설정에서 아바타를 직접 고쳐둔 사람의 선택이 체험하기에
+ *   다시 들어올 때마다 초기화된다. 그래서 빈 자리만 메운다.
+ */
+function fillProfileGaps(profile) {
+  try {
+    const prev = JSON.parse(storage.getItem(PROFILE_KEY) || "{}");
+    const next = { ...prev };
+    let changed = false;
+    for (const [key, value] of Object.entries(profile)) {
+      if (prev[key] === undefined) { next[key] = value; changed = true; }
+    }
+    if (changed) storage.setItem(PROFILE_KEY, JSON.stringify(next));
+  } catch { /* 무시 */ }
+}
+
+/**
  * 페르소나 체험 시작. 이미 체험한 적 있는 인물이면 그때 상태를 그대로 되살린다.
  *
  * @returns {Promise<{ok: boolean, reason?: string, restored?: boolean, planted?: number}>}
@@ -53,6 +76,9 @@ export async function enterPersona(id, opts = {}) {
     planted = seedYear(mod.YEAR, mod.FINALE ?? null, { demoKind: "year" });
     writeProfile(persona.profile);
   }
+  // 이미 있던 슬롯이면 위를 건너뛰므로, 그 뒤에 프로필에 새로 생긴 값은 빠진 채로 남는다.
+  // 빈 자리만 메워서 예전에 만든 슬롯도 최신 프로필과 어긋나지 않게 한다.
+  fillProfileGaps(persona.profile);
 
   // 슬롯에 심은 결과를 곧바로 담아둔다 — 새로고침 전에 저장이 끝나 있어야 한다.
   saveActiveSlot(new Date().toISOString());
