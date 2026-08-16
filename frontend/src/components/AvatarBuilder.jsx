@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Avatar from "./Avatar.jsx";
 import {
   BEARD,
@@ -12,7 +13,6 @@ import {
   HAIR_STYLES,
   MOUTH,
   SKIN_COLORS,
-  TOONHEAD_CREDIT,
   normalizeAvatar,
   randomToonHead,
 } from "../data/avatarOptions.js";
@@ -111,6 +111,15 @@ export default function AvatarBuilder({ config, onChange }) {
   const [camera, setCamera] = useState(false);
   const set = (patch) => onChange({ ...avatar, ...patch });
 
+  useEffect(() => {
+    if (!camera) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setCamera(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [camera]);
+
   // 미리보기용 config — 항목별 차이가 잘 보이도록 가리는 요소(안경·수염)를 걷어낸다.
   const bare = { ...avatar, glasses: "none", beard: null };
 
@@ -129,7 +138,7 @@ export default function AvatarBuilder({ config, onChange }) {
           </button>
           <button
             type="button"
-            onClick={() => setCamera((v) => !v)}
+            onClick={() => setCamera(true)}
             className="tap mt-1.5 rounded-full border border-white/10 bg-white/[.04] px-3 py-1.5 text-[10px] font-semibold text-sub"
           >
             📷 카메라로 맞추기
@@ -275,29 +284,31 @@ export default function AvatarBuilder({ config, onChange }) {
         </div>
       </div>
 
-      {camera && (
-        <AvatarFromPhoto
-          current={avatar}
-          onResult={(cfg) => {
-            // 모델이 고른 값만 덮어쓴다. 나머지(의상 등)는 사용자가 고른 걸 유지한다.
-            onChange({ ...avatar, ...cfg });
-            setCamera(false);
+      {camera && createPortal(
+        <div
+          className="fixed inset-0 z-[140] flex items-end justify-center bg-[#02050C]/75 backdrop-blur-[5px] sm:items-center sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label="카메라로 아바타 맞추기"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setCamera(false);
           }}
-          onClose={() => setCamera(false)}
-        />
+        >
+          <div className="w-full max-w-[460px] animate-sheet-up rounded-t-[28px] border border-white/10 bg-[#0D1727] p-3 shadow-[0_-22px_70px_rgba(0,0,0,.55)] sm:animate-fade sm:rounded-[28px]">
+            <AvatarFromPhoto
+              current={avatar}
+              onResult={(cfg) => {
+                // 모델이 고른 값만 덮어쓴다. 나머지(의상 등)는 사용자가 고른 걸 유지한다.
+                onChange({ ...avatar, ...cfg });
+                setCamera(false);
+              }}
+              onClose={() => setCamera(false)}
+            />
+          </div>
+        </div>,
+        document.body,
       )}
 
-      {/* CC BY 4.0 — 저작자·라이선스·변경 사실 세 가지 모두 의무. 지우지 말 것. */}
-      <p className="mt-4 text-center text-[8px] leading-relaxed text-mut">
-        <a href={TOONHEAD_CREDIT.creatorUrl} target="_blank" rel="noreferrer" className="underline">
-          {TOONHEAD_CREDIT.title} by {TOONHEAD_CREDIT.creator}
-        </a>
-        {" · "}
-        <a href={TOONHEAD_CREDIT.licenseUrl} target="_blank" rel="noreferrer" className="underline">
-          {TOONHEAD_CREDIT.license}
-        </a>
-        {" · 원저작물에서 일부 파츠를 추가·변경했습니다"}
-      </p>
     </div>
   );
 }

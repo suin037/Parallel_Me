@@ -49,7 +49,6 @@ export default function ActionView({ a, b, domains = { a: [], b: [] } }) {
     return (
       <div>
         <h2 className="mb-1 text-base font-semibold">어느 방향을 더 알아볼까요?</h2>
-        <Caption>결정을 대신하지 않아요. 선택한 방향의 불확실성을 줄이는 작은 실험을 제안합니다.</Caption>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <GoalButton side="A" result={a} onClick={() => choose("A", a, domains.a)} />
           <GoalButton side="B" result={b} onClick={() => choose("B", b, domains.b)} />

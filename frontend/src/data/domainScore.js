@@ -56,13 +56,7 @@ function exerciseTo10(v) {
   return Math.min(10, 10 * Math.sqrt(Math.min(v, 60) / 60));
 }
 
-/** "관계는" / "성장성은" — 받침 유무로 은/는을 고른다(관계은 이 되지 않게). */
-export function topicParticle(word) {
-  const last = (word || "").trim().slice(-1);
-  const code = last.charCodeAt(0);
-  if (!last || code < 0xac00 || code > 0xd7a3) return "는";
-  return (code - 0xac00) % 28 ? "은" : "는";
-}
+// 조사는 lib/josa.js 를 쓴다 — 같은 걸 두 벌 두면 한쪽만 고치게 된다.
 
 export const DOMAIN_METRIC = {
   life: {

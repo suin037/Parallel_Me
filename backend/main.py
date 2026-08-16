@@ -10,7 +10,6 @@
 from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 import functools
-import httpx
 import json
 import logging
 import os
@@ -40,6 +39,7 @@ from compare import build_comparison
 from choice_classifier import classification_stats
 
 import stat_evidence
+import usage_guard
 import indicators as indicators_mod
 import diary_bridge
 import personalize
@@ -388,6 +388,7 @@ def health() -> dict:
                        "note": "done=false 면 첫 요청이 임베딩 모델 로딩(수십 초)을 "
                                "기다릴 수 있다"},
             "artifacts": artifact_state,
+            "usage": usage_guard.status(),
             "treatment_coverage": _treatment_coverage(),
             "choice_classification": classification_stats()}
 
@@ -422,6 +423,10 @@ async def visualize(
     avatar_png = await avatar.read()
     if len(avatar_png) > 4 * 1024 * 1024:
         raise HTTPException(413, "Avatar image is too large")
+    # 폭주 가드 — 이미지는 1회 호출에 A/B 두 장이 나가고 단가도 서사보다 높다.
+    # 넘으면 결과 화면은 그대로 두고 이미지만 뺀다(usage_guard 참조).
+    if not usage_guard.take("image"):
+        raise HTTPException(503, usage_guard.IMAGE_BUSY_MESSAGE)
     try:
         try:
             scene_a = json.loads(visual_a) if visual_a else {}
@@ -434,11 +439,13 @@ async def visualize(
             scene_a, scene_b, character_spec, future_years,
             visual_width, visual_height, visual_format,
         )
-    except (httpx.HTTPStatusError, httpx.RequestError) as exc:
-        raise HTTPException(
-            502, f"Cloudflare returned HTTP {exc.response.status_code}"
-        ) from exc
     except Exception as exc:
+        # 사유를 로그에도 남긴다. 예전에는 502 본문으로만 나가서 터미널에는
+        # "502 Bad Gateway" 한 줄뿐이었고, Cloudflare 의 일시적 거절인지 설정 문제인지
+        # 브라우저 개발자도구를 열기 전에는 구분할 수 없었다.
+        # (httpx 전용 except 는 지웠다 — 이 경로는 requests 를 쓰므로 걸린 적이 없고,
+        #  httpx.RequestError 에는 .response 가 없어 걸렸다면 AttributeError 가 났다.)
+        log.error("이미지 생성 실패(%dx%d): %s", visual_width, visual_height, exc)
         raise HTTPException(502, str(exc)[:300]) from exc
     return {"images": images, "model": settings.cloudflare_reference_model}
 
@@ -574,6 +581,7 @@ def simulate(req: SimulateRequest) -> dict:
         n_answers=req.diary_n_answers,
         indicator_scores_a=ind_a, indicator_scores_b=ind_b,
         disposition_block=req.disposition_block or "",
+        mbti=req.profile.mbti,
     )
     focus_a = pz["focus_a"][0] if pz["focus_a"] else None
     focus_b = pz["focus_b"][0] if pz["focus_b"] else None
@@ -627,21 +635,28 @@ def simulate(req: SimulateRequest) -> dict:
     if value_weights:
         note = (note + "\n\n" + personalize.narrative_directive(
             pz, req.choice_a, req.choice_b)).strip()
-    elif req.disposition_block:
+    elif pz.get("disposition_block"):
         # 가치 순위를 건너뛰어도 MBTI·서술형 성향 재료는 서사에 전달한다.
         # 수치와 유사집단 매칭에는 쓰지 않고 표현 방식·주의점에만 사용한다.
-        note = (note + "\n\n" + req.disposition_block +
+        note = (note + "\n\n" + pz["disposition_block"] +
                 "\n위 성향은 고정 성격이나 예측 피처로 단정하지 말고 설명의 톤과 관점에만 반영할 것.").strip()
 
     note = note.strip()
 
-    try:
-        narrative = generate_scenarios(
-            req.profile.model_dump(), scen_a, scen_b, ev_a, ev_b,
-            note=note, model=settings.claude_model,
-        )
-    except Exception as exc:  # 키/ API 오류에도 수치·지표·근거는 반환
-        narrative = {"a": f"(서사 생성 실패: {type(exc).__name__})", "b": "", "comparison": "", "_error": str(exc)[:300]}
+    # 접속 폭주 가드 — 하루 상한을 넘으면 **서사만** 생략한다(usage_guard 참조).
+    # 수치·그래프·근거는 이미 계산이 끝났으므로 그대로 내려보낸다. 전시에서
+    # 가장 아까운 건 아무것도 안 뜨는 화면이고, 비싼 건 Claude 호출 쪽이다.
+    if not usage_guard.take():
+        log.warning("일일 서사 한도 초과 — 서사 생략, 수치는 그대로 반환")
+        narrative = {"a": "", "b": "", "comparison": "", "_busy": True}
+    else:
+        try:
+            narrative = generate_scenarios(
+                req.profile.model_dump(), scen_a, scen_b, ev_a, ev_b,
+                note=note, model=settings.claude_model,
+            )
+        except Exception as exc:  # 키/ API 오류에도 수치·지표·근거는 반환
+            narrative = {"a": f"(서사 생성 실패: {type(exc).__name__})", "b": "", "comparison": "", "_error": str(exc)[:300]}
 
     # 영역별 데이터 라우팅(항목3) — 각 선택의 삶의 영역 → 실측 집단통계 지표
     routed_a = route_domains(req.choice_a_domains, {

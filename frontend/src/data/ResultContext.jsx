@@ -6,6 +6,7 @@ import { mapSimulateToPair } from "./simulateAdapter.js";
 import { avatarToPngBlob } from "./avatarImage.js";
 import { avatarGenerationSpec } from "./avatarOptions.js";
 import { initDemoFromUrl, noteSimulationRun, recordScenario, loadUniverse } from "./myUniverse.js";
+import { deriveDiaryInsights } from "./diarySignals.js";
 import { toPlanetKey } from "./choices.js";
 import storage from "./safeStorage.js";
 
@@ -23,7 +24,7 @@ const DEFAULT_PROFILE = {
   age: 29,
   sex: null, // GOMS 코드: "1" 남 / "2" 여. 입력 없이 임의 기본값을 사용하지 않는다.
   sexConfirmed: false,
-  major: "사회", // 전공 계열
+  major: "", // 전공 계열 — 교육 비교에서 사용자가 선택한 경우에만 사용
   // 직종은 기본값을 두지 않는다. 예전 기본값 "사회계열" 은 온보딩 직종 목록
   // (profileOptions.OCCUPATIONS)에 아예 없는 값이라, 사용자는 고른 적도 없고
   // 드롭다운에서 찾을 수도 없는 직종이 화면에 박혀 있었다.
@@ -59,26 +60,58 @@ function loadProfile() {
   }
 }
 
+// 아직 아무것도 돌리지 않은 상태의 결과. 첫 마운트와 resetSession 이 같은 값을 쓴다.
+function blankResult() {
+  return { ...getPredictionPair({ profile: DEFAULT_PROFILE, choiceA: "이직", choiceB: "유지" }), dataMode: "demo" };
+}
+
+/**
+ * 시뮬레이션 요청에 실을 일기 신호를 모은다.
+ *
+ * 두 갈래를 **함께** 싣는다.
+ *   chat    대화형 일기(ChatDiary)가 LLM 으로 뽑아 둔 insights. 가장 정확하지만
+ *           앱에서 직접 대화하며 쓴 일기에만 있다.
+ *   records 기록 자체에서 로컬로 파생한 신호(diarySignals.deriveDiaryInsights).
+ *
+ * 예전엔 chat 만 봤다. 그래서 '예시 1년치로 시작'으로 237개를 심어도 그 기록에는
+ * insights 가 없어(personas/seed.js 의 addCheckin 이 안 채운다) 여기서 null 이 나갔고,
+ * 시뮬레이션은 일기가 0개인 것과 똑같은 입력으로 돌았다 — 결과가 빈약했던 이유다.
+ * 페르소나 체험도 같은 경로라 증상이 같았다.
+ */
 function collectDiaryInsights(limit = 7) {
-  const checkins = loadUniverse().checkins || [];
+  const universe = loadUniverse();
+  const checkins = universe.checkins || [];
   const recent = checkins.filter((item) => item?.insights).slice(-limit);
-  if (!recent.length) return null;
 
-  const unique = (items, max = 8) => [...new Set(items.filter(Boolean))].slice(0, max);
-  const pick = (key) => unique(recent.flatMap((item) => item.insights?.[key] || []));
-  const preferenceSignals = recent
-    .flatMap((item) => item.insights?.preference_signals || [])
-    .filter((item) => item?.label && item?.evidence)
-    .slice(-8);
+  let chat = null;
+  if (recent.length) {
+    const unique = (items, max = 8) => [...new Set(items.filter(Boolean))].slice(0, max);
+    const pick = (key) => unique(recent.flatMap((item) => item.insights?.[key] || []));
+    chat = {
+      decision_topics: unique(recent.map((item) => item.insights?.decision_topic)),
+      goals: pick("goals"),
+      priorities: pick("priorities"),
+      constraints: pick("constraints"),
+      concerns: pick("concerns"),
+      preference_signals: recent
+        .flatMap((item) => item.insights?.preference_signals || [])
+        .filter((item) => item?.label && item?.evidence)
+        .slice(-8),
+    };
+  }
 
+  // 파생은 LLM 없이 로컬 계산이라 동기로 부른다. diarySignals 는 이미 12개 모듈이
+  // 정적으로 쓰고 있어 동적 import 로 미뤄도 청크가 안 갈린다(vite 가 경고로 알려준다).
+  let records = null;
+  try {
+    records = deriveDiaryInsights({}, universe);
+  } catch { /* 파생 실패는 시뮬레이션을 막지 않는다 */ }
+
+  if (!chat && !records) return null;
   return {
-    source: "recent_chat_diaries",
-    decision_topics: unique(recent.map((item) => item.insights?.decision_topic)),
-    goals: pick("goals"),
-    priorities: pick("priorities"),
-    constraints: pick("constraints"),
-    concerns: pick("concerns"),
-    preference_signals: preferenceSignals,
+    source: chat && records ? "chat_diaries+records" : chat ? "recent_chat_diaries" : "diary_records",
+    ...(chat || {}),
+    ...(records ? { record_signals: records } : {}),
   };
 }
 
@@ -95,9 +128,7 @@ export function ResultProvider({ children }) {
   const [scenarioContexts, setScenarioContexts] = useState({ a: {}, b: {} });
   const [futureYears, setFutureYears] = useState(3);
   const [diary, setDiary] = useState("");
-  const [result, setResult] = useState(() =>
-    ({ ...getPredictionPair({ profile: DEFAULT_PROFILE, choiceA: "이직", choiceB: "유지" }), dataMode: "demo" }),
-  );
+  const [result, setResult] = useState(blankResult);
   // 한 번이라도 실제 비교를 실행했다면 시뮬레이션 탭은 입력 화면이 아니라
   // 마지막 결과로 돌아간다. 라우트가 바뀌어도 Provider가 유지되므로 결과도 보존된다.
   const [hasSimulationResult, setHasSimulationResult] = useState(false);
@@ -108,8 +139,13 @@ export function ResultProvider({ children }) {
   const [relResults, setRelResults] = useState([]);
   const [relBusy, setRelBusy] = useState(false);
 
+  // 실행 세대 번호. 늦게 도착한 응답이 이미 지나간 화면을 덮어쓰지 못하게 막는다.
+  // resetSession() 이 이 값을 올리므로 인물을 바꾸면 진행 중이던 호출은 버려진다.
+  const simulationRunRef = useRef(0);
+
   async function analyzeTalks(list = talks) {
     if (!list.length) { setRelResults([]); return; }
+    const runId = simulationRunRef.current;
     setRelBusy(true);
     try {
       const { analyzeRelationship } = await import("./relationshipApi.js");
@@ -118,11 +154,12 @@ export function ResultProvider({ children }) {
       for (const t of list) {
         // eslint-disable-next-line no-await-in-loop
         const data = await analyzeRelationship(t).catch(() => ({ error: "network", label: t.label }));
+        if (simulationRunRef.current !== runId) return;
         results.push({ ...data, label: t.label, tag: t.tag });
         setRelResults([...results]);
       }
     } finally {
-      setRelBusy(false);
+      if (simulationRunRef.current === runId) setRelBusy(false);
     }
   }
 
@@ -134,6 +171,7 @@ export function ResultProvider({ children }) {
   /** 담아둔 공고들을 한꺼번에 분석한다 — 시뮬레이션 시작과 함께 백그라운드로 돌린다. */
   async function analyzePostings(list = postings, choice = null) {
     if (!list.length) { setJobAnalyses([]); return; }
+    const runId = simulationRunRef.current;
     setJobBusy(true);
     try {
       const { analyzeJobPosting } = await import("./jobAnalysis.js");
@@ -144,12 +182,12 @@ export function ResultProvider({ children }) {
             .catch(() => ({ ok: false, label: p.label, reason: "network" })),
         ),
       );
+      if (simulationRunRef.current !== runId) return;
       setJobAnalyses(results);
     } finally {
-      setJobBusy(false);
+      if (simulationRunRef.current === runId) setJobBusy(false);
     }
   }
-  const simulationRunRef = useRef(0);
 
   // 선택(choices)+심정(diary) → 결과 쌍 {a,b} 생성. (지금은 목업)
   async function runSimulation(opts = {}) {
@@ -165,11 +203,6 @@ export function ResultProvider({ children }) {
       ...(opts.choiceBDomains ?? scenarioDomains.b ?? []),
     ];
     const scenarioDomain = toPlanetKey(domainsForScenario) || loadUniverse().planet || "career";
-    const diaryInsights = collectDiaryInsights();
-    const withDiaryInsights = (context) => ({
-      ...(context || {}),
-      ...(diaryInsights ? { diary_insights: diaryInsights } : {}),
-    });
     noteSimulationRun();
     // 그 날 그 영역(현재 행성)에서 시나리오를 만들었음을 기록 → 지구본에 ◆ 로 표시.
     try {
@@ -187,6 +220,11 @@ export function ResultProvider({ children }) {
                    futureYears: opts.futureYears ?? futureYears };
     setResult(pair);
     setHasSimulationResult(true);
+    const diaryInsights = collectDiaryInsights();
+    const withDiaryInsights = (context) => ({
+      ...(context || {}),
+      ...(diaryInsights ? { diary_insights: diaryInsights } : {}),
+    });
     const requestArgs = {
       profile,
       futureYears: opts.futureYears ?? futureYears,
@@ -213,6 +251,8 @@ export function ResultProvider({ children }) {
         ...pair,
         ...(real || {}),
         dataMode: real ? "model" : "demo",
+        // 서버에 닿았으니 수치는 진짜다. 서사 생략(폭주 가드)은 아래 서사 단계에서 판별한다.
+        serviceStatus: real ? "ok" : "offline",
         domains: {
           a: opts.choiceADomains ?? scenarioDomains.a,
           b: opts.choiceBDomains ?? scenarioDomains.b,
@@ -243,7 +283,14 @@ export function ResultProvider({ children }) {
         /* 우주 패널 요약 저장 실패는 결과 화면을 막지 않는다. */
       }
     } catch (error) {
-      const fallback = { ...pair, dataMode: "demo", narrativeError: error.message };
+      // 서버에 못 닿았다 → 화면에 남는 건 목업 값이다. 결과 화면이 그걸 숨기지
+      // 않도록 serviceStatus 로 알린다(ServiceNotice 가 맨 위에 띄운다).
+      const fallback = {
+        ...pair,
+        dataMode: "demo",
+        serviceStatus: "offline",
+        narrativeError: error.message,
+      };
       setResult(fallback);
       return fallback;
     }
@@ -254,7 +301,7 @@ export function ResultProvider({ children }) {
       const avatarBlob = await avatarToPngBlob(profile.avatarConfig);
       return generateSceneImages({
         avatarBlob,
-        avatarSpec: avatarGenerationSpec(profile.avatarConfig),
+        avatarSpec: avatarGenerationSpec(profile.avatarConfig, profile.sex),
         choiceA,
         choiceB,
         futureYears: requestArgs.futureYears,
@@ -276,6 +323,17 @@ export function ResultProvider({ children }) {
         const simulation = await runSimulateRaw(requestArgs);
         if (simulationRunRef.current !== runId) return;
         const narrative = simulation.narrative || {};
+        // 접속 폭주 가드가 서사만 생략한 경우(backend/usage_guard.py).
+        // 수치는 진짜이므로 오류로 처리하지 않고 '지금 사람이 많다'로 안내한다.
+        if (narrative._busy) {
+          setResult({
+            ...preview,
+            serviceStatus: "busy",
+            narrativeLoading: false,
+            imageLoading: false,
+          });
+          return;
+        }
         const hasStory = (story) => typeof story === "string" ? Boolean(story.trim()) : Boolean(story?.summary?.trim());
         if (!hasStory(narrative.a) || !hasStory(narrative.b) || narrative._skipped) {
           throw new Error("Claude 응답을 A/B 서사 형식으로 읽지 못했습니다.");
@@ -316,7 +374,7 @@ export function ResultProvider({ children }) {
       const avatarBlob = await avatarToPngBlob(profile.avatarConfig);
       const visual = await generateSceneImages({
         avatarBlob,
-        avatarSpec: avatarGenerationSpec(profile.avatarConfig),
+        avatarSpec: avatarGenerationSpec(profile.avatarConfig, profile.sex),
         choiceA: result.a.choice,
         choiceB: result.b.choice,
         futureYears: result.futureYears ?? futureYears,
@@ -347,9 +405,38 @@ export function ResultProvider({ children }) {
     setProfile(loadProfile());
   }
 
+  /**
+   * 시뮬레이션 세션을 처음 상태로 되돌린다 — 로그아웃·페르소나 전환에서 부른다.
+   *
+   * 왜 필요한가: 프로필은 슬롯이 갈아끼우고 reloadProfile() 이 읽어오지만, 결과·선택지·
+   * 담아둔 공고와 대화는 이 Provider 의 메모리에만 있다. Provider 는 라우트가 바뀌어도
+   * 언마운트되지 않으므로, 인물을 바꿔도 앞사람의 결과 화면이 그대로 남아 있었다
+   * (프로필은 도현인데 선택지와 아바타는 지원인 상태).
+   *
+   * 세대 번호를 먼저 올린다 — 서사·이미지는 수십 초 걸려서, 돌고 있는 도중에 인물을
+   * 바꾸면 늦게 도착한 응답이 새 인물의 화면을 덮어쓴다.
+   */
+  function resetSession() {
+    simulationRunRef.current += 1;
+    setChoices({ a: "이직", b: "유지" });
+    setScenarioTexts({ a: "", b: "" });
+    setScenarioDomains({ a: [], b: [] });
+    setScenarioContexts({ a: {}, b: {} });
+    setFutureYears(3);
+    setDiary("");
+    setResult(blankResult());
+    setHasSimulationResult(false);
+    setPostings([]);
+    setJobAnalyses([]);
+    setJobBusy(false);
+    setTalks([]);
+    setRelResults([]);
+    setRelBusy(false);
+  }
+
   const value = useMemo(
     () => ({
-      profile, setProfile, reloadProfile,
+      profile, setProfile, reloadProfile, resetSession,
       choices, setChoices,
       scenarioTexts, setScenarioTexts,
       scenarioDomains, setScenarioDomains,

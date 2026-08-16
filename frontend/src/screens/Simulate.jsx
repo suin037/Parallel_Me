@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { GitCompareArrows, Search, Sparkles, TrendingUp } from "lucide-react";
+import { Check, GitCompareArrows, Search, Sparkles, TrendingUp } from "lucide-react";
 import { useResult } from "../data/ResultContext.jsx";
 import { labelOf } from "../data/prediction.js";
 import Stars from "../components/Stars.jsx";
@@ -25,7 +25,7 @@ export default function Simulate() {
     // 처리 중이라는 연속 애니메이션만 보여준다.
     const sim = runSimulation();
     const ticker = setInterval(() => {
-      setMessageIndex((current) => (current + 1) % STATUS_MESSAGES.length);
+      setMessageIndex((current) => Math.min(current + 1, STATUS_MESSAGES.length - 1));
     }, 1800);
     sim.finally(() => {
       if (!cancelled) navigate("/result", { replace: true });
@@ -37,8 +37,6 @@ export default function Simulate() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const activeStatus = STATUS_MESSAGES[messageIndex];
-  const ActiveStatusIcon = activeStatus.icon;
   const planetA = PLANET_TEXTURES[toPlanetKey(scenarioDomains.a) || "career"];
   const planetB = PLANET_TEXTURES[toPlanetKey(scenarioDomains.b) || "growth"];
 
@@ -102,12 +100,37 @@ export default function Simulate() {
           <div className="absolute inset-0 animate-pulse rounded-full bg-gradient-to-r from-violet-600/25 via-[#A783FF] to-violet-600/25" />
         </div>
 
-        <div key={activeStatus.label} className="mt-4 flex min-h-10 animate-fade items-center gap-2.5 rounded-xl bg-card2 px-3 text-[12px] text-ink">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-500/10 text-violet-300">
-            <ActiveStatusIcon size={14} strokeWidth={1.8} />
-          </span>
-          <span>{activeStatus.label}</span>
-          <span className="ml-auto flex gap-1"><i className="h-1 w-1 animate-pulse rounded-full bg-cyan" /><i className="h-1 w-1 animate-pulse rounded-full bg-cyan [animation-delay:150ms]" /><i className="h-1 w-1 animate-pulse rounded-full bg-cyan [animation-delay:300ms]" /></span>
+        <div className="mt-4 space-y-2">
+          {STATUS_MESSAGES.map(({ label, icon: StatusIcon }, index) => {
+            const complete = index < messageIndex;
+            const active = index === messageIndex;
+            return (
+              <div
+                key={label}
+                className={`flex min-h-10 items-center gap-2.5 rounded-xl px-3 text-[12px] transition-colors ${
+                  active ? "bg-card2 text-ink" : complete ? "text-sub" : "text-mut/55"
+                }`}
+              >
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                  complete
+                    ? "bg-cyan/15 text-cyan"
+                    : active
+                      ? "bg-violet-500/15 text-violet-300"
+                      : "bg-white/[.035] text-mut/50"
+                }`}>
+                  {complete ? <Check size={14} strokeWidth={2.4} /> : <StatusIcon size={14} strokeWidth={1.8} />}
+                </span>
+                <span>{label}</span>
+                {active && (
+                  <span className="ml-auto flex gap-1" aria-label="진행 중">
+                    <i className="h-1 w-1 animate-pulse rounded-full bg-cyan" />
+                    <i className="h-1 w-1 animate-pulse rounded-full bg-cyan [animation-delay:150ms]" />
+                    <i className="h-1 w-1 animate-pulse rounded-full bg-cyan [animation-delay:300ms]" />
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

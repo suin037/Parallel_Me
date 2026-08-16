@@ -168,10 +168,6 @@ export default function DiarySignalCard() {
           </div>
         </>
       )}
-
-      <p className="mt-2.5 text-[9.5px] leading-relaxed text-mut/80">
-        일기에서 드러난 주제예요. 예측 <b>숫자를 바꾸지 않고</b>, 무엇을 비교할지 제안하고 통계 결과를 내 기준으로 읽는 데 씁니다.
-      </p>
     </div>
   );
 }

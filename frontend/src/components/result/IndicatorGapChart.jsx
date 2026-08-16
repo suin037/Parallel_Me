@@ -133,24 +133,33 @@ function buildSharedRows(a, b, selected) {
 
 const num = (v) => (v === null || v === undefined || v === "" ? NaN : Number(v));
 
-/** 좌우 마주보는 막대. 단위가 지표마다 달라 각 행의 최댓값 기준으로 정규화한다. */
+/** A/B 원형 게이지. 단위가 지표마다 달라 각 항목의 최댓값 기준으로 채움 정도를 비교한다. */
 function GapRow({ row }) {
-  const max = Math.max(Number.isFinite(row.av) ? row.av : 0, Number.isFinite(row.bv) ? row.bv : 0, 1);
-  const pct = (v) => (Number.isFinite(v) ? Math.max(3, Math.min(100, (v / max) * 100)) : 0);
+  const max = Math.max(Number.isFinite(row.av) ? Math.abs(row.av) : 0, Number.isFinite(row.bv) ? Math.abs(row.bv) : 0, 1);
   return (
-    <div className="grid grid-cols-[2.6rem_1fr_auto_1fr_2.6rem] items-center gap-2">
-      <div className="text-right text-[11px] font-semibold tabular-nums text-ink">{fmt(row.av)}</div>
-      <div className="flex h-2.5 justify-end overflow-hidden rounded-full bg-[#080D19]">
-        <div className="h-full rounded-full bg-[#8B6CCF]" style={{ width: `${pct(row.av)}%` }} />
+    <div className="rounded-xl border border-white/[.06] bg-white/[.02] px-3 py-3">
+      <div className="mb-2 text-center text-[11px] text-sub">{row.name}{row.unit ? <span className="ml-1 text-[9px] text-mut">({row.unit})</span> : null}</div>
+      <div className="flex items-center justify-center gap-8">
+        <GapRing side="A" value={row.av} max={max} color="#8B6CCF" />
+        <GapRing side="B" value={row.bv} max={max} color="#F5C86B" />
       </div>
-      <div className="min-w-[5.5rem] text-center">
-        <div className="text-[11px] text-sub">{row.name}</div>
-        {row.unit && <div className="text-[9px] text-mut">{row.unit}</div>}
+    </div>
+  );
+}
+
+function GapRing({ side, value, max, color }) {
+  const fill = Number.isFinite(value) ? Math.max(4, Math.min(100, Math.abs(value) / max * 100)) : 0;
+  return (
+    <div
+      className="relative flex h-[68px] w-[68px] items-center justify-center rounded-full"
+      style={{ background: `conic-gradient(${color} ${fill}%, rgba(255,255,255,.08) ${fill}% 100%)` }}
+      aria-label={`${side} ${fmt(value)}`}
+    >
+      <div className="absolute inset-[6px] rounded-full bg-[#0E1424]" />
+      <div className="relative text-center">
+        <div className="text-[9px] font-bold" style={{ color }}>{side}</div>
+        <div className="text-[11px] font-semibold tabular-nums text-ink">{fmt(value)}</div>
       </div>
-      <div className="flex h-2.5 overflow-hidden rounded-full bg-[#080D19]">
-        <div className="h-full rounded-full bg-[#F5C86B]" style={{ width: `${pct(row.bv)}%` }} />
-      </div>
-      <div className="text-[11px] font-semibold tabular-nums text-ink">{fmt(row.bv)}</div>
     </div>
   );
 }

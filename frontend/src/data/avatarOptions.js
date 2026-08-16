@@ -187,12 +187,13 @@ export function normalizeAvatar(config) {
 
 // 개인화 이미지 생성 API가 사용하는 설명 규격. 화면용 아바타와 같은 설정을
 // 전달해 A/B 이미지에서도 동일 인물의 특징이 유지되도록 한다.
-export function avatarGenerationSpec(config) {
+export function avatarGenerationSpec(config, sex = "") {
   const c = normalizeAvatar(config);
   const hair = hairStyleById(c.hairStyle);
   const labelOf = (items, id) => items.find((item) => item.id === id)?.label || id;
   return {
-    characterType: "gender-neutral illustrated avatar",
+    characterType: sex === "1" ? "male illustrated avatar" : sex === "2" ? "female illustrated avatar" : "gender-neutral illustrated avatar",
+    gender: sex === "1" ? "male" : sex === "2" ? "female" : "unspecified",
     faceShape: FACE_SHAPES[c.face]?.label || c.face,
     hairStyle: hair.label,
     hairColor: `#${c.hairColor}`,

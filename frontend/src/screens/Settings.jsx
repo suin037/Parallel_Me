@@ -21,6 +21,7 @@ import { Bell, ChevronRight, ClipboardCheck, Compass, LockKeyhole, Palette, Smar
 import { toChoiceDomains } from "../data/choices.js";
 import { openGuide } from "../data/tour.js";
 import { adviceOn, setAdvice } from "../data/guideAdvice.js";
+import { TOONHEAD_CREDIT } from "../data/avatarOptions.js";
 
 // 작은 on/off 토글 (track h-6/w-11 · thumb h-4/w-4 · translate 로 이동 — 크기 균형)
 function Toggle({ on, onClick }) {
@@ -128,7 +129,7 @@ function LevelRule({ label, xp }) {
 export default function Settings() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile, setProfile, setOnboarded, setChoices, setScenarioTexts, setScenarioDomains } = useResult();
+  const { profile, setProfile, setOnboarded, setChoices, setScenarioTexts, setScenarioDomains, resetSession } = useResult();
   const [prefs, setPrefs] = useState(loadPrefs);
   const [adviceUp, setAdviceUp] = useState(adviceOn);
   const [editingAvatar, setEditingAvatar] = useState(false);
@@ -154,6 +155,19 @@ export default function Settings() {
     const s = q.get("section");
     if (SECTIONS.includes(s)) setActiveSection(s);
   }, [location.search]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!editingAvatar) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setEditingAvatar(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [editingAvatar]);
   // 돌보미가 제안한 갈림길로 시뮬레이션을 연다 — 영역마다 다른 두 선택지가 온다.
   // (전에는 어느 돌보미든 "이직 vs 유지"로 고정이었다.)
   function startCompare(nudge) {
@@ -205,22 +219,25 @@ export default function Settings() {
     setProfile((p) => ({ ...p, psych_answers: { ...(p.psych_answers || {}), [qid]: v } }));
   }
   function resetToStart() {
+    resetSession();      // 결과·선택지·담아둔 자료까지 비운다 — 안 비우면 다음 사람 화면에 남는다
     setOnboarded(false); // 랜딩으로 되돌림 (데모: 세션 한정)
     navigate("/");
   }
 
   return (
-    <div className="pb-4 lg:pb-12">
+    <div className="mx-auto w-full max-w-[720px] pb-4 lg:pb-12">
       <div className="flex items-center justify-between lg:items-end">
         <Eyebrow>SETTINGS · 설정</Eyebrow>
         <button onClick={() => navigate(-1)} className="tap text-[13px] text-sub">
           닫기
         </button>
       </div>
-      <h1 className="mb-1 text-[22px] font-bold tracking-[-.025em] lg:text-[34px]">{SETTINGS_META[activeSection][0]}</h1>
-      <p className="mb-4 text-[11px] text-mut lg:mb-7 lg:text-[13px]">{SETTINGS_META[activeSection][1]}</p>
+      <div className="lg:text-center">
+        <h1 className="mb-1 text-[22px] font-bold tracking-[-.025em] lg:text-[34px]">{SETTINGS_META[activeSection][0]}</h1>
+        <p className="mb-4 text-[11px] text-mut lg:mb-6 lg:text-[13px]">{SETTINGS_META[activeSection][1]}</p>
+      </div>
 
-      <div className="no-scrollbar -mx-1 mb-4 flex gap-2 overflow-x-auto px-1 lg:hidden">
+      <div className="no-scrollbar -mx-1 mb-4 flex gap-2 overflow-x-auto px-1 lg:mx-auto lg:mb-7 lg:flex-wrap lg:justify-center lg:overflow-visible">
         <SettingsNav active={activeSection === "profile"} onClick={() => setActiveSection("profile")} icon={UserRound}>프로필</SettingsNav>
         <SettingsNav active={activeSection === "careerValues"} onClick={() => setActiveSection("careerValues")} icon={ClipboardCheck}>직업 가치관</SettingsNav>
         <SettingsNav active={activeSection === "security"} onClick={() => setActiveSection("security")} icon={LockKeyhole}>보안</SettingsNav>
@@ -229,8 +246,8 @@ export default function Settings() {
         <button type="button" onClick={resetToStart} aria-label="로그아웃" title="로그아웃" className="tap flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/[.07] text-mut hover:border-danger/40 hover:bg-danger/10 hover:text-danger"><LogOut size={17}/></button>
       </div>
 
-      <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start lg:gap-8 xl:grid-cols-[260px_minmax(0,1fr)] xl:gap-12">
-        <aside className="hidden lg:sticky lg:top-[108px] lg:block">
+      <div>
+        <aside className="hidden">
           <nav className="rounded-[20px] border border-white/[.07] bg-[#0D1828]/75 p-2 shadow-[0_18px_45px_rgba(0,0,0,.18)] backdrop-blur-xl">
             <SettingsNav active={activeSection === "profile"} onClick={() => setActiveSection("profile")} icon={UserRound}>프로필</SettingsNav>
             <SettingsNav active={activeSection === "careerValues"} onClick={() => setActiveSection("careerValues")} icon={ClipboardCheck}>직업 가치관</SettingsNav>
@@ -242,7 +259,7 @@ export default function Settings() {
           <p className="mt-3 px-3 text-[10px] leading-relaxed text-mut">변경한 설정은 이 기기의 사용자 환경에 바로 반영됩니다.</p>
         </aside>
 
-        <div className="min-w-0 lg:[&_.bg-card]:rounded-[22px] lg:[&_.bg-card]:border lg:[&_.bg-card]:border-white/[.06] lg:[&_.bg-card]:bg-[#0D1828]/80 lg:[&_.bg-card]:p-5 lg:[&_.bg-card]:shadow-[0_18px_45px_rgba(0,0,0,.18)]">
+        <div className="mx-auto min-w-0 max-w-[620px] lg:[&_.bg-card]:rounded-[22px] lg:[&_.bg-card]:border lg:[&_.bg-card]:border-white/[.06] lg:[&_.bg-card]:bg-[#0D1828]/80 lg:[&_.bg-card]:p-5 lg:[&_.bg-card]:shadow-[0_18px_45px_rgba(0,0,0,.18)]">
 
       {/* 생활 관리 친구 — 홈을 방해하지 않도록 설정에서 관리한다. */}
       {activeSection === "personalize" && <section className="animate-fade">
@@ -267,10 +284,10 @@ export default function Settings() {
             <Avatar config={profile.avatarConfig} size={100} />
             <button
               type="button"
-              onClick={() => setEditingAvatar((open) => !open)}
+              onClick={() => setEditingAvatar(true)}
               className="tap mt-2 w-full rounded-xl border border-line bg-[#0E1424] px-2 text-[10px] font-semibold text-cyan"
             >
-              {editingAvatar ? "수정 닫기" : "아바타 수정"}
+              아바타 수정
             </button>
           </div>
 
@@ -445,24 +462,6 @@ export default function Settings() {
         </Card>
       )}
 
-      {/* 내 아바타 — 사람 빌더 + 우주 프레임 */}
-      {editingAvatar && (
-        <Card className="animate-fade">
-          <div className="mb-1 flex items-center justify-between">
-            <div>
-              <div className="text-[13px] font-semibold text-ink">아바타 수정</div>
-              <p className="mt-0.5 text-[10px] text-mut">화살표로 원하는 모습을 선택하세요.</p>
-            </div>
-            <button type="button" onClick={() => setEditingAvatar(false)} className="tap text-[11px] text-sub">
-              완료
-            </button>
-          </div>
-          <AvatarBuilder
-            config={profile.avatarConfig}
-            onChange={(cfg) => setProfile((p) => ({ ...p, avatarConfig: cfg }))}
-          />
-        </Card>
-      )}
       </section>}
 
       {activeSection === "careerValues" && <section className="animate-fade">
@@ -583,8 +582,63 @@ export default function Settings() {
       </Card>
       </section>}
 
+      <p className="mt-8 text-center text-[9px] leading-relaxed text-mut/70">
+        아바타 디자인: {" "}
+        <a href={TOONHEAD_CREDIT.creatorUrl} target="_blank" rel="noreferrer" className="underline">
+          {TOONHEAD_CREDIT.title} by {TOONHEAD_CREDIT.creator}
+        </a>
+        {" · "}
+        <a href={TOONHEAD_CREDIT.licenseUrl} target="_blank" rel="noreferrer" className="underline">
+          {TOONHEAD_CREDIT.license}
+        </a>
+        {" · 일부 파츠 수정·추가"}
+      </p>
+
       </div>
       </div>
+      {editingAvatar && (
+        <div
+          className="fixed inset-0 z-[120] flex animate-backdrop-in items-end justify-center bg-[#02050C]/75 backdrop-blur-[5px] sm:items-center sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="avatar-editor-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setEditingAvatar(false);
+          }}
+        >
+          <div className="flex max-h-[92dvh] w-full max-w-[640px] animate-sheet-up flex-col rounded-t-[28px] border border-white/10 bg-[#0D1727] shadow-[0_-22px_70px_rgba(0,0,0,.55)] sm:animate-fade sm:max-h-[88vh] sm:rounded-[28px]">
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-white/[.07] px-5 py-4 sm:px-6">
+              <div>
+                <h2 id="avatar-editor-title" className="text-[17px] font-bold text-ink">아바타 수정</h2>
+                <p className="mt-1 text-[10px] text-mut">화살표로 원하는 모습을 선택하세요. 변경 내용은 바로 저장돼요.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingAvatar(false)}
+                className="tap flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[.05] text-[20px] text-sub"
+                aria-label="아바타 수정 닫기"
+              >
+                ×
+              </button>
+            </div>
+            <div className="min-h-0 overflow-y-auto px-5 pb-6 sm:px-6">
+              <AvatarBuilder
+                config={profile.avatarConfig}
+                onChange={(cfg) => setProfile((p) => ({ ...p, avatarConfig: cfg }))}
+              />
+            </div>
+            <div className="shrink-0 border-t border-white/[.07] bg-[#0D1727] px-5 py-3 sm:px-6">
+              <button
+                type="button"
+                onClick={() => setEditingAvatar(false)}
+                className="tap w-full rounded-xl bg-violet-500 py-3 text-[12px] font-bold text-white"
+              >
+                완료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {careerTestOpen && (
         <div className="fixed inset-0 z-[120] flex animate-backdrop-in items-end justify-center bg-[#02050C]/75 backdrop-blur-[5px] sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="직업 가치관검사">
           <div className="w-full max-w-[560px] animate-sheet-up rounded-t-[28px] border border-white/10 bg-[#0D1727] p-5 shadow-[0_-22px_70px_rgba(0,0,0,.55)] sm:animate-fade sm:rounded-[28px] sm:p-6">
@@ -617,5 +671,5 @@ export default function Settings() {
 }
 
 function SettingsNav({ active, onClick, icon: Icon, children }) {
-  return <button type="button" onClick={onClick} className={`tap group flex shrink-0 items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-semibold transition-colors lg:w-full lg:gap-3 ${active ? "bg-violet-500/20 text-violet-200" : "text-sub hover:bg-violet-500/10 hover:text-violet-200"}`}><span className={`flex h-8 w-8 items-center justify-center rounded-lg ${active ? "bg-violet-500/20" : "bg-white/[.04] group-hover:bg-violet-500/15"}`}><Icon size={15}/></span><span className="flex-1 whitespace-nowrap text-left">{children}</span><ChevronRight size={14} className={`hidden lg:block ${active ? "opacity-80" : "opacity-30"}`} /></button>;
+  return <button type="button" onClick={onClick} className={`tap group flex shrink-0 items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-semibold transition-colors ${active ? "bg-violet-500/20 text-violet-200" : "text-sub hover:bg-violet-500/10 hover:text-violet-200"}`}><span className={`flex h-8 w-8 items-center justify-center rounded-lg ${active ? "bg-violet-500/20" : "bg-white/[.04] group-hover:bg-violet-500/15"}`}><Icon size={15}/></span><span className="whitespace-nowrap">{children}</span><ChevronRight size={14} className="hidden" /></button>;
 }

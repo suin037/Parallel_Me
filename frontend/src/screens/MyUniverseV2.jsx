@@ -4,7 +4,7 @@ import { Archive, CalendarDays, ChevronRight, Plus, X } from "lucide-react";
 import UniverseMap from "../components/UniverseMap.jsx";
 import Constellation from "../components/Constellation.jsx";
 import { announceSurface } from "../data/guideAdvice.js";
-import { domainScore, metricOf, topicParticle, MIN_FOR_SCORE } from "../data/domainScore.js";
+import { domainScore, metricOf, MIN_FOR_SCORE } from "../data/domainScore.js";
 import { PLANETS } from "../data/result.js";
 import { adaptiveGroups, hasRecord, loadUniverse, resetUniverse, scenariosByPlanet, seedDemoCheckins, starGroupsOf, todayKey } from "../data/myUniverse.js";
 // demoYear.js 는 1년치 기록(87KB)을 들고 있다. 개발용 데모 버튼에서만 쓰므로
@@ -17,6 +17,7 @@ import { useResult } from "../data/ResultContext.jsx";
 import { clearSavedReports, REPORT_UID, loadSpeech } from "../data/dispositionApi.js";
 import { planetSkin } from "../data/petShop.js";
 import { PLANET_TEXTURES } from "../data/planetSurface.js";
+import { josa } from "../lib/josa.js";
 
 const DESCRIPTIONS = {
   career: "나의 진로와 커리어에 대한 고민, 선택, 방향성을 기록해요.",
@@ -54,6 +55,7 @@ export default function MyUniverseV2() {
     return () => announceSurface(null);
   }, [cluster, planet]);
   const [skin,setSkin]=useState(planetSkin);
+  const [demoBusy, setDemoBusy] = useState(null);
   useEffect(() => { const refresh = () => setState(loadUniverse()); window.addEventListener("pm:universe", refresh); return () => window.removeEventListener("pm:universe", refresh); }, []);
   useEffect(()=>{const refresh=()=>setSkin(planetSkin());window.addEventListener("pm:pet-shop",refresh);return()=>window.removeEventListener("pm:pet-shop",refresh);},[]);
 
@@ -103,18 +105,28 @@ export default function MyUniverseV2() {
 
   function openPlanet(key) { setPlanet(PLANETS.find((item) => item.key === key)); setCluster(null); }
   async function runDemo(kind) {
-    clearSavedReports(REPORT_UID);
-    setPlanet(null); setCluster(null);
-    if (kind === "clear") resetUniverse();
-    else if (kind === "6w") { resetUniverse(); seedDemoCheckins(); }
-    else if (kind === "1y" || kind === "eunwoo") {
-      // 누르는 순간에만 1년치를 받아온다.
-      const demo = await import("../data/demoYear.js");
-      if (kind === "1y") demo.seedDemoYear();
-      else demo.seedDemoEunwoo();
+    if (demoBusy) return;
+    setDemoBusy(kind);
+    try {
+      clearSavedReports(REPORT_UID);
+      setPlanet(null); setCluster(null);
+      if (kind === "clear") resetUniverse();
+      else if (kind === "6w") { resetUniverse(); seedDemoCheckins(); }
+      else if (kind === "1y" || kind === "eunwoo") {
+        // 누르는 순간에만 1년치를 받아온다.
+        const demo = await import("../data/demoYear.js");
+        if (kind === "1y") demo.seedDemoYear();
+        else demo.seedDemoEunwoo();
+      }
+      setState(loadUniverse());
+    } finally {
+      setDemoBusy(null);
     }
-    setState(loadUniverse());
   }
+
+  const selectedDemo = state.demo
+    ? state.demoKind === "eunwoo" ? "eunwoo" : state.demoKind === "year" ? "1y" : "6w"
+    : (state.checkins || []).length === 0 ? "clear" : null;
 
   return (
     <div className="relative h-full min-h-[620px] overflow-hidden bg-[#030712] lg:min-h-[calc(100dvh-76px)]">
@@ -122,8 +134,18 @@ export default function MyUniverseV2() {
         <h1 className="text-[25px] font-bold tracking-[-.03em]">나의 우주</h1>
         <p className="mt-1 text-[11px] text-sub">당신의 기록이 별이 되고, 별들이 연결되어 우주가 됩니다.</p>
       </div>
-      <div className="absolute right-6 top-5 z-30 flex flex-wrap justify-end gap-1.5">
-        {[['6w','6주'],['1y','1년'],['eunwoo','은우'],['clear','비우기']].map(([key,label])=><button key={key} type="button" onClick={()=>runDemo(key)} className="tap rounded-full border border-white/10 bg-black/25 px-3 py-1.5 text-[9px] font-semibold text-white/60 backdrop-blur hover:border-[#8B6CCF]/50 hover:text-[#C7B5F2]">{label}</button>)}
+      <div className="absolute left-8 top-[78px] z-30 flex flex-wrap gap-1.5">
+        {[['6w','6주'],['1y','1년'],['eunwoo','은우'],['clear','비우기']].map(([key,label])=>{
+          const selected=selectedDemo===key;
+          return <button key={key} type="button" onClick={()=>runDemo(key)} disabled={Boolean(demoBusy)} aria-pressed={selected}
+            className={`tap rounded-full border px-3 py-1.5 text-[9px] font-semibold backdrop-blur transition-colors disabled:opacity-60 ${selected
+              ? "border-[#A98BE8] bg-[#8B6CCF] text-white shadow-[0_0_16px_rgba(139,108,207,.35)]"
+              : "border-white/10 bg-black/25 text-white/60 hover:border-[#8B6CCF]/50 hover:text-[#C7B5F2]"}`}>
+            {demoBusy===key ? "적용 중…" : selected ? `✓ ${label}` : label}
+          </button>;
+        })}
+      </div>
+      <div className="absolute right-6 top-5 z-30">
         <button type="button" onClick={() => navigate("/archive")} className="tap flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3 text-[10px] text-sub backdrop-blur"><Archive size={13} /> 보관함</button>
       </div>
       <div data-tour="universe-map" className={`transition-[margin] duration-300 ease-out ${planet?"md:mr-[420px] lg:mr-[520px] xl:mr-[660px]":""}`}>
@@ -708,17 +730,16 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
   const average = analysis?.ok ? Number(analysis.moodAvg) : null;
   const trend = analysis?.ok && Number.isFinite(Number(analysis.trend)) ? Number(analysis.trend) : null;
   const stable = trend == null || Math.abs(trend) < .25;
-  // 점수를 안 내는 영역에 '좋다/나쁘다'를 붙이면, 안 매긴다고 해놓고 매기는 셈이다.
-  // 그런 영역은 기록이 쌓였다는 사실만 말한다.
-  const tp = topicParticle(planet.label);
+  // 점수를 안 내는 영역(진로·관계·성장성)에 '좋다/나쁘다'를 붙이면, 안 매긴다고
+  // 해놓고 매기는 셈이다. 그런 영역은 기록이 쌓였다는 사실만 말한다.
   const status = metric.kind !== "score"
     ? (entries.length
         ? `${planet.label} 이야기가 ${entries.length}번 나왔어요. 아래에서 그 흐름을 볼 수 있어요.`
         : `아직 ${planet.label} 이야기는 없어요.`)
     : average == null
       ? `아직 ${planet.label}의 상태를 알아가는 중이에요.`
-      : average >= 4 ? `요즘 ${planet.label}${tp} 전반적으로 좋은 흐름이에요.`
-        : average >= 3 ? `요즘 ${planet.label}${tp} 전반적으로 안정적이에요.`
+      : average >= 4 ? `요즘 ${josa(planet.label, "은", "는")} 전반적으로 좋은 흐름이에요.`
+        : average >= 3 ? `요즘 ${josa(planet.label, "은", "는")} 전반적으로 안정적이에요.`
           : `요즘 ${planet.label}에 조금 더 돌봄이 필요해 보여요.`;
   const flow = analysis?.ok
     ? `최근 기록에는 ${stable ? "약간의 흔들림이 있지만, 전체 흐름은 비교적 안정적입니다." : trend > 0 ? "회복되는 흐름이 나타나고 있어요." : "조금 무거워지는 흐름이 보여요."}`
@@ -744,7 +765,7 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
           </div>
           <p className="mt-2 text-[9.5px] leading-relaxed text-mut">
             {scoreReady
-              ? `${score.basis}으로 계산했어요 · 기록 ${score.n}일. ${metric.note}`
+              ? `${josa(score.basis, "으로", "로")} 계산했어요 · 기록 ${score.n}일. ${metric.note}`
               : `기록이 ${MIN_FOR_SCORE}일 모이면 점수를 보여드려요. 며칠 치로 영역을 평가할 수는 없어서요.`}
           </p>
         </>
@@ -752,7 +773,7 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
         // 점수를 매기지 않는 영역 — 왜 안 매기는지 밝히고, 대신 할 수 있는 걸 준다.
         <div className="mt-4 rounded-2xl border border-white/[.08] bg-white/[.035] px-4 py-3.5">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[11px] font-bold text-ink">{metric.label}{topicParticle(metric.label)} 점수로 재지 않아요</span>
+            <span className="text-[11px] font-bold text-ink">{josa(metric.label, "은", "는")} 점수로 재지 않아요</span>
             <span className="shrink-0 text-[10px] text-mut">기록 {entries.length}개</span>
           </div>
           <p className="mt-1.5 text-[10px] leading-relaxed text-sub">{metric.why}</p>
@@ -779,7 +800,7 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
 
       <section className="relative mt-6 overflow-hidden rounded-[20px] border p-5" style={{borderColor:`${accent}70`,background:`linear-gradient(135deg,${accent}1F,rgba(11,17,31,.72))`,boxShadow:`0 0 32px ${accent}12`}}>
         <span className="pointer-events-none absolute -left-10 -top-16 h-36 w-36 rounded-full blur-2xl" style={{background:`${accent}25`}}/>
-        <div className="relative"><h3 className="text-[14px] font-bold">{planet.label}을 높이면 어떤 미래가 펼쳐질까요?</h3>
+        <div className="relative"><h3 className="text-[14px] font-bold">{josa(planet.label, "을", "를")} 높이면 어떤 미래가 펼쳐질까요?</h3>
           <button onClick={onSimulate} className="tap mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[13px] font-bold text-white shadow-lg" style={{background:`linear-gradient(100deg,${accent},#E84E68)`}}>{planet.label} 미래 보기 <ChevronRight size={16}/></button>
           <p className="mt-2 text-center text-[9px] text-mut">이 영역을 중심으로 미래 시뮬레이션을 시작합니다.</p>
         </div>

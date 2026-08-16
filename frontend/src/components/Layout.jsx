@@ -45,8 +45,9 @@ export default function Layout() {
   const isDesktopWorkspace = ["/home", "/input", "/result", "/my", "/archive", "/settings"].includes(pathname);
   const isUniverseCanvas = pathname === "/my";
   const isOnboarding = pathname === "/onboarding";
+  const isPersonas = pathname === "/personas";
   const isSimulationFlow = pathname === "/simulate";
-  const useFullDesktop = isDesktopWorkspace || isOnboarding || pathname === "/simulate";
+  const useFullDesktop = isDesktopWorkspace || isOnboarding || isPersonas || pathname === "/simulate";
   const [guideOpen, setGuideOpen] = useState(() => {
     try { return storage.getItem("pm.guide.seen.v1") !== "1"; } catch { return true; }
   });

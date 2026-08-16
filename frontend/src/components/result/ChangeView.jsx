@@ -2,16 +2,15 @@ import { Card, Caption } from "../ui.jsx";
 import ParallelView from "./ParallelView.jsx";
 import RiskView from "./RiskView.jsx";
 import CareerTrajectoryView from "./CareerTrajectoryView.jsx";
-import KowepsTrajectoryView from "./KowepsEvidenceView.jsx";
 
 export default function ChangeView({ a, b, domains = { a: [], b: [] }, dataMode = "demo" }) {
   const selected = new Set([...(domains.a || []), ...(domains.b || [])]);
   const incomeRelevant = selected.has("career") || selected.has("finance");
   const businessRelevant = selected.has("business");
-  const hasIncome = incomeRelevant && a.trajectory?.length && b.trajectory?.length;
+  // 길이(숫자)를 그대로 두면 0일 때 React 가 "0" 을 화면에 찍는다.
+  const hasIncome = Boolean(incomeRelevant && a.trajectory?.length && b.trajectory?.length);
   const hasBusinessRisk = businessRelevant && [a, b].some((s) => Object.keys(s.risk_timeline || {}).length);
   const hasCareerTrajectory = [a, b].some((s) => s.parallel_trajectory?.status === "available");
-  const hasKowepsTrajectory = [a, b].some((s) => s.koweps_evidence?.available);
   const relationshipRelevant = selected.has("relationship");
   const isJobComparison = [a.choice, b.choice].some((choice) => ["이직", "유지"].includes(choice));
 
@@ -30,13 +29,12 @@ export default function ChangeView({ a, b, domains = { a: [], b: [] }, dataMode 
     );
   }
 
-  if (!hasIncome && !hasBusinessRisk && !hasCareerTrajectory && !hasKowepsTrajectory && !relationshipRelevant) {
-    return <Card><h2 className="text-base font-semibold">변화 흐름</h2><Caption>이 선택에 대해 시간에 따른 변화를 계산할 수 있는 데이터가 아직 없습니다. 관련 없는 소득 그래프는 표시하지 않았어요.</Caption></Card>;
-  }
+  // KOWEPS는 2단계 "집단 관측"에서만 보여준다. 다른 변화 데이터도 없다면
+  // 1단계 요약에 빈 변화 카드를 만들지 않는다.
+  if (!hasIncome && !hasBusinessRisk && !hasCareerTrajectory && !relationshipRelevant) return null;
   return (
     <div>
-      {relationshipRelevant && !hasKowepsTrajectory && <RelationshipPathView a={a} b={b} />}
-      {hasKowepsTrajectory && <KowepsTrajectoryView a={a} b={b} />}
+      {relationshipRelevant && <RelationshipPathView a={a} b={b} />}
       {hasCareerTrajectory && <CareerTrajectoryView a={a} b={b} />}
       {isJobComparison && !hasCareerTrajectory && (
         <Card>
