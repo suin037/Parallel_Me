@@ -20,6 +20,7 @@ import PetShop from "../components/PetShop.jsx";
 import { Bell, ChevronRight, ClipboardCheck, Compass, LockKeyhole, Palette, Smartphone, UserRound, LogOut } from "lucide-react";
 import { toChoiceDomains } from "../data/choices.js";
 import { openGuide } from "../data/tour.js";
+import { adviceOn, setAdvice } from "../data/guideAdvice.js";
 
 // 작은 on/off 토글 (track h-6/w-11 · thumb h-4/w-4 · translate 로 이동 — 크기 균형)
 function Toggle({ on, onClick }) {
@@ -129,19 +130,30 @@ export default function Settings() {
   const location = useLocation();
   const { profile, setProfile, setOnboarded, setChoices, setScenarioTexts, setScenarioDomains } = useResult();
   const [prefs, setPrefs] = useState(loadPrefs);
+  const [adviceUp, setAdviceUp] = useState(adviceOn);
   const [editingAvatar, setEditingAvatar] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [profileDraft, setProfileDraft] = useState(null);
-  const [activeSection, setActiveSection] = useState("profile");
+  // ?section=personalize 처럼 어느 칸을 열지 링크로 지정할 수 있다.
+  // 일기 화면의 돌보미 미리보기가 이 링크로 '생활 관리 친구' 칸을 바로 연다.
+  const SECTIONS = ["profile", "careerValues", "security", "personalize", "notifications"];
+  const [activeSection, setActiveSection] = useState(() => {
+    const s = new URLSearchParams(location.search).get("section");
+    return SECTIONS.includes(s) ? s : "profile";
+  });
   const [careerTestOpen, setCareerTestOpen] = useState(() => new URLSearchParams(location.search).get("careerValues") === "1");
   const universe = universeSummary();
   useEffect(() => {
-    if (new URLSearchParams(location.search).get("careerValues") === "1") {
+    const q = new URLSearchParams(location.search);
+    if (q.get("careerValues") === "1") {
       setActiveSection("careerValues");
       setCareerTestOpen(true);
+      return;
     }
-  }, [location.search]);
+    const s = q.get("section");
+    if (SECTIONS.includes(s)) setActiveSection(s);
+  }, [location.search]); // eslint-disable-line react-hooks/exhaustive-deps
   // 돌보미가 제안한 갈림길로 시뮬레이션을 연다 — 영역마다 다른 두 선택지가 온다.
   // (전에는 어느 돌보미든 "이직 vs 유지"로 고정이었다.)
   function startCompare(nudge) {
@@ -527,6 +539,7 @@ export default function Settings() {
 
       {/* 사용 안내 — 안내를 다시 볼 수 있는 유일한 자리다(헤더에는 두지 않는다).
           첫 화면(소개)부터 열어 주고, 거기서 화면을 짚어줄지 다시 고를 수 있다. */}
+      <div data-tour="guide-card">
       <Card>
         <div className="mb-1 text-xs font-semibold text-mut">사용 안내</div>
         <p className="text-[10px] leading-relaxed text-sub">
@@ -539,7 +552,18 @@ export default function Settings() {
         >
           <Compass size={14} /> 안내 받기
         </button>
+        {/* 조언은 여기서 바로 껐다 켤 수 있다 — 모달을 거치지 않아도 되게. */}
+        <div className="mt-3 flex items-center justify-between border-t border-white/[.07] pt-3">
+          <div className="min-w-0 pr-3">
+            <div className="text-[12px] text-sub">가이드 확인하기</div>
+            <p className="mt-0.5 text-[10px] leading-relaxed text-mut">
+              화면마다 무엇을 하는 곳인지 옆에서 알려드려요.
+            </p>
+          </div>
+          <Toggle on={adviceUp} onClick={() => { setAdvice(!adviceUp); setAdviceUp(!adviceUp); }} />
+        </div>
       </Card>
+      </div>
 
       {/* 가이드 마스코트 */}
       <Card>

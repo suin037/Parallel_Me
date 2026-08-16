@@ -1,4 +1,5 @@
-import { BookOpen, Compass, GitCompareArrows, Orbit, Save, X } from "lucide-react";
+import { BookOpen, Compass, GitCompareArrows, MessageSquareText, Orbit, Save, X } from "lucide-react";
+import { setAdvice } from "../data/guideAdvice.js";
 
 // 이 모달은 "이 서비스가 뭔지"를 한 장으로 말한다. 그다음 "그래서 어디를 누르면
 // 되는지"는 화면을 직접 짚어 주는 안내(Tour)가 맡는다. 아래 두 버튼이 그 갈림길이다.
@@ -52,13 +53,22 @@ export default function UserGuide({ open, onClose, onStartTour }) {
               </button>
               <button
                 type="button"
-                onClick={onClose}
-                className="tap flex-1 rounded-full border border-white/15 bg-white/[.04] py-3.5 text-[13px] font-semibold text-sub hover:bg-white/[.07]"
+                onClick={() => { onClose(); setAdvice(true); }}
+                className="tap flex flex-1 items-center justify-center gap-2 rounded-full border border-[#8B6CCF]/45 bg-[#8B6CCF]/12 py-3.5 text-[13px] font-semibold text-[#B8A4F2] hover:bg-[#8B6CCF]/20"
               >
-                혼자 둘러볼게요
+                <MessageSquareText size={16} /> 가이드 확인하기
               </button>
             </div>
-            <p className="mt-2.5 text-center text-[10px] text-mut">설정 → 알림 · 가이드에서 언제든 다시 볼 수 있어요.</p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="tap mt-2.5 w-full py-2 text-center text-[11px] text-mut hover:text-sub"
+            >
+              혼자 둘러볼게요
+            </button>
+            <p className="mt-1 text-center text-[10px] text-mut">
+              가이드를 켜면 화면마다 무엇을 하는 곳인지 옆에서 알려드려요. 설정에서 다시 켤 수 있어요.
+            </p>
           </>
         ) : (
           <button type="button" onClick={onClose} className="tap mt-5 w-full rounded-full bg-[#8B6CCF] py-3.5 text-[13px] font-bold text-white">이해했어요</button>

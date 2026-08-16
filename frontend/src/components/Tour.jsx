@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+// (useRef 는 말풍선 높이 측정에도 쓴다)
 import { useLocation, useNavigate } from "react-router-dom";
+import Mascot from "./Mascot.jsx";
+import { MASCOTS } from "../data/result.js";
 import { TOUR_STEPS, canRunTourAt, clearWantTour, markTourSeen, wantsTour } from "../data/tour.js";
 
 // ─────────────────────────────────────────────────────────────
@@ -34,6 +37,9 @@ export default function Tour() {
   // 바뀔 때** true→true 라 값이 안 변하고, 위치 재측정 effect 가 다시 돌지 않는다.
   // 그러면 설명은 새 단계인데 조명은 이전 자리에 남는다.
   const [readyId, setReadyId] = useState(null);
+  // 말풍선 실제 높이. 상수로 가정하면 줄 수가 많은 단계에서 화면 밖으로 밀린다.
+  const tipRef = useRef(null);
+  const [tipH, setTipH] = useState(220);
   const timers = useRef([]);
 
   const clearTimers = () => { timers.current.forEach(clearInterval); timers.current = []; };
@@ -82,8 +88,9 @@ export default function Tour() {
         return;
       }
       waited += 120;
-      // 3초를 기다려도 없으면 그 단계는 이 화면에 없는 것 — 조용히 넘긴다.
-      if (waited > 3000) {
+      // 없는 단계에서 오래 멈춰 있으면 영상에 빈 화면이 그대로 남는다.
+      // 1.5초면 화면 전환이 끝나고도 남으니, 그때까지 없으면 조용히 넘긴다.
+      if (waited > 1500) {
         clearInterval(find);
         setAt((i) => (i + 1 < TOUR_STEPS.length ? i + 1 : i));
         if (at + 1 >= TOUR_STEPS.length) finish();
@@ -115,6 +122,13 @@ export default function Tour() {
     return () => cancelAnimationFrame(raf);
   }, [readyId, step]);
 
+  // 단계가 바뀌면 말풍선 높이를 다시 잰다 — 줄 수가 달라 높이가 매번 다르다.
+  useEffect(() => {
+    if (!tipRef.current) return;
+    const h = tipRef.current.getBoundingClientRect().height;
+    if (h && Math.abs(h - tipH) > 2) setTipH(h);
+  });
+
   function finish() {
     markTourSeen();
     clearWantTour();      // 다시 고르기 전엔 열리지 않는다
@@ -136,7 +150,10 @@ export default function Tour() {
   // 둘 다 안 되는 경우가 있다: '나의 우주'처럼 대상이 화면을 거의 다 덮으면
   // 아래도 위도 자리가 없다. 그때 위쪽 계산을 그대로 쓰면 말풍선이 화면 밖으로
   // 밀려나 아예 안 보인다. 그래서 마지막엔 무조건 화면 안으로 가둔다.
-  const W = 300, TIP_H = 200, GAP = 12, M = 16;
+  const who = MASCOTS[step.mascot] || MASCOTS.lumi;
+  const tint = who.color;
+  const W = 340, GAP = 14, M = 16;
+  const TIP_H = tipH;
   let tipStyle = { top: "50%", left: "50%", transform: "translate(-50%,-50%)" };
   if (hole) {
     const under = hole.top + hole.height + GAP;
@@ -168,15 +185,40 @@ export default function Tour() {
       {/* 배경 아무 데나 눌러도 다음으로 */}
       <button onClick={next} className="absolute inset-0 h-full w-full cursor-default" aria-label="다음" />
 
+      {/* 해설 말풍선 — 그 화면을 맡은 마스코트가 말한다 */}
       <div
-        className="absolute w-[min(300px,calc(100vw-32px))] rounded-[18px] border border-[#8B6CCF]/40 bg-[#111A2C] p-4 shadow-[0_20px_60px_rgba(0,0,0,.6)] transition-all duration-[360ms] ease-out"
-        style={tipStyle}
+        ref={tipRef}
+        className="absolute flex max-h-[calc(100dvh-32px)] w-[min(340px,calc(100vw-32px))] flex-col overflow-hidden rounded-[20px] border bg-[#111A2C] shadow-[0_24px_70px_rgba(0,0,0,.62)] transition-all duration-[360ms] ease-out"
+        style={{ ...tipStyle, borderColor: `${tint}66` }}
       >
-        <p className="text-[10px] text-violet-300">{at + 1} / {TOUR_STEPS.length}</p>
-        <h3 className="mt-1 text-[14px] font-bold text-ink">{step.title}</h3>
-        <p className="mt-1.5 text-[11.5px] leading-relaxed text-sub">{step.body}</p>
+        <div className="flex items-center gap-2.5 px-4 pb-2.5 pt-3">
+          <Mascot which={who.key} size={38} />
+          <div className="min-w-0 flex-1">
+            <p className="text-[9px] font-bold tracking-[.14em]" style={{ color: tint }}>
+              {who.tag}
+            </p>
+            <p className="text-[10px] text-mut">{at + 1} / {TOUR_STEPS.length}</p>
+          </div>
+        </div>
 
-        <div className="mt-3 flex items-center gap-2">
+        {/* 내용은 단계마다 새로 올라온다 — 글자가 툭 갈리지 않게.
+            줄이 많으면 여기서만 스크롤한다(말풍선이 화면 밖으로 나가지 않게). */}
+        <div key={at} className="animate-fade min-h-0 flex-1 overflow-y-auto px-4">
+          <h3 className="text-[14.5px] font-bold leading-snug text-ink">{step.title}</h3>
+          <p className="mt-1.5 text-[11.5px] leading-relaxed text-sub">{step.body}</p>
+          {step.lines?.length > 0 && (
+            <ul className="mt-2.5 space-y-1.5 border-t border-white/[.07] pt-2.5">
+              {step.lines.map((line, i) => (
+                <li key={i} className="flex gap-2 text-[11px] leading-relaxed text-sub">
+                  <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full" style={{ background: tint }} />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="mt-3 flex items-center gap-2 px-4 pb-3.5">
           <button onClick={finish} className="tap text-[11px] text-mut">건너뛰기</button>
           <div className="flex-1" />
           {at > 0 && (
@@ -184,7 +226,11 @@ export default function Tour() {
               이전
             </button>
           )}
-          <button onClick={next} className="tap rounded-lg bg-[#8B6CCF] px-3.5 py-1.5 text-[11px] font-bold text-white">
+          <button
+            onClick={next}
+            className="tap rounded-lg px-3.5 py-1.5 text-[11px] font-bold text-white"
+            style={{ background: tint, color: "#12101B" }}
+          >
             {at + 1 < TOUR_STEPS.length ? "다음" : "시작하기"}
           </button>
         </div>

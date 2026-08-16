@@ -299,7 +299,7 @@ export default function InputScreen() {
           </div>
           <CompactFuturePicker futureYears={futureYears} setFutureYears={setFutureYears} />
         </div>
-      <div className="relative flex min-h-[390px] flex-col overflow-hidden lg:min-h-[360px] lg:flex-row">
+      <div data-tour="choices" className="relative flex min-h-[390px] flex-col overflow-hidden lg:min-h-[360px] lg:flex-row">
         <ChoicePanel
           inputId="choice-a-input"
           side="A" text={textA} domains={scenarioDomains.a} domainAuto={domainAuto.a}

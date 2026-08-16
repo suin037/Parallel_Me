@@ -146,7 +146,7 @@ export default function Result() {
           <KowepsEvidenceCard a={a} b={b} domains={result.domains || scenarioDomains} />
         </div>
         <div>
-      <div className="no-scrollbar my-2.5 flex gap-1.5 overflow-x-auto pb-1">
+      <div data-tour="result-tabs" className="no-scrollbar my-2.5 flex gap-1.5 overflow-x-auto pb-1">
         {tabs.map((t) => {
           const on = t.key === tab;
           return (

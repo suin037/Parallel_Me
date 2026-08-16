@@ -108,6 +108,10 @@ export function addCheckin(entry = {}) {
     mood: entry.mood ?? null,
     valence: valence ?? null,
     energy: entry.energy ?? null, // 소현 체크인 3문항: 에너지 레벨
+    // 루미(몸·마음 체크)가 받은 수치 — { sleepScore, sleepHours, sleepQual, steps,
+    // exerciseMin, stress }. 건강 지표의 중심이다(domainScore.js).
+    // 안 적은 항목은 없는 채로 둔다. 0으로 채우면 안 적은 날이 나쁜 날이 된다.
+    health: entry.health ?? null,
     skill: entry.skill ?? null, //                  오늘 쓴 역량
     keyword: entry.keyword ?? null, //              감정 키워드
     note: entry.note ?? "", // 한 줄 기록

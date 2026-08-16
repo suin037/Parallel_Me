@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Archive, CalendarDays, ChevronRight, Plus, X } from "lucide-react";
 import UniverseMap from "../components/UniverseMap.jsx";
 import Constellation from "../components/Constellation.jsx";
+import { announceSurface } from "../data/guideAdvice.js";
+import { domainScore, metricOf, topicParticle, MIN_FOR_SCORE } from "../data/domainScore.js";
 import { PLANETS } from "../data/result.js";
 import { adaptiveGroups, hasRecord, loadUniverse, resetUniverse, scenariosByPlanet, seedDemoCheckins, starGroupsOf, todayKey } from "../data/myUniverse.js";
 // demoYear.js 는 1년치 기록(87KB)을 들고 있다. 개발용 데모 버튼에서만 쓰므로
@@ -46,6 +48,11 @@ export default function MyUniverseV2() {
   const [planet, setPlanet] = useState(null);
   // 3D 에서 별자리를 누르면 그 별자리 하나를 펼쳐 본다(모양·상태·그 안의 기록).
   const [cluster, setCluster] = useState(null);
+  // 가이드 조언에게 지금 무엇이 열려 있는지 알린다 — 행성·별자리는 라우트가 같다.
+  useEffect(() => {
+    announceSurface(cluster ? "cluster" : planet ? "planet" : null);
+    return () => announceSurface(null);
+  }, [cluster, planet]);
   const [skin,setSkin]=useState(planetSkin);
   useEffect(() => { const refresh = () => setState(loadUniverse()); window.addEventListener("pm:universe", refresh); return () => window.removeEventListener("pm:universe", refresh); }, []);
   useEffect(()=>{const refresh=()=>setSkin(planetSkin());window.addEventListener("pm:pet-shop",refresh);return()=>window.removeEventListener("pm:pet-shop",refresh);},[]);
@@ -126,7 +133,10 @@ export default function MyUniverseV2() {
           setCluster(group);
         }} onScenarioOpen={(scenario)=>openPlanet(scenario.domain)} />
       </div>
-      <p className="pointer-events-none absolute bottom-5 left-1/2 z-20 -translate-x-1/2 text-[10px] text-white/40">행성을 클릭해 영역별 미래를 비교해보세요 · 드래그 회전 · 휠/핀치 확대</p>
+      {/* 별자리도 누를 수 있다는 걸 여기서 말해 주지 않으면 아무도 안 눌러 본다. */}
+      <p className="pointer-events-none absolute bottom-5 left-1/2 z-20 w-[min(92%,640px)] -translate-x-1/2 text-center text-[10px] leading-relaxed text-white/40">
+        행성을 누르면 그 영역의 흐름과 미래가 열려요 · <span className="text-white/60">별자리를 누르면 그 주의 기록을 볼 수 있어요</span> · 드래그 회전 · 휠/핀치 확대
+      </p>
 
       {/* 시나리오 마름모·카드는 모두 그 행성 모달로 모은다.
           예전 FutureScenarioPanel 은 시점 문구가 전부 고정 텍스트였고 br(세부 예측)이
@@ -687,14 +697,29 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
   const recent = useMemo(() => entries.slice(-3).reverse(), [entries]);
   const analysis = useMemo(() => domainAnalysis(planet.key, state), [planet.key, state]);
   const accent = planet.key === "life" ? "#F39A4A" : planet.to;
+  // 영역마다 재는 방법이 다르다 — 삶의 만족·건강만 점수를 낸다.
+  // 진로·관계·성장성은 점수 대신 '아직 안 가본 길'을 연다(domainScore.js 참고).
+  const metric = metricOf(planet.key);
+  const score = useMemo(
+    () => (metric.kind === "score" ? domainScore(planet.key, entries) : null),
+    [metric.kind, planet.key, entries],
+  );
+  const scoreReady = score && score.n >= MIN_FOR_SCORE;
   const average = analysis?.ok ? Number(analysis.moodAvg) : null;
   const trend = analysis?.ok && Number.isFinite(Number(analysis.trend)) ? Number(analysis.trend) : null;
   const stable = trend == null || Math.abs(trend) < .25;
-  const status = average == null
-    ? `아직 ${planet.label}의 상태를 알아가는 중이에요.`
-    : average >= 4 ? `요즘 ${planet.label}은 전반적으로 좋은 흐름이에요.`
-      : average >= 3 ? `요즘 ${planet.label}은 전반적으로 안정적이에요.`
-        : `요즘 ${planet.label}에 조금 더 돌봄이 필요해 보여요.`;
+  // 점수를 안 내는 영역에 '좋다/나쁘다'를 붙이면, 안 매긴다고 해놓고 매기는 셈이다.
+  // 그런 영역은 기록이 쌓였다는 사실만 말한다.
+  const tp = topicParticle(planet.label);
+  const status = metric.kind !== "score"
+    ? (entries.length
+        ? `${planet.label} 이야기가 ${entries.length}번 나왔어요. 아래에서 그 흐름을 볼 수 있어요.`
+        : `아직 ${planet.label} 이야기는 없어요.`)
+    : average == null
+      ? `아직 ${planet.label}의 상태를 알아가는 중이에요.`
+      : average >= 4 ? `요즘 ${planet.label}${tp} 전반적으로 좋은 흐름이에요.`
+        : average >= 3 ? `요즘 ${planet.label}${tp} 전반적으로 안정적이에요.`
+          : `요즘 ${planet.label}에 조금 더 돌봄이 필요해 보여요.`;
   const flow = analysis?.ok
     ? `최근 기록에는 ${stable ? "약간의 흔들림이 있지만, 전체 흐름은 비교적 안정적입니다." : trend > 0 ? "회복되는 흐름이 나타나고 있어요." : "조금 무거워지는 흐름이 보여요."}`
     : "기록이 쌓이면 최근 변화와 흐름을 여기에서 보여드릴게요.";
@@ -709,15 +734,34 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
       </div>
 
       <p className="mt-5 text-[13px] font-semibold leading-relaxed text-ink">{status}</p>
-      <div className="mt-4 grid grid-cols-3 divide-x divide-white/[.08] rounded-2xl border border-white/[.08] bg-white/[.035] py-3">
-        <SummaryMetric label="평균" value={average == null ? "—" : average.toFixed(1)} suffix="/ 5" accent={accent}/>
-        <SummaryMetric label="기록" value={entries.length} suffix="개" />
-        <SummaryMetric label="최근 변화" value={changeText} accent={accent}/>
-      </div>
+      {/* 점수를 내는 영역(삶의 만족·건강)만 숫자를 앞세운다. */}
+      {metric.kind === "score" ? (
+        <>
+          <div className="mt-4 grid grid-cols-3 divide-x divide-white/[.08] rounded-2xl border border-white/[.08] bg-white/[.035] py-3">
+            <SummaryMetric label={metric.label} value={scoreReady ? score.value.toFixed(1) : "—"} suffix="/ 10" accent={accent}/>
+            <SummaryMetric label="기록" value={entries.length} suffix="개" />
+            <SummaryMetric label="최근 변화" value={changeText} accent={accent}/>
+          </div>
+          <p className="mt-2 text-[9.5px] leading-relaxed text-mut">
+            {scoreReady
+              ? `${score.basis}으로 계산했어요 · 기록 ${score.n}일. ${metric.note}`
+              : `기록이 ${MIN_FOR_SCORE}일 모이면 점수를 보여드려요. 며칠 치로 영역을 평가할 수는 없어서요.`}
+          </p>
+        </>
+      ) : (
+        // 점수를 매기지 않는 영역 — 왜 안 매기는지 밝히고, 대신 할 수 있는 걸 준다.
+        <div className="mt-4 rounded-2xl border border-white/[.08] bg-white/[.035] px-4 py-3.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[11px] font-bold text-ink">{metric.label}{topicParticle(metric.label)} 점수로 재지 않아요</span>
+            <span className="shrink-0 text-[10px] text-mut">기록 {entries.length}개</span>
+          </div>
+          <p className="mt-1.5 text-[10px] leading-relaxed text-sub">{metric.why}</p>
+        </div>
+      )}
       <p className="mt-3 text-[10px] leading-relaxed text-mut">{flow}</p>
 
       <section className="mt-6 border-t border-white/[.08] pt-5">
-        <div className="flex items-center justify-between"><h3 className="text-[14px] font-bold">최근 흐름</h3><span className="text-[9px] text-mut">기록 기준 · 5점 만점</span></div>
+        <div className="flex items-center justify-between"><h3 className="text-[14px] font-bold">최근 흐름</h3><span className="text-[9px] text-mut">그날의 기분 · 5점 만점</span></div>
         <TrendChart series={analysis?.series || []} accent={accent}/>
         <p className="mt-3 text-[9px] font-semibold text-mut">영향 요인</p>
         <div className="mt-2 flex flex-wrap gap-2">{factors.map((factor)=><span key={factor} className="rounded-full border px-3 py-1.5 text-[10px] text-sub" style={{borderColor:`${accent}40`,background:`${accent}10`}}>{factor}</span>)}</div>

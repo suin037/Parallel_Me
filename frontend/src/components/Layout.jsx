@@ -4,6 +4,7 @@ import { ArrowLeft, Bookmark, BookOpen, HelpCircle, LockKeyhole, Orbit, Sparkles
 import TabBar from "./TabBar.jsx";
 import UserGuide from "./UserGuide.jsx";
 import Tour from "./Tour.jsx";
+import GuideAdvice from "./GuideAdvice.jsx";
 import { startTour, takeGuideAsk } from "../data/tour.js";
 import ReminderBell from "./ReminderBell.jsx";
 import ReminderToast from "./ReminderToast.jsx";
@@ -121,10 +122,13 @@ export default function Layout() {
           </div>
         </header>}
 
-        {/* 화면 본문 (스크롤) */}
+        {/* 화면 본문 (스크롤)
+            key={pathname} 로 이미 화면마다 새로 마운트된다. 거기에 animate-fade 를
+            얹어 부드럽게 올라오게 한다 — 안내 영상에서 화면이 툭툭 바뀌면 그 장면이
+            그대로 남는다. 랜딩은 자체 인트로가 있어 건드리지 않는다. */}
         <main
           key={pathname}
-          className={`no-scrollbar relative z-10 flex-1 ${isLanding ? "overflow-hidden p-0 [&>*]:h-full [&>*]:w-full [&>*]:max-w-none" : `overflow-y-auto px-5 pb-7 pt-1 lg:px-9 lg:pb-8 lg:pt-8 [&>*]:mx-auto [&>*]:w-full ${useFullDesktop ? "lg:overflow-visible xl:px-14" : ""} ${isUniverseCanvas ? "lg:!overflow-hidden lg:!p-0" : ""}`} ${
+          className={`no-scrollbar relative z-10 flex-1 ${isLanding ? "" : "animate-fade"} ${isLanding ? "overflow-hidden p-0 [&>*]:h-full [&>*]:w-full [&>*]:max-w-none" : `overflow-y-auto px-5 pb-7 pt-1 lg:px-9 lg:pb-8 lg:pt-8 [&>*]:mx-auto [&>*]:w-full ${useFullDesktop ? "lg:overflow-visible xl:px-14" : ""} ${isUniverseCanvas ? "lg:!overflow-hidden lg:!p-0" : ""}`} ${
             isLanding
               ? ""
               : isUniverseCanvas
@@ -156,6 +160,8 @@ export default function Layout() {
         <UserGuide open={guideOpen} onClose={closeGuide} onStartTour={isLanding ? undefined : startTour} />
         {/* 안내는 화면을 넘나들며 이어진다 — 화면 안에 두면 라우트가 바뀔 때 끊긴다. */}
         <Tour />
+        {/* 켜 둔 사람에게만 따라다니는 화면별 조언. 랜딩엔 설명할 화면이 없다. */}
+        {!isLanding && <GuideAdvice />}
       </div>
     </div>
   );

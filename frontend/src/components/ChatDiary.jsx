@@ -42,16 +42,28 @@ const DAILY_Q = [
   { p: "오늘 먹은 것 중에 맛있었던 게 있어요?", c: "오늘 먹은 것 중에 맛있었던 거 있어?" },
 ];
 // 건강 = 고정 질문(매일 안 바뀜). 선택형(옵션) + 정량 수치(number). 수치는 후에 삼성헬스 자동수신 자리.
+// field 는 이 답을 어느 칸에 넣을지다. 여태 답이 대화 글로만 남아서, 수면 점수를
+// 적어도 건강 점수 계산에는 쓰이지 못했다(domainScore.js 가 이 칸들을 읽는다).
 const HEALTH_Q = [
-  { p: "요즘 밤잠은 어떠세요?", c: "요즘 밤잠은 어땠어?", options: ["잘 잠", "뒤척임", "못 잠"] },
+  { p: "요즘 밤잠은 어떠세요?", c: "요즘 밤잠은 어땠어?", options: ["잘 잠", "뒤척임", "못 잠"], field: "sleepQual" },
   { p: "어젯밤 수면 점수는요? (알면 숫자로)", c: "어젯밤 수면 점수는? (알면 숫자로)",
-    type: "number", unit: "점", skip: true },
-  { p: "어제 몇 시간쯤 주무셨어요?", c: "어제 몇 시간쯤 잤어?", type: "number", unit: "시간", skip: true },
-  { p: "오늘 걸음수는 얼마였어요?", c: "오늘 걸음수는 얼마였어?", type: "number", unit: "걸음", skip: true },
-  { p: "오늘 운동은 얼마나 하셨어요?", c: "오늘 운동은 얼마나 했어?", type: "number", unit: "분", skip: true },
+    type: "number", unit: "점", skip: true, field: "sleepScore" },
+  { p: "어제 몇 시간쯤 주무셨어요?", c: "어제 몇 시간쯤 잤어?", type: "number", unit: "시간", skip: true, field: "sleepHours" },
+  { p: "오늘 걸음수는 얼마였어요?", c: "오늘 걸음수는 얼마였어?", type: "number", unit: "걸음", skip: true, field: "steps" },
+  { p: "오늘 운동은 얼마나 하셨어요?", c: "오늘 운동은 얼마나 했어?", type: "number", unit: "분", skip: true, field: "exerciseMin" },
   { p: "요즘 스트레스는 얼마나 느끼세요?", c: "요즘 스트레스는 얼마나 느껴?",
-    options: ["거의 없음", "보통", "심함"] },
+    options: ["거의 없음", "보통", "심함"], field: "stress" },
 ];
+
+// 답 한 줄 → 숫자. "7시간쯤", "약 80점" 처럼 적어도 건진다. 못 건지면 null(0 아님).
+const SCALE_3 = { "잘 잠": 5, "뒤척임": 3, "못 잠": 1, "거의 없음": 1, "보통": 3, "심함": 5 };
+function healthValue(field, raw) {
+  const v = (raw || "").trim();
+  if (!v || /^(모름|건너뛰|없|스킵)/.test(v)) return null;
+  if (field === "sleepQual" || field === "stress") return SCALE_3[v] ?? null;
+  const n = Number((v.match(/-?\d+(\.\d+)?/) || [])[0]);
+  return Number.isFinite(n) ? n : null;
+}
 
 // 질문 텍스트 — 고른 말투로. 성향 질문(questions.js)은 원문 하나뿐이라 그대로 쓴다.
 function qText(q, speech) {
@@ -151,6 +163,8 @@ export default function ChatDiary({ onSaved, embedded = false, onMessagesChange,
   // 오늘 저장된 드래프트가 있으면 이어서(챗봇 닫았다 열어도 유지).
   const _init = draftFor(initialArea);
   const [qi, setQi] = useState(() => _init?.qi ?? 0);
+  // 루미의 몸·마음 체크에서 건진 수치({sleepScore, sleepHours, ...}). 저장 때 함께 넘긴다.
+  const [healthVals, setHealthVals] = useState({});
   const [msgs, setMsgs] = useState(() =>
     _init?.msgs?.length
       ? _init.msgs
@@ -247,6 +261,12 @@ export default function ChatDiary({ onSaved, embedded = false, onMessagesChange,
     if (cur?.id && setProfile) {
       setProfile((p) => ({ ...p, psych_answers: { ...(p.psych_answers || {}), [cur.id]: v } }));
     }
+    // 루미의 몸·마음 체크 — 답을 숫자로도 붙잡아 둔다. 대화 글로만 남기면
+    // 수면 점수를 적어도 건강 지표 계산에는 못 쓴다.
+    if (cur?.field) {
+      const num = healthValue(cur.field, v);
+      if (num != null) setHealthVals((h) => ({ ...h, [cur.field]: num }));
+    }
     const next = qi + 1;
     const conversation = [...msgs, { role: "user", text: v }];
     setMsgs(conversation);
@@ -282,7 +302,8 @@ export default function ChatDiary({ onSaved, embedded = false, onMessagesChange,
       const today = todayKey();
       const verifiedDomains = detectLifeDomains(c.text);
       addCheckin({ date: today, text: c.text, mood: c.mood, keyword: c.emotion,
-        domains: verifiedDomains, insights: c.insights || null, chatSummary: c.text });
+        domains: verifiedDomains, insights: c.insights || null, chatSummary: c.text,
+        health: Object.keys(healthVals).length ? healthVals : null });
       if (verifiedDomains.length) setDomains(today, verifiedDomains);
       setSaved(c);
       onSaved?.();
