@@ -6,16 +6,28 @@ python-dotenv>=1.0
 httpx>=0.27
 requests>=2.32
 python-multipart>=0.0.9
-pandas>=2.2
 pyarrow>=16.0            # 관측 경력 경로 parquet 로딩
-numpy>=1.26
-scikit-learn==1.9.0      # joblib 모델은 학습/서빙 버전이 같아야 함
-econml>=0.15
-lifelines>=0.28
+
+# --- pkl 언피클에 관여하는 세트 — requirements-prediction.txt 와 **같은 값을 쓴다** ---
+# backend/models/artifacts/*.pkl 은 아래 버전들로 저장돼 있다. joblib.load 는 pickle 이라
+# 클래스 구조가 바뀌면 조용히 깨지거나 값이 달라진다(재학습 전엔 건드리지 말 것).
+#
+# 느슨한 핀(>=)으로 두면 안 되는 이유 — 설치는 성공하고 런타임에만 터진다:
+#   · 전에 여기가 scikit-learn==1.9.0 이었다. econml 을 >=0.15 로 열어둬서 pip 가
+#     econml 0.17.0(sklearn <1.10 허용)을 골라 **의존성 해결에는 성공**했고,
+#     깨지는 건 joblib.load 시점의 `Can't get attribute '_RemainderColsList'` 였다.
+#   · econml 0.16.0 은 sklearn <1.7, 0.17.0 은 <1.10 을 요구한다. 1.6.1 은 양쪽을 다
+#     만족해서, econml 을 안 박으면 0.17.0 으로 조용히 올라간다(아티팩트는 0.16.0 산).
+numpy==2.4.4
+pandas==2.3.3
+joblib==1.5.3
+scikit-learn==1.6.1
+econml==0.16.0
+lifelines==0.30.3
+
 pyreadstat>=1.2
 samplics==0.6.0       # KNHANES 층화·집락·가중치 복합표본 표준오차
 anthropic>=0.40
-joblib>=1.3
 kiwipiepy>=0.17        # 일기모듈(2번) 규칙기반 신호(언어지표·슬랭)
 cryptography>=42       # 일기·리포트 SQLite 저장 시 Fernet 암호화
 # 일기 감정 모델(선택): DIARY_CKPT 지정 시에만 필요

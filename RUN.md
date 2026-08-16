@@ -10,7 +10,8 @@ cd "c:\Users\USER\OneDrive\바탕 화면\lifenologylab\-LIFENOLOGY_boiled_egg\ba
 uvicorn main:app --reload
 ```
 
-- `..\.venv` (**루트** venv)를 쓴다. `backend\.venv` 아님 — 아래 "함정" 참고.
+- `..\.venv` (**루트** venv)를 쓴다. 새로 만든다면
+  `pip install -r backend/requirements.txt` 로 만들면 된다 — 아래 "함정" 참고.
 - 기동 후 워밍업(모델·패널 로딩)에 **약 20초** 걸린다. 그동안 요청하면 느리다.
 - 확인: <http://127.0.0.1:8000/health> → `"warmup": {"done": true ...}`, `"artifacts": {"available": true}` 이면 정상.
 - API 문서: <http://127.0.0.1:8000/docs>
@@ -33,17 +34,18 @@ npm run dev
 
 ## 함정 (겪은 것만)
 
-### venv를 잘못 고르면 모델이 안 붙는다
-커밋된 `backend/models/artifacts/*.pkl`은 **scikit-learn 1.6.1**로 학습됐다.
+### sklearn 버전이 어긋나면 모델이 안 붙는다
+`backend/models/artifacts/*.pkl`(레포에 없다 — `scripts/fetch_artifacts.py` 가 HF에서
+받아온다)은 **scikit-learn 1.6.1**로 학습됐다. 서빙 환경도 같은 버전이어야 한다.
 
-| venv | sklearn | 결과 |
-|---|---|---|
-| `.venv` (루트) | 1.6.1 | 정상 |
-| `backend\.venv` | 1.9.0 | `Can't get attribute '_RemainderColsList'` → artifacts 로딩 실패 |
+증상: `Can't get attribute '_RemainderColsList'` → artifacts 로딩 실패.
+`/health`에서 `"artifacts": "실패: AttributeError"`, 화면에 실수치 대신 폴백이 뜬다.
 
-`backend/requirements.txt`는 `scikit-learn==1.9.0`을 고정하고 있어서 **README 3번대로 venv를 새로 만들면 오히려 깨진다.** 기존 루트 `.venv`를 그대로 쓸 것.
+`backend/requirements.txt`가 예전에 `scikit-learn==1.9.0`을 고정하고 있어서 venv를
+새로 만들면 깨졌다. **지금은 고쳐져 있다**(1.6.1 + econml 0.16.0 등 언피클 세트 고정).
 
-증상: `/health`에서 `"artifacts": "실패: AttributeError"`, 화면에 실수치 대신 폴백이 뜬다.
+주의: 이 세트를 `>=`로 풀면 안 된다. pip 의존성 해결은 **성공하고** `joblib.load`
+시점에만 터져서 원인을 찾기 어렵다. 이유는 `backend/requirements.txt` 주석 참고.
 
 ### pull 후 vite가 죽는다
 ```
