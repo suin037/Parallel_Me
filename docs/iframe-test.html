@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Parallel Me — iframe 임베드 테스트</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px 22px 40px;
+    font: 14px/1.6 -apple-system, "Pretendard", "Malgun Gothic", sans-serif;
+    background: #0B1423; color: #E8EDF6;
+  }
+  h1 { font-size: 19px; margin: 0 0 4px; letter-spacing: -.02em; }
+  .sub { color: #93A0B5; font-size: 12.5px; margin: 0 0 18px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  button, input {
+    font: inherit; border-radius: 9px; border: 1px solid #2A3550;
+    background: #131E33; color: #E8EDF6; padding: 7px 12px; cursor: pointer;
+  }
+  button:hover { border-color: #8B6CCF; background: #1A2743; }
+  button.on { background: #8B6CCF; border-color: #8B6CCF; color: #fff; font-weight: 600; }
+  input { width: 82px; cursor: text; }
+  .row { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+  .stage {
+    background: #060B15; border: 1px solid #22304C; border-radius: 14px;
+    padding: 12px; overflow: auto; max-width: 100%;
+  }
+  iframe { border: 0; background: #000; display: block; border-radius: 8px; }
+  .meta { color: #7E8BA3; font-size: 11.5px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  aside { flex: 1 1 300px; min-width: 290px; max-width: 420px; }
+  .card { background: #101B2E; border: 1px solid #22304C; border-radius: 12px; padding: 14px 15px; margin-bottom: 12px; }
+  .card h2 { font-size: 13px; margin: 0 0 8px; color: #C9B8F5; letter-spacing: .02em; }
+  ol, ul { margin: 0; padding-left: 18px; }
+  li { margin: 6px 0; font-size: 12.5px; color: #C3CCDC; }
+  li b { color: #fff; }
+  code { background: #1B2740; padding: 1px 5px; border-radius: 4px; font-size: 11.5px; color: #9FD0FF; }
+  .warn { border-color: #7A5C2E; background: #1E1708; }
+  .warn h2 { color: #F0C674; }
+  .ok { color: #7BD88F; } .bad { color: #FF8A8A; }
+</style>
+</head>
+<body>
+
+<h1>iframe 임베드 테스트</h1>
+<p class="sub">
+  전시관 뷰페이지가 우리 사이트를 프레임으로 감쌌을 때를 흉내낸다.
+  <b>이 파일을 아이폰·아이패드 사파리에서 열어보는 게 핵심</b> —
+  PC·안드로이드는 원래 되던 환경이라 이 테스트로 구분되지 않는다.
+</p>
+<p class="sub" style="margin-top:-10px">
+  ⚠ 주소의 하이픈은 <b>두 개</b>다(<code>parallel--me</code>).
+  <code>parallel-me.vercel.app</code>(하이픈 하나)은 컨셉이 비슷한 <b>다른 서비스</b>이므로
+  제출 서류에 적을 때 반드시 확인할 것. 관람객은 QR 로 들어오므로 현장에서는 문제되지 않는다.
+</p>
+
+<div class="bar">
+  <span style="color:#93A0B5;font-size:12.5px">크기</span>
+  <button data-w="390"  data-h="844">폰 390×844</button>
+  <button data-w="430"  data-h="932">폰(대) 430×932</button>
+  <button data-w="768"  data-h="1024">태블릿 768×1024</button>
+  <button data-w="1024" data-h="768" class="on">전시관 추정 1024×768</button>
+  <button data-w="1280" data-h="800">데스크톱 1280×800</button>
+  <input id="w" type="number" placeholder="가로" />
+  <input id="h" type="number" placeholder="세로" />
+  <button id="apply">적용</button>
+  <button id="reload">프레임 새로고침</button>
+</div>
+
+<div class="row">
+  <div>
+    <div class="stage">
+      <iframe id="f" src="https://parallel--me.vercel.app" width="1024" height="768"
+              title="Parallel Me"></iframe>
+    </div>
+    <p class="meta" id="meta">—</p>
+  </div>
+
+  <aside>
+    <div class="card">
+      <h2>확인할 것</h2>
+      <ol>
+        <li>랜딩에 <b>체험하기 / 나만의 계정 만들기</b> 두 버튼이 보이는가</li>
+        <li>체험하기 → <b>카드 7장</b>이 뜨는가 (흐린 카드가 있으면 안 됨)</li>
+        <li>카드를 누르면 <b>나의 우주로 넘어가고 별·기록이 채워지는가</b>
+            — 이게 오늘 고친 부분이다. 빈 우주가 뜨면 실패</li>
+        <li>뒤로 가서 <b>다른 카드를 누르면 그 사람 기록으로 바뀌는가</b></li>
+        <li>가로 스크롤이 생기거나 잘리는 곳이 없는가 (반응형)</li>
+      </ol>
+    </div>
+
+    <div class="card warn">
+      <h2>안 되는 게 정상인 것</h2>
+      <ul>
+        <li>시뮬레이션 <b>숫자</b> — 백엔드가 아직 없어 데모값이 뜬다</li>
+        <li>챗봇·기업분석·N년 뒤 — qmode 서버 미배포</li>
+        <li>결과 화면 <b>장면 이미지</b> — Cloudflare 키 미설정</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>왜 3번이 중요한가</h2>
+      <ul>
+        <li>이 앱은 상태를 전부 브라우저 저장소에 넣는다.
+            <b>크로스 오리진 iframe 안에서는 사파리·iOS가 그걸 막는다</b>
+            (크롬·파이어폭스는 파티션 저장소로 동작).</li>
+        <li>막힌 채로 두면 카드를 눌러도 슬롯이 안 써지고
+            빈 우주가 뜬다 — 에러도 안 나서 원인을 못 찾는다.</li>
+        <li>그래서 저장소를 <code>safeStorage.js</code> 로 감싸
+            막히면 메모리로 대신하게 했고,
+            세션을 날리던 전체 새로고침도 걷어냈다.</li>
+        <li>iOS는 크롬을 써도 엔진이 WebKit이라 사파리와 같다.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>폰에서 열려면</h2>
+      <ul>
+        <li>이 파일을 카톡·메일로 자기 폰에 보내 열거나,</li>
+        <li>PC에서 <code>python -m http.server 8080</code> 을 이 폴더에서 띄우고
+            폰으로 <code>http://&lt;PC IP&gt;:8080/iframe-test.html</code> 접속</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+
+<script>
+  const f = document.getElementById("f");
+  const meta = document.getElementById("meta");
+  const buttons = [...document.querySelectorAll("button[data-w]")];
+
+  function setSize(w, h, btn) {
+    f.width = w; f.height = h;
+    buttons.forEach((b) => b.classList.toggle("on", b === btn));
+    stamp();
+  }
+
+  function stamp() {
+    const framed = "cross-origin — 내부는 읽을 수 없다(정상)";
+    meta.textContent = `프레임 ${f.width}×${f.height}px · ${f.src} · ${framed}`;
+  }
+
+  buttons.forEach((b) =>
+    b.addEventListener("click", () => setSize(b.dataset.w, b.dataset.h, b)));
+
+  document.getElementById("apply").addEventListener("click", () => {
+    const w = +document.getElementById("w").value || f.width;
+    const h = +document.getElementById("h").value || f.height;
+    setSize(w, h, null);
+  });
+
+  document.getElementById("reload").addEventListener("click", () => {
+    // 같은 주소를 다시 지정하면 프레임만 새로 뜬다.
+    // (메모리 저장소는 여기서 비워지므로, 새로고침 뒤 빈 우주가 되는 건 의도된 동작이다)
+    f.src = f.src;
+  });
+
+  f.addEventListener("load", () => {
+    meta.innerHTML = meta.textContent.replace("cross-origin", "<span class='ok'>로드됨</span> · cross-origin");
+  });
+
+  stamp();
+</script>
+</body>
+</html>
