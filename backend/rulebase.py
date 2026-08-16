@@ -118,11 +118,19 @@ def _src_wage(profile: dict) -> list[dict]:
 
 
 def _match_master(df, indicator: str, sex, age):
-    """lanollab 통일스키마: 성별×연령대 → 연령대 → 성별 → 전체 순 폴백."""
+    """lanollab 통일스키마: 성별×연령대 → 연령대 → 성별 → 전체 순 폴백.
+
+    매칭된 값과 함께 **같은 지표의 '전체' 행**을 돌려준다. 유병률·인지율에는
+    만점이 없어서 값 하나만으로는 높은지 낮은지 알 수 없기 때문이다 — 스트레스
+    인지율 38.6% 는 전체 25.7% 옆에 놓여야 "또래가 유난히 높다"로 읽힌다.
+    이미 '전체' 로 떨어진 경우엔 자기 자신과 비교하게 되므로 기준선을 비운다.
+    """
     band = _lanollab_ageband(age)
     sub = df[df["지표명"] == indicator]
     if sub.empty:
         return None
+    overall = sub[sub["구분유형"] == "전체"]
+    baseline = float(overall["값"].iloc[0]) if not overall.empty else None
     candidates = [
         ("성별×연령대", (sub["sex"] == sex) & (sub["agegroup"] == band)),
         ("연령대", sub["agegroup"] == band),
@@ -133,7 +141,8 @@ def _match_master(df, indicator: str, sex, age):
         m = sub[(sub["구분유형"] == gtype) & cond]
         if not m.empty:
             r = m.iloc[0]
-            return float(r["값"]), str(r["단위"]), gtype, str(r.get("출처", ""))
+            return (float(r["값"]), str(r["단위"]), gtype, str(r.get("출처", "")),
+                    None if gtype == "전체" else baseline)
     return None
 
 
@@ -150,9 +159,11 @@ def _src_health(profile: dict) -> list[dict]:
     for ind, dim in dims.items():
         r = _match_master(df, ind, sex, age)
         if r:
-            v, unit, gtype, src = r
+            v, unit, gtype, src, baseline = r
             out.append({"dimension": dim, "indicator": ind, "value": round(v, 1),
-                        "unit": unit, "group": gtype, "source": src or "KNHANES/CHS/KWCS"})
+                        "unit": unit, "group": gtype, "source": src or "KNHANES/CHS/KWCS",
+                        "baseline": None if baseline is None else round(baseline, 1),
+                        "baseline_group": None if baseline is None else "전체"})
     return out
 
 

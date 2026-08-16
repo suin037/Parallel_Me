@@ -178,6 +178,15 @@ class LifeIndicator(BaseModel):
         False,
         description="값이 낮을수록 좋은 지표인가(우울·스트레스·고립도 등). A/B 비교 방향 표시용.",
     )
+    # 같은 지표의 '전체' 행. 이게 없으면 화면이 37.5% 같은 숫자 하나만 받는데,
+    # 유병률·인지율에는 만점이 없어서 그 숫자만으로는 높은지 낮은지 알 수 없다.
+    # (그래서 예전 화면은 0~100% 축에 막대를 그렸고, 낮을수록 좋은 지표가
+    #  길수록 좋아 보이는 그림이 됐다.) 전체 평균을 함께 주면 '평균 대비 얼마'로
+    # 읽을 수 있다. 매칭된 행이 이미 '전체'면 비교가 성립하지 않으므로 None 이다.
+    baseline: Optional[float] = Field(
+        None, description="같은 지표의 전체 집단 값. 이 값 대비 얼마나 벗어났는지가 화면의 기준.")
+    baseline_group: Optional[str] = Field(
+        None, description="baseline 이 어떤 집단인지(보통 '전체')")
 
 
 class TrajectoryPoint(BaseModel):
