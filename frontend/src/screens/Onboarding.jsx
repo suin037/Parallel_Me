@@ -318,7 +318,8 @@ export default function Onboarding() {
       <label className="mb-2 block text-xs text-sub">내 아바타 만들기</label>
       <AvatarBuilder
         config={profile.avatarConfig}
-        onChange={(cfg) => setProfile((p) => ({ ...p, avatarConfig: cfg }))}
+        // avatarChosen — 사람이 직접 고른 얼굴이라는 표시(personaSession 참고).
+        onChange={(cfg) => setProfile((p) => ({ ...p, avatarConfig: cfg, avatarChosen: true }))}
       />
     </div>
   ];

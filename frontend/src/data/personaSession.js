@@ -29,24 +29,41 @@ function writeProfile(profile) {
 }
 
 /**
- * 프로필에 **없는 키만** 채운다. 이미 있는 값은 건드리지 않는다.
+ * 이미 만들어진 슬롯의 프로필을 그 페르소나에 맞춘다.
  *
- * 왜 필요한가: 아래 enterPersona 는 슬롯을 처음 만들 때만 writeProfile 을 부른다.
+ * 왜 필요한가: enterPersona 는 슬롯을 **처음 만들 때만** writeProfile 을 부른다.
  *   그래서 한 번이라도 들어가 본 인물은, 나중에 페르소나 프로필에 새로 생긴 값이
- *   그 슬롯에 영영 안 들어간다. avatarConfig 를 추가했을 때 실제로 그랬다 —
- *   카드에는 얼굴이 뜨는데 그 인물로 들어가면 기본 아바타였다.
+ *   그 슬롯에 영영 안 들어간다.
  *
- *   덮어쓰기로 고치면 안 된다. 설정에서 아바타를 직접 고쳐둔 사람의 선택이 체험하기에
- *   다시 들어올 때마다 초기화된다. 그래서 빈 자리만 메운다.
+ * 아바타는 '없을 때만 채우기'로는 안 된다 — 저장소에는 avatarConfig 가 **언제나** 있다.
+ *   ResultContext 의 DEFAULT_PROFILE 이 avatarConfig: DEFAULT_AVATAR 를 들고 있고,
+ *   프로필이 바뀔 때마다 통째로 저장하기 때문이다(그쪽 useEffect). 그래서 빈 자리를
+ *   찾는 방식으로는 페르소나 얼굴이 영영 안 들어가고, 카드에는 얼굴이 뜨는데
+ *   프로필·시뮬레이션 화면은 기본 아바타인 상태가 된다.
+ *
+ *   대신 **사용자가 직접 고른 적이 있는가**(avatarChosen)로 가린다. 값이 있는지가 아니라
+ *   사람이 골랐는지를 보는 것으로, sex 를 sexConfirmed 로 가리는 것과 같은 방식이다.
+ *   설정·온보딩의 아바타 빌더만 그 표시를 남긴다.
  */
-function fillProfileGaps(profile) {
+function syncPersonaProfile(profile) {
   try {
     const prev = JSON.parse(storage.getItem(PROFILE_KEY) || "{}");
     const next = { ...prev };
     let changed = false;
+
+    // 아직 없는 값은 채운다(나중에 프로필에 필드가 추가돼도 예전 슬롯이 따라온다).
     for (const [key, value] of Object.entries(profile)) {
       if (prev[key] === undefined) { next[key] = value; changed = true; }
     }
+
+    // 얼굴은 그 인물의 정체다. 시뮬레이션 결과 이미지까지 이 값을 쓰므로
+    // (ResultContext 의 avatarToPngBlob) 카드에서 본 얼굴과 어긋나면 안 된다.
+    if (!prev.avatarChosen && profile.avatarConfig
+        && JSON.stringify(prev.avatarConfig) !== JSON.stringify(profile.avatarConfig)) {
+      next.avatarConfig = profile.avatarConfig;
+      changed = true;
+    }
+
     if (changed) storage.setItem(PROFILE_KEY, JSON.stringify(next));
   } catch { /* 무시 */ }
 }
@@ -77,8 +94,8 @@ export async function enterPersona(id, opts = {}) {
     writeProfile(persona.profile);
   }
   // 이미 있던 슬롯이면 위를 건너뛰므로, 그 뒤에 프로필에 새로 생긴 값은 빠진 채로 남는다.
-  // 빈 자리만 메워서 예전에 만든 슬롯도 최신 프로필과 어긋나지 않게 한다.
-  fillProfileGaps(persona.profile);
+  // 예전에 만든 슬롯도 최신 프로필과 어긋나지 않게 맞춘다.
+  syncPersonaProfile(persona.profile);
 
   // 슬롯에 심은 결과를 곧바로 담아둔다 — 새로고침 전에 저장이 끝나 있어야 한다.
   saveActiveSlot(new Date().toISOString());
