@@ -335,22 +335,23 @@ const MIRROR = 767; // 얼굴 좌우 대칭축 x=383.5 기준. 오른쪽 x = MIR
 
 /** 왼쪽 눈썹 곡선(절대좌표). 오른쪽은 자동으로 좌우 반전한다. */
 const BROW_SHAPES = {
-  neutral: { label: "무표정", d: [270, 344, 312, 322, 350, 336] },
-  raised: { label: "올린", d: [270, 350, 312, 316, 350, 328] },
-  happy: { label: "웃는", d: [270, 342, 312, 316, 350, 342] },
-  sad: { label: "처진", d: [270, 326, 312, 340, 350, 352] },
-  angry: { label: "화난", d: [270, 352, 312, 334, 350, 320] },
+  neutral: { label: "무표정", d: [270, 344, 312, 322, 350, 336], desc: "거의 수평인 일자 눈썹. 각이 거의 없음" },
+  raised: { label: "올린", d: [270, 350, 312, 316, 350, 328], desc: "눈썹 전체가 위로 올라가 눈과 사이가 넓은 모양. 놀란 인상" },
+  happy: { label: "웃는", d: [270, 342, 312, 316, 350, 342], desc: "완만한 아치. 안쪽에서 올라가 바깥쪽으로 부드럽게 내려감" },
+  sad: { label: "처진", d: [270, 326, 312, 340, 350, 352], desc: "안쪽이 올라가고 바깥쪽이 아래로 처진 팔자 눈썹" },
+  angry: { label: "화난", d: [270, 352, 312, 334, 350, 320], desc: "안쪽이 아래로 내려와 미간이 좁아진 사나운 눈썹" },
 };
 
 export const BROW_THICKNESS = [
-  { id: "thin", label: "얇게", w: 9 },
-  { id: "normal", label: "보통", w: 14 },
-  { id: "thick", label: "두껍게", w: 20 },
+  { id: "thin", label: "얇게", w: 9, desc: "가늘게 다듬은 눈썹" },
+  { id: "normal", label: "보통", w: 14, desc: "보통 굵기" },
+  { id: "thick", label: "두껍게", w: 20, desc: "굵고 짙은 눈썹. 숱이 많아 보임" },
 ];
 
 export const BROW_SHAPE_ITEMS = Object.entries(BROW_SHAPES).map(([id, s]) => ({
   id,
   label: s.label,
+  desc: s.desc, // 카메라 인식용 — 사진에서 보이는 모양
 }));
 
 function browPath([x1, y1, cx, cy, x2, y2], flip) {
@@ -363,9 +364,18 @@ export function isCustomBrowShape(id) {
 }
 
 /** 'neutral' 로 그려진 눈썹을 지정한 모양·두께로 교체한다. */
-export function replaceBrows(svg, shapeId, thicknessId, color) {
+/**
+ * thickness 는 id("thin"|"normal"|"thick") 또는 px 숫자를 받는다.
+ * 카메라가 굵기를 3단계로는 못 맞힌다(우리 그림으로 물어도 1/2). 숫자로 받으면
+ * '이 정도'를 그대로 그릴 수 있어서 단계 사이에 갇히지 않는다.
+ */
+export function replaceBrows(svg, shapeId, thickness, color) {
   const shape = BROW_SHAPES[shapeId];
-  const thick = BROW_THICKNESS.find((t) => t.id === thicknessId) || BROW_THICKNESS[1];
+  const w =
+    typeof thickness === "number"
+      ? Math.max(7, Math.min(24, thickness))
+      : (BROW_THICKNESS.find((t) => t.id === thickness) || BROW_THICKNESS[1]).w;
+  const thick = { w };
   if (!shape) return svg;
   if (!NEUTRAL_BROWS_RE.test(svg)) return warnMissing("눈썹"), svg;
   const stroke = `stroke="${color}" stroke-width="${thick.w}" stroke-linecap="round" fill="none"`;

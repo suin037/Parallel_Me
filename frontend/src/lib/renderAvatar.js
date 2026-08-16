@@ -81,7 +81,16 @@ export function renderAvatarSvg(config, options = {}) {
   // 꼬리 좌표는 그대로 남지만, 굳이 감싼 뒤에 손댈 이유가 없다.
   if (c.lashes === false) svg = removeLashes(svg);
   // 눈 축소는 눈썹 교체보다 먼저다 — 눈 구간의 끝을 '원본 눈썹'으로 찾기 때문이다.
-  if (c.eyes === "small") svg = scaleEyes(svg, SMALL_EYE.scale, SMALL_EYE.base, SMALL_EYE.inset);
+  //
+  // eyeScale 은 카메라가 재어 보내는 눈 크기(0.70~1.12). 눈을 '크게 뜬/웃는/작은'
+  // 세 칸으로만 두면 카메라가 매번 같은 값에 몰린다(실측 10/10 small). 숫자로 받으면
+  // 그 사이 값을 그대로 그릴 수 있다.
+  const eyeScale = typeof c.eyeScale === "number" ? Math.max(0.6, Math.min(1.1, c.eyeScale)) : null;
+  if (eyeScale && eyeScale !== 1) {
+    svg = scaleEyes(svg, eyeScale, c.eyes === "small" ? SMALL_EYE.base : c.eyes, 0);
+  } else if (c.eyes === "small") {
+    svg = scaleEyes(svg, SMALL_EYE.scale, SMALL_EYE.base, SMALL_EYE.inset);
+  }
   svg = replaceBrows(svg, c.eyebrows, c.browThickness, "#" + c.hairColor);
   svg = fitBeard(svg, c.beard, c.eyes, c.face);
   if (style.custom) {

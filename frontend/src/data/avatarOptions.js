@@ -73,9 +73,9 @@ export const BEARD = [
 // 사진 분석이 '작은 눈' 대신 '감은 눈'을 계속 골랐다.
 // 'small' 은 새 그림이 아니라 'wide' 를 각 눈 중심 기준으로 줄인 것이다(customParts.scaleEyes).
 export const EYES = [
-  { id: "wide", label: "크게 뜬" },
-  { id: "happy", label: "웃는" },
-  { id: "small", label: "작은 눈" },
+  { id: "wide", label: "크게 뜬", desc: "위아래로 크게 뜬 눈. 눈동자 위아래로 흰자가 보이고 쌍꺼풀이 또렷함" },
+  { id: "happy", label: "웃는", desc: "아래 눈꺼풀이 올라와 눈이 아래로 휘어진 모양. 웃는 눈" },
+  { id: "small", label: "작은 눈", desc: "위아래 폭이 좁은 가는 눈. 눈동자 위아래로 흰자가 거의 안 보임" },
 ];
 
 // 'small' 이 실제로 쓰는 빌트인 눈과 축소 배율.
@@ -85,11 +85,11 @@ export const SMALL_EYE = { base: "happy", scale: 0.82, inset: 0 };
 // 모양 목록은 BROW_SHAPE_ITEMS, 두께는 BROW_THICKNESS 를 쓴다.
 
 export const MOUTH = [
-  { id: "smile", label: "미소" },
-  { id: "laugh", label: "활짝" },
-  { id: "agape", label: "벌린" },
-  { id: "sad", label: "슬픔" },
-  { id: "angry", label: "화남" },
+  { id: "smile", label: "미소", desc: "입을 다물고 입꼬리만 살짝 올라간 상태" },
+  { id: "laugh", label: "활짝", desc: "이가 보이도록 크게 벌려 웃는 입" },
+  { id: "agape", label: "벌린", desc: "입을 동그랗게 벌린 상태. 말하는 중이거나 놀란 표정" },
+  { id: "sad", label: "슬픔", desc: "입꼬리가 아래로 내려간 상태" },
+  { id: "angry", label: "화남", desc: "입을 앙다물고 입꼬리가 굳은 상태" },
 ];
 
 export const CLOTHES = [
