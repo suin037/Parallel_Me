@@ -148,7 +148,9 @@ export default function MyUniverseV2() {
       <div className="absolute right-6 top-5 z-30">
         <button type="button" onClick={() => navigate("/archive")} className="tap flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3 text-[10px] text-sub backdrop-blur"><Archive size={13} /> 보관함</button>
       </div>
-      <div data-tour="universe-map" className={`transition-[margin] duration-300 ease-out ${planet?"md:mr-[420px] lg:mr-[520px] xl:mr-[660px]":""}`}>
+      {/* 패널이 열리면 지도를 왼쪽 절반으로 민다 — 패널 폭(50vw)과 같은 값이라야
+          지도가 창 뒤로 숨지 않고 정확히 반반이 된다. */}
+      <div data-tour="universe-map" className={`transition-[margin] duration-300 ease-out ${planet?"md:mr-[420px] lg:mr-[50vw] xl:mr-[50vw]":""}`}>
         <UniverseMap planets={PLANETS} groups={orbitGroups} skin={skin} scenarios={state.scenarios || []} selectedKey={planet?.key} onPlanetSelect={(key)=>key ? openPlanet(key) : (setPlanet(null),setCluster(null))} onConstellationOpen={(group,key)=>{
           // 기록 별자리를 누르면 그 별자리를 펼친다(행성 전체는 패널 안에서 열 수 있다).
           if (key) setPlanet(PLANETS.find((item) => item.key === key));
@@ -808,7 +810,9 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
   const factors = analysis?.topEmotions?.slice(0, 3) || KEYWORDS[planet.key].slice(0, 3);
   const changeText = trend == null ? "—" : `${trend >= 0 ? "+" : ""}${trend.toFixed(1)}`;
 
-  return <aside className="absolute inset-y-2 right-2 z-40 w-[min(430px,calc(100%-16px))] overflow-y-auto rounded-[26px] border border-white/10 bg-[#070E1B]/95 shadow-[0_30px_100px_rgba(0,0,0,.72)] backdrop-blur-2xl lg:inset-y-4 lg:right-4 lg:w-[520px] xl:w-[610px]">
+  // PC 에서는 화면을 반으로 나눈다 — 왼쪽 지도, 오른쪽 이 창.
+  // (아래 지도 쪽 여백도 같은 폭으로 밀어야 실제로 반반이 된다.)
+  return <aside className="absolute inset-y-2 right-2 z-40 w-[min(430px,calc(100%-16px))] overflow-y-auto rounded-[26px] border border-white/10 bg-[#070E1B]/95 shadow-[0_30px_100px_rgba(0,0,0,.72)] backdrop-blur-2xl lg:inset-y-4 lg:right-4 lg:w-[calc(50vw-1.5rem)] xl:w-[calc(50vw-1.5rem)]">
     <div className="p-5 lg:p-6">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4"><PlanetOrb planet={planet} /><div><p className="text-[9px] font-semibold tracking-[.2em]" style={{color:accent}}>FUTURE PLANET</p><h2 className="mt-1 text-[25px] font-bold tracking-[-.035em] lg:text-[29px]">{planet.label}</h2></div></div>
