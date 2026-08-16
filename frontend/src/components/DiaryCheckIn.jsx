@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, Caption } from "./ui.jsx";
 import { todayQuestions, CHECKIN, MOODS } from "../data/questions.js";
 import { addCheckin, loadUniverse, todayKey } from "../data/myUniverse.js";
+import { tagEntry } from "../data/tagging.js";
 
 // 홈 "오늘 기록" 카드 — jy DiaryToday 포팅본(홈 배치).
 //  · 30초 데일리: 기분 5단계(→ 그날 별 밝기) + 에너지·역량·감정 칩
@@ -38,6 +39,9 @@ export default function DiaryCheckIn({ onSaved }) {
     const arr = questions
       .filter((q) => (answers[q.id] || "").trim())
       .map((q) => ({ q: q.text, a: answers[q.id].trim() }));
+    // 여기서 영역을 안 붙이면 이 기록은 어느 행성에도 안 달린다 — 적었는데
+    // 나의 우주에도 영역 그래프에도 안 나온다. 질문 답까지 합쳐 분류에 넘긴다.
+    const body = [text.trim(), ...arr.map((x) => x.a)].filter(Boolean).join(" ");
     const saved = {
       date: today,
       mood,
@@ -46,6 +50,7 @@ export default function DiaryCheckIn({ onSaved }) {
       energy,
       skill: competency,
       keyword: emotion,
+      domains: tagEntry(today, body),
     };
     addCheckin(saved);
     setEntry({ ...saved, valence: null });

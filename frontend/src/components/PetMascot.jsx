@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Mascot from "./Mascot.jsx";
+import { X } from "lucide-react";
 import PetCreature from "./PetCreature.jsx";
+import PetHearts from "./PetHearts.jsx";
+import storage from "../data/safeStorage.js";
+
+// 닫은 제안을 기억하는 자리 — 값은 그 갈림길의 서명이다.
+const NUDGE_OFF = "pm.nudge.off.v1";
 import { loadShop, equippedItem } from "../data/petShop.js";
-import { loadPet, claimDaily, petMascot, feedMascot, setWhich, moodOf, canPatToday } from "../data/petCare.js";
+import { loadPet, claimDaily, petMascot, feedMascot, setWhich, moodOf, canPatToday, currentHappiness } from "../data/petCare.js";
 import { hasCheckedInToday } from "../data/myUniverse.js";
 import { guideNudge, GUIDE_DOMAIN } from "../data/diarySignals.js";
 
@@ -52,7 +58,11 @@ export default function PetMascot({ onCompare }) {
     () => guideNudge(GUIDE_DOMAIN[pet.which] || "career", { windowDays: 28, threshold: 4 }),
     [pet.which],
   );
-  const mood = moodOf(pet.happiness);
+  // 저장값이 아니라 '방치한 날만큼 깎은' 값으로 본다.
+  // 일기 화면 미리보기와 같은 계산을 써야 두 곳의 기분이 어긋나지 않는다.
+  const [nudgeOff, setNudgeOff] = useState(() => storage.getItem(NUDGE_OFF) || "");
+  const happinessNow = currentHappiness(pet);
+  const mood = moodOf(happinessNow);
   const pattedToday = !canPatToday(pet);
   const checkedIn = hasCheckedInToday();
   // 신호가 없을 때도 돌보미마다 자기 영역의 말을 한다 — 셋이 같은 말을 하면
@@ -72,7 +82,23 @@ export default function PetMascot({ onCompare }) {
     },
   };
   const idle = IDLE[pet.which] || IDLE.cosmo;
-  const guideMessage = nudge.prompt
+
+  function dismissNudge() {
+    storage.setItem(NUDGE_OFF, nudgeSig);
+    setNudgeOff(nudgeSig);
+  }
+
+  // 닫은 제안은 다시 꺼내지 않는다.
+  //
+  // 같은 갈림길을 계속 들이밀면 조언이 아니라 잔소리가 된다. 그래서 '이 갈림길'
+  // 단위로 기억한다 — 다른 고민이 새로 보이면 그건 다른 제안이라 다시 뜬다.
+  // (날짜 기준으로 접으면 내일 같은 말을 또 하게 된다.)
+  const nudgeSig = nudge.prompt
+    ? `${nudge.label || ""}|${nudge.choiceA || ""}|${nudge.choiceB || ""}`
+    : "";
+  const showNudge = Boolean(nudge.prompt && onCompare && nudgeSig && nudgeOff !== nudgeSig);
+
+  const guideMessage = showNudge
     ? `최근 ${nudge.windowDays}일 동안 ${nudge.label}${nudge.particle} ${nudge.count}일 나타났어요. 기록만 하기보다 두 선택을 비교해볼까요?`
     : checkedIn ? idle.done : idle.todo;
 
@@ -186,10 +212,21 @@ export default function PetMascot({ onCompare }) {
       <div className="relative mx-auto mt-3 max-w-[268px] rounded-2xl border border-white/10 bg-[#0B1423]/80 px-3.5 py-2.5 text-center text-[11px] leading-relaxed text-sub">
         <span className="mr-1 font-bold" style={{ color: guide.color }}>{guide.name}</span>
         {guideMessage}
-        {nudge.prompt && onCompare && (
-          <button type="button" onClick={() => onCompare(nudge)} className="tap mt-2 block w-full rounded-xl border border-cyan/35 bg-cyan/10 py-2 text-[11px] font-bold text-cyan">
-            {nudge.choiceA} vs {nudge.choiceB} 비교하기
-          </button>
+        {showNudge && (
+          <>
+            {/* 닫기 — 지금 이 갈림길은 됐다는 뜻. 다른 고민이 보이면 그때 다시 뜬다. */}
+            <button
+              type="button"
+              onClick={dismissNudge}
+              aria-label="이 제안 닫기"
+              className="tap absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full text-mut hover:bg-white/[.08] hover:text-sub"
+            >
+              <X size={13} />
+            </button>
+            <button type="button" onClick={() => onCompare(nudge)} className="tap mt-2 block w-full rounded-xl border border-cyan/35 bg-cyan/10 py-2 text-[11px] font-bold text-cyan">
+              {nudge.choiceA} vs {nudge.choiceB} 비교하기
+            </button>
+          </>
         )}
         {/* 꼬리 — 아래 두 변만 남긴 정사각형을 돌려 말풍선에서 뻗어 나온 것처럼 */}
         <span className="absolute bottom-[-6px] left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-b border-r border-white/10 bg-[#0B1423]" />
@@ -223,6 +260,8 @@ export default function PetMascot({ onCompare }) {
           <div key={squish} style={{ animation: "pm-squish .5s cubic-bezier(.34,1.56,.64,1)", transformOrigin: "50% 100%" }}>
             {/* 젤리 광택 */}
             <div className="relative">
+              {/* 기쁠 때 하트 — 일기 화면의 미리보기와 같은 모션을 쓴다(같은 친구다) */}
+              <PetHearts on={mood === "기쁨"} size={98} />
               <PetCreature size={98} variant={guide.key} mood={mood} expr={expr} />
               <div className="pointer-events-none absolute left-[24%] top-[24%] h-8 w-8 rounded-full bg-white/45 blur-[7px]" />
               {/* 장착 소품 — 원본 좌표는 size 124 기준이라 우리 크기(98)에 맞춰 비율로 줄인다 */}

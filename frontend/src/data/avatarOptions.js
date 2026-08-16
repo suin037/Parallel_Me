@@ -27,31 +27,32 @@ export const TOONHEAD_CREDIT = {
 // 그래서 완성된 스타일 하나씩만 고르게 한다. 긴머리는 '앞머리 있음/없음'으로 갈린다.
 //   hair = 앞머리 (null 이면 없음), rear = 뒷머리 (null 이면 없음)
 //   custom: true 면 customParts.js 의 CUSTOM_HAIR 에서 온 것
+//   desc 는 카메라 인식용 — 사진에서 보이는 특징. 이름만 보내면 모델이 우리 그림이
+//   어떤 모양인지 알 수가 없다(우리 '언더컷'은 올백 계열인데 이름만으로는 투블럭으로 읽힌다).
 // '앞머리 없음'은 민머리가 아니라 '이마가 드러나는 가르마'를 뜻한다(윗머리는 있다).
 // '앞머리 있음'은 이마를 덮는 뱅. 빌트인 앞머리 4종은 전부 이마가 드러나는 쪽이라
 // 뱅은 customParts.CUSTOM_HAIR.bangs 로 따로 그려서 쓴다.
 export const HAIR_STYLES = [
-  { id: "bald", label: "민머리", hair: null, rear: null },
-  { id: "sideComed", label: "옆가르마", hair: "sideComed", rear: null },
-  { id: "undercut", label: "언더컷", hair: "undercut", rear: null },
-  { id: "spiky", label: "뾰족머리", hair: "spiky", rear: null },
-  { id: "bun", label: "번머리", hair: "bun", rear: null },
-  { id: "menFringe", label: "남자 앞머리", hair: "menFringe", rear: null, custom: true },
-  { id: "menPerm", label: "남자 펌", hair: "menPerm", rear: null, custom: true },
-  { id: "menPermFringe", label: "남자 펌 · 앞머리", hair: "menPermFringe", rear: null, custom: true },
-  { id: "menPermPart", label: "남자 펌 · 5대5 가르마", hair: "menPermPart", rear: null, custom: true },
-  { id: "menBowl", label: "남자 바가지컷", hair: "menBowl", rear: null, custom: true },
-  { id: "menCrop", label: "남자 크롭컷", hair: "menCrop", rear: null, custom: true },
+  { id: "bald", label: "민머리", hair: null, rear: null, desc: "머리카락이 거의 없음. 삭발이거나 정수리가 심하게 비었을 때" },
+  { id: "sideComed", label: "옆가르마", hair: "sideComed", rear: null, desc: "이마 한쪽이 드러나고 옆으로 쓸어넘긴 짧은 머리. 볼륨이 적고 두상에 붙음" },
+  { id: "undercut", label: "언더컷", hair: "undercut", rear: null, desc: "옆은 짧고 윗머리를 위로 세워 뒤로 넘긴 머리. 포마드·올백·가일컷이 여기" },
+  { id: "spiky", label: "뾰족머리", hair: "spiky", rear: null, desc: "윗머리를 위로 뾰족뾰족 세워 끝이 삐죽삐죽 갈라진 머리. 왁스로 세게 세운 모양" },
+  { id: "bun", label: "번머리", hair: "bun", rear: null, desc: "머리를 묶은 형태 전부. 똥머리·포니테일·반묶음·상투 모두 여기. 뒤통수나 정수리에서 머리가 하나로 모이거나 뒷목이 드러나면 이것" },
+  { id: "menCover", label: "남자 덮머", hair: "menCover", rear: null, custom: true, desc: "이마가 대부분 덮이고 앞머리가 눈썹까지 내려온 머리. 옆으로 자연스럽게 흐름" },
+  { id: "menPerm", label: "남자 펌", hair: "menPerm", rear: null, custom: true, desc: "전체가 뚜렷한 곱슬. 이마는 부분적으로만 드러남" },
+  { id: "menPermPart", label: "남자 펌 · 5대5 가르마", hair: "menPermPart", rear: null, custom: true, desc: "곱슬인데 가운데로 갈라져 이마 한가운데가 드러남" },
+  { id: "menBowl", label: "남자 바가지컷", hair: "menBowl", rear: null, custom: true, desc: "앞머리를 두껍게 일자로 내리고 옆도 비슷한 길이로 자른 버섯 모양" },
+  { id: "menCrop", label: "남자 크롭컷", hair: "menCrop", rear: null, custom: true, desc: "전체가 아주 짧고 앞머리도 짧아 이마가 거의 드러남. 스포츠컷·반삭" },
   // 단발도 긴머리처럼 가르마/앞머리 두 갈래로 둔다. 가르마 쪽은 빌트인 파츠 조합이라
   // 새로 그린 게 없다(sideComed + 짧은 뒷머리).
-  { id: "bobShortParted", label: "단발(짧게) · 가르마", hair: "sideComed", rear: "neckHigh" },
-  { id: "bobShort", label: "단발(짧게) · 앞머리", hair: "bangs", rear: "neckHigh", custom: true },
-  { id: "bobLongParted", label: "단발(어깨) · 가르마", hair: "sideComed", rear: "shoulderHigh" },
-  { id: "bobLong", label: "단발(어깨) · 앞머리", hair: "bangs", rear: "shoulderHigh", custom: true },
-  { id: "longParted", label: "긴 생머리 · 가르마", hair: "sideComed", rear: "longStraight" },
-  { id: "longBangs", label: "긴 생머리 · 앞머리", hair: "bangs", rear: "longStraight", custom: true },
-  { id: "wavyParted", label: "긴 웨이브 · 가르마", hair: "sideComed", rear: "longWavy" },
-  { id: "wavyBangs", label: "긴 웨이브 · 앞머리", hair: "bangs", rear: "longWavy", custom: true },
+  { id: "bobShortParted", label: "단발(짧게) · 가르마", hair: "sideComed", rear: "neckHigh", desc: "턱선 길이 단발. 앞머리 없이 이마가 드러남" },
+  { id: "bobShort", label: "단발(짧게) · 앞머리", hair: "bangs", rear: "neckHigh", custom: true, desc: "턱선 길이 단발. 이마를 덮는 앞머리 있음" },
+  { id: "bobLongParted", label: "단발(어깨) · 가르마", hair: "sideComed", rear: "shoulderHigh", desc: "어깨 길이 단발. 앞머리 없이 이마가 드러남" },
+  { id: "bobLong", label: "단발(어깨) · 앞머리", hair: "bangs", rear: "shoulderHigh", custom: true, desc: "어깨 길이 단발. 이마를 덮는 앞머리 있음" },
+  { id: "longParted", label: "긴 생머리 · 가르마", hair: "sideComed", rear: "longStraight", desc: "어깨 아래로 내려오는 긴 직모. 앞머리 없이 이마가 드러남" },
+  { id: "longBangs", label: "긴 생머리 · 앞머리", hair: "bangs", rear: "longStraight", custom: true, desc: "어깨 아래로 내려오는 긴 직모. 이마를 덮는 앞머리 있음" },
+  { id: "wavyParted", label: "긴 웨이브 · 가르마", hair: "sideComed", rear: "longWavy", desc: "어깨 아래로 내려오는 긴 웨이브. 앞머리 없이 이마가 드러남" },
+  { id: "wavyBangs", label: "긴 웨이브 · 앞머리", hair: "bangs", rear: "longWavy", custom: true, desc: "어깨 아래로 내려오는 긴 웨이브. 이마를 덮는 앞머리 있음" },
 ];
 
 export function hairStyleById(id) {
@@ -72,9 +73,9 @@ export const BEARD = [
 // 사진 분석이 '작은 눈' 대신 '감은 눈'을 계속 골랐다.
 // 'small' 은 새 그림이 아니라 'wide' 를 각 눈 중심 기준으로 줄인 것이다(customParts.scaleEyes).
 export const EYES = [
-  { id: "wide", label: "크게 뜬" },
-  { id: "happy", label: "웃는" },
-  { id: "small", label: "작은 눈" },
+  { id: "wide", label: "크게 뜬", desc: "위아래로 크게 뜬 눈. 눈동자 위아래로 흰자가 보이고 쌍꺼풀이 또렷함" },
+  { id: "happy", label: "웃는", desc: "아래 눈꺼풀이 올라와 눈이 아래로 휘어진 모양. 웃는 눈" },
+  { id: "small", label: "작은 눈", desc: "위아래 폭이 좁은 가는 눈. 눈동자 위아래로 흰자가 거의 안 보임" },
 ];
 
 // 'small' 이 실제로 쓰는 빌트인 눈과 축소 배율.
@@ -84,11 +85,11 @@ export const SMALL_EYE = { base: "happy", scale: 0.82, inset: 0 };
 // 모양 목록은 BROW_SHAPE_ITEMS, 두께는 BROW_THICKNESS 를 쓴다.
 
 export const MOUTH = [
-  { id: "smile", label: "미소" },
-  { id: "laugh", label: "활짝" },
-  { id: "agape", label: "벌린" },
-  { id: "sad", label: "슬픔" },
-  { id: "angry", label: "화남" },
+  { id: "smile", label: "미소", desc: "입을 다물고 입꼬리만 살짝 올라간 상태" },
+  { id: "laugh", label: "활짝", desc: "이가 보이도록 크게 벌려 웃는 입" },
+  { id: "agape", label: "벌린", desc: "입을 동그랗게 벌린 상태. 말하는 중이거나 놀란 표정" },
+  { id: "sad", label: "슬픔", desc: "입꼬리가 아래로 내려간 상태" },
+  { id: "angry", label: "화남", desc: "입을 앙다물고 입꼬리가 굳은 상태" },
 ];
 
 export const CLOTHES = [
@@ -174,26 +175,39 @@ export function randomToonHead() {
 //   Avatar / AvatarBuilder / avatarImage 가 이 두 개를 쓴다.
 export { DEFAULT_AVATAR as DEFAULT_TOONHEAD };
 
+// 목록에서 뺀 스타일 → 대신 쓸 스타일.
+// 이게 없으면 그 스타일을 골라뒀던 사용자의 저장값이 통째로 초기화된다
+// (예전 판별식이 hairStyle 이 목록에 있는지로 toonHead 설정인지를 가렸기 때문에,
+//  스타일 하나를 빼는 순간 피부색·옷·눈까지 전부 기본값으로 돌아갔다).
+const RETIRED_HAIR = {
+  menFringe: "menCover", // 덮머 계열이 겹쳐서 뺐다
+  menPermFringe: "menPerm",
+};
+
 /** 저장된 config 를 항상 완전한 형태로. 예전(react-nice-avatar) 설정이 와도 기본값으로 되돌린다. */
 export function normalizeAvatar(config) {
+  // toonHead 설정인지는 얼굴형으로 가린다 — 헤어 목록은 계속 바뀌므로 판별 기준이 될 수 없다.
   const isToonHead =
     config &&
     typeof config.face === "string" &&
-    typeof config.hairStyle === "string" &&
-    HAIR_STYLES.some((style) => style.id === config.hairStyle);
+    Boolean(FACE_SHAPES[config.face]) &&
+    typeof config.hairStyle === "string";
   if (!isToonHead) return { ...DEFAULT_AVATAR };
-  return { ...DEFAULT_AVATAR, ...config };
+  const out = { ...DEFAULT_AVATAR, ...config };
+  if (!HAIR_STYLES.some((style) => style.id === out.hairStyle)) {
+    out.hairStyle = RETIRED_HAIR[out.hairStyle] || DEFAULT_AVATAR.hairStyle;
+  }
+  return out;
 }
 
 // 개인화 이미지 생성 API가 사용하는 설명 규격. 화면용 아바타와 같은 설정을
 // 전달해 A/B 이미지에서도 동일 인물의 특징이 유지되도록 한다.
-export function avatarGenerationSpec(config, sex = "") {
+export function avatarGenerationSpec(config) {
   const c = normalizeAvatar(config);
   const hair = hairStyleById(c.hairStyle);
   const labelOf = (items, id) => items.find((item) => item.id === id)?.label || id;
   return {
-    characterType: sex === "1" ? "male illustrated avatar" : sex === "2" ? "female illustrated avatar" : "gender-neutral illustrated avatar",
-    gender: sex === "1" ? "male" : sex === "2" ? "female" : "unspecified",
+    characterType: "gender-neutral illustrated avatar",
     faceShape: FACE_SHAPES[c.face]?.label || c.face,
     hairStyle: hair.label,
     hairColor: `#${c.hairColor}`,

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, ChevronRight, LockKeyhole, Sparkles } from "lucide-react";
 import DiaryToday from "../components/DiaryToday.jsx";
+import PetPeek from "../components/PetPeek.jsx";
 import DailySuggest from "../components/DailySuggest.jsx";
 import ApiStatus from "../components/ApiStatus.jsx";
 import { loadUniverse } from "../data/myUniverse.js";
@@ -23,16 +24,21 @@ export default function HomeHub() {
 
   return (
     <div className="pb-4 lg:pb-12">
-      <header className="pb-5 lg:pb-7">
-        <div className="flex items-center gap-2 text-[11px] font-bold tracking-[.12em] text-violet-300"><BookOpen size={14} /> DIARY</div>
-        <h1 className="mt-2 text-[26px] font-black tracking-[-.04em] text-ink lg:text-[38px]">오늘의 기록</h1>
-        <p className="mt-1.5 max-w-[650px] text-[11px] leading-5 text-sub lg:text-[13px]">오늘 있었던 일과 마음을 한곳에 남겨보세요.</p>
+      {/* 돌보미는 설정 안에 있어 들어가 보지 않으면 상태를 모른다.
+          매일 오는 이 화면 맨 위에 세워, 기분이 눈에 띄게 한다. */}
+      <header className="flex items-start justify-between gap-3 pb-5 lg:pb-7">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[11px] font-bold tracking-[.12em] text-violet-300"><BookOpen size={14} /> DIARY</div>
+          <h1 className="mt-2 text-[26px] font-black tracking-[-.04em] text-ink lg:text-[38px]">오늘의 기록</h1>
+          <p className="mt-1.5 max-w-[650px] text-[11px] leading-5 text-sub lg:text-[13px]">오늘 있었던 일과 마음을 한곳에 남겨보세요.</p>
+        </div>
+        <PetPeek />
       </header>
 
       <div className="grid items-start gap-8 border-t border-white/[.08] pt-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,.65fr)] lg:gap-10 lg:pt-8">
         <main data-tour="diary" className="min-w-0 lg:pr-2"><DiaryToday /></main>
 
-        <aside className="space-y-4 lg:sticky lg:top-[100px]">
+        <aside data-tour="recent" className="space-y-4 lg:sticky lg:top-[100px]">
           <section className="rounded-[20px] border border-white/[.08] bg-white/[.025] p-4">
             <div className="flex items-center gap-2 text-[12px] font-bold text-ink"><LockKeyhole size={15} className="text-violet-300" /> 기록은 이렇게 활용돼요</div>
             <ul className="mt-3 space-y-2.5 text-[10px] leading-4 text-sub">

@@ -6,6 +6,7 @@ import { mapSimulateToPair } from "./simulateAdapter.js";
 import { avatarToPngBlob } from "./avatarImage.js";
 import { avatarGenerationSpec } from "./avatarOptions.js";
 import { initDemoFromUrl, noteSimulationRun, recordScenario, loadUniverse } from "./myUniverse.js";
+import { deriveDiaryInsights } from "./diarySignals.js";
 import { toPlanetKey } from "./choices.js";
 import storage from "./safeStorage.js";
 
@@ -64,26 +65,53 @@ function blankResult() {
   return { ...getPredictionPair({ profile: DEFAULT_PROFILE, choiceA: "이직", choiceB: "유지" }), dataMode: "demo" };
 }
 
+/**
+ * 시뮬레이션 요청에 실을 일기 신호를 모은다.
+ *
+ * 두 갈래를 **함께** 싣는다.
+ *   chat    대화형 일기(ChatDiary)가 LLM 으로 뽑아 둔 insights. 가장 정확하지만
+ *           앱에서 직접 대화하며 쓴 일기에만 있다.
+ *   records 기록 자체에서 로컬로 파생한 신호(diarySignals.deriveDiaryInsights).
+ *
+ * 예전엔 chat 만 봤다. 그래서 '예시 1년치로 시작'으로 237개를 심어도 그 기록에는
+ * insights 가 없어(personas/seed.js 의 addCheckin 이 안 채운다) 여기서 null 이 나갔고,
+ * 시뮬레이션은 일기가 0개인 것과 똑같은 입력으로 돌았다 — 결과가 빈약했던 이유다.
+ * 페르소나 체험도 같은 경로라 증상이 같았다.
+ */
 function collectDiaryInsights(limit = 7) {
-  const checkins = loadUniverse().checkins || [];
+  const universe = loadUniverse();
+  const checkins = universe.checkins || [];
   const recent = checkins.filter((item) => item?.insights).slice(-limit);
-  if (!recent.length) return null;
 
-  const unique = (items, max = 8) => [...new Set(items.filter(Boolean))].slice(0, max);
-  const pick = (key) => unique(recent.flatMap((item) => item.insights?.[key] || []));
-  const preferenceSignals = recent
-    .flatMap((item) => item.insights?.preference_signals || [])
-    .filter((item) => item?.label && item?.evidence)
-    .slice(-8);
+  let chat = null;
+  if (recent.length) {
+    const unique = (items, max = 8) => [...new Set(items.filter(Boolean))].slice(0, max);
+    const pick = (key) => unique(recent.flatMap((item) => item.insights?.[key] || []));
+    chat = {
+      decision_topics: unique(recent.map((item) => item.insights?.decision_topic)),
+      goals: pick("goals"),
+      priorities: pick("priorities"),
+      constraints: pick("constraints"),
+      concerns: pick("concerns"),
+      preference_signals: recent
+        .flatMap((item) => item.insights?.preference_signals || [])
+        .filter((item) => item?.label && item?.evidence)
+        .slice(-8),
+    };
+  }
 
+  // 파생은 LLM 없이 로컬 계산이라 동기로 부른다. diarySignals 는 이미 12개 모듈이
+  // 정적으로 쓰고 있어 동적 import 로 미뤄도 청크가 안 갈린다(vite 가 경고로 알려준다).
+  let records = null;
+  try {
+    records = deriveDiaryInsights({}, universe);
+  } catch { /* 파생 실패는 시뮬레이션을 막지 않는다 */ }
+
+  if (!chat && !records) return null;
   return {
-    source: "recent_chat_diaries",
-    decision_topics: unique(recent.map((item) => item.insights?.decision_topic)),
-    goals: pick("goals"),
-    priorities: pick("priorities"),
-    constraints: pick("constraints"),
-    concerns: pick("concerns"),
-    preference_signals: preferenceSignals,
+    source: chat && records ? "chat_diaries+records" : chat ? "recent_chat_diaries" : "diary_records",
+    ...(chat || {}),
+    ...(records ? { record_signals: records } : {}),
   };
 }
 
@@ -175,11 +203,6 @@ export function ResultProvider({ children }) {
       ...(opts.choiceBDomains ?? scenarioDomains.b ?? []),
     ];
     const scenarioDomain = toPlanetKey(domainsForScenario) || loadUniverse().planet || "career";
-    const diaryInsights = collectDiaryInsights();
-    const withDiaryInsights = (context) => ({
-      ...(context || {}),
-      ...(diaryInsights ? { diary_insights: diaryInsights } : {}),
-    });
     noteSimulationRun();
     // 그 날 그 영역(현재 행성)에서 시나리오를 만들었음을 기록 → 지구본에 ◆ 로 표시.
     try {
@@ -197,6 +220,11 @@ export function ResultProvider({ children }) {
                    futureYears: opts.futureYears ?? futureYears };
     setResult(pair);
     setHasSimulationResult(true);
+    const diaryInsights = collectDiaryInsights();
+    const withDiaryInsights = (context) => ({
+      ...(context || {}),
+      ...(diaryInsights ? { diary_insights: diaryInsights } : {}),
+    });
     const requestArgs = {
       profile,
       futureYears: opts.futureYears ?? futureYears,

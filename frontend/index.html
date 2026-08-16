@@ -10,6 +10,76 @@
       crossorigin
       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
     />
+    <script>
+      /*
+       * 부팅 감시자 — React 가 뜨기 "전에" 죽는 경우를 잡는다.
+       *
+       * 모듈 최상위에서 throw 하거나 청크 문법이 안 먹히면 main.jsx 자체가
+       * 실행되지 않는다. 그러면 React 안의 ErrorBoundary 도 같이 죽어서
+       * 아무것도 안 남고 화면이 하얗게 뜬다 — 아이폰에서는 콘솔도 못 본다.
+       * 그래서 React 바깥, 인라인 스크립트로 잡아 화면에 직접 찍는다.
+       *
+       * 전시장에서 관람객이 이 화면을 볼 일은 없어야 한다. 보인다면 그건
+       * 이미 흰 화면이었을 상황이고, 최소한 원인은 알 수 있게 된다.
+       */
+      (function () {
+        var shown = false;
+        var log = [];
+
+        function paint(title, detail) {
+          if (shown) return;
+          shown = true;
+          var root = document.getElementById("root");
+          if (!root) return;
+          root.innerHTML =
+            '<div style="margin:0;padding:22px 18px;font:13px/1.65 -apple-system,sans-serif;' +
+            'background:#0B1423;color:#E8EDF6;min-height:100vh;box-sizing:border-box">' +
+            '<p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#FF8A8A">' +
+            title +
+            "</p>" +
+            '<p style="margin:0 0 14px;color:#93A0B5;font-size:12px">' +
+            "이 화면이 보이면 캡처해서 개발자에게 보내주세요." +
+            "</p>" +
+            '<pre style="white-space:pre-wrap;word-break:break-all;background:#101B2E;' +
+            'border:1px solid #22304C;border-radius:10px;padding:12px;margin:0;' +
+            'font-size:11.5px;color:#C3CCDC">' +
+            String(detail).replace(/[<&]/g, function (c) {
+              return c === "<" ? "&lt;" : "&amp;";
+            }) +
+            "</pre>" +
+            '<p style="margin:14px 0 0;color:#7E8BA3;font-size:11.5px">' +
+            "frame=" +
+            (window.top !== window.self) +
+            " · ua=" +
+            navigator.userAgent +
+            "</p>" +
+            "</div>";
+        }
+
+        window.addEventListener("error", function (e) {
+          var where = e.filename ? e.filename + ":" + e.lineno : "(위치 불명)";
+          log.push((e.message || "스크립트 오류") + "\n  " + where);
+          // 리소스 로드 실패(e.error 없음)는 치명적이지 않을 수 있으니 감시만 한다.
+          if (e.error) paint("화면을 띄우지 못했습니다", log.join("\n\n"));
+        });
+
+        window.addEventListener("unhandledrejection", function (e) {
+          log.push("처리되지 않은 Promise 거부: " + (e.reason && e.reason.message ? e.reason.message : e.reason));
+        });
+
+        // 아무 에러도 안 났는데 그냥 비어 있는 경우(메모리 부족으로 프레임이
+        // 통째로 정지하는 등)도 있다. 8초 뒤에도 비어 있으면 그것도 알린다.
+        setTimeout(function () {
+          var root = document.getElementById("root");
+          if (root && root.childElementCount === 0) {
+            paint(
+              "화면이 비어 있습니다",
+              log.length ? log.join("\n\n") : "오류는 보고되지 않았지만 아무것도 그려지지 않았습니다.",
+            );
+          }
+        }, 8000);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -182,7 +182,8 @@ export default function Result() {
       {step === 1 && <section className="mt-5 animate-fade lg:grid lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)] lg:items-start lg:gap-6">
         <div className="min-w-0">
       <DetailedInsights a={a} b={b} futureYears={result.futureYears ?? 3} />
-      <div className="no-scrollbar my-2.5 flex gap-1.5 overflow-x-auto pb-1">
+      {/* data-tour — 사용 안내가 '결과는 각도를 바꿔가며 봐요' 단계에서 짚는 자리 */}
+      <div data-tour="result-tabs" className="no-scrollbar my-2.5 flex gap-1.5 overflow-x-auto pb-1">
         {tabs.map((t) => {
           const on = t.key === tab;
           return (

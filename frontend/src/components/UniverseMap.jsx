@@ -257,7 +257,11 @@ function Planet({ planet, index, selected, onSelect, skin }) {
       <mesh><ringGeometry args={[size*1.22,size*1.38,128]}/><meshBasicMaterial color="#C9BCA8" transparent opacity={.30} side={THREE.DoubleSide} depthWrite={false}/></mesh>
       <mesh><ringGeometry args={[size*1.43,size*1.62,128]}/><meshBasicMaterial color="#9A8E7E" transparent opacity={.19} side={THREE.DoubleSide} depthWrite={false}/></mesh>
     </group>}
-    <Html center position={[0,-size-0.5,0]} distanceFactor={10} style={{pointerEvents:"none"}}><div className={`whitespace-nowrap text-center drop-shadow-[0_2px_8px_#000] ${selected?"text-white":"text-white/80"}`}><b className="text-[13px]">{planet.label}</b></div></Html>
+    {/* 행성 이름표.
+        zIndexRange 를 반드시 낮춰야 한다 — drei 의 Html 은 기본이 1,600만대라
+        행성을 눌러 뜨는 패널(z-40)·시트 위로 글씨가 뚫고 올라온다(폰에서 특히
+        패널이 화면을 덮어 바로 겹친다). 캔버스 위에는 뜨되 UI 밑에 있게 둔다. */}
+    <Html center position={[0,-size-0.5,0]} distanceFactor={10} zIndexRange={[10,0]} style={{pointerEvents:"none"}}><div className={`whitespace-nowrap text-center drop-shadow-[0_2px_8px_#000] ${selected?"text-white":"text-white/80"}`}><b className="text-[13px]">{planet.label}</b></div></Html>
   </group>;
 }
 

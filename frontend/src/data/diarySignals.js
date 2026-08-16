@@ -430,6 +430,125 @@ export function jobChangeRumination({ windowDays = 14, threshold = 3 } = {}, s =
   return { ...sig, prompt: sig.jobChangeDays >= threshold, count: sig.jobChangeDays, windowDays };
 }
 
+// ─────────────────────────────────────────────────────────────
+// 기록 → 시뮬레이션 개인화 재료.
+//
+// 왜 필요한가: ResultContext.collectDiaryInsights 는 체크인의 `insights` 필드만
+//   모은다. 그런데 그 필드를 채우는 건 대화형 일기(ChatDiary)와 DiaryToday 뿐이다.
+//   심어준 1년치(personas/seed.js → addCheckin)에는 `insights` 가 없어서
+//   **236개를 심어도 시뮬레이션 요청에는 한 글자도 실리지 않았다.**
+//   "예시 1년치로 시작"을 고른 사람이 곧바로 시뮬레이션을 돌리면 일기 신호가 0인
+//   상태로 서사가 만들어진다 — 빈 상태로 시작한 사람과 결과가 같았다.
+//
+// 그래서 기록 자체(기분·에너지·역량·감정 키워드·영역·본문)에서 같은 재료를
+//   직접 만든다. 이 파일의 다른 함수들과 같은 규칙이다 — 로컬, LLM 없음, 키워드 기반.
+//
+// 정직선: 이 값은 예측 숫자(생존분석·인과효과)를 건드리지 않는다. 백엔드에서
+//   choice_*_context 로 실려 **서사 프롬프트에만** 들어간다(main.py 의 note 조립).
+//   그래서 "측정"이 아니라 "기록에서 드러난 것"으로만 쓴다.
+//
+// 예시 데이터 표식을 payload 에 싣지 않는 이유: 화면은 이미 '예시 데이터' 배지로
+//   출처를 밝히고 있다. 프롬프트에까지 넣으면 서사가 "예시 기록에 따르면…" 으로
+//   빠져 정작 보여주려던 개인화가 죽는다. 정직성은 배지가 지고, 여기서는 안 싣는다.
+// ─────────────────────────────────────────────────────────────
+
+const TREND_LABEL = (t) =>
+  t == null ? null : t <= -0.25 ? "내려가는 중" : t >= 0.25 ? "올라가는 중" : "비슷하게 유지";
+
+/**
+ * 기록에서 시뮬레이션 서사용 신호 묶음을 만든다.
+ *
+ * @param {{windowDays?:number, excerpts?:number, minRecords?:number}} opts
+ *   windowDays 최근 신호를 셀 구간(기본 56일 — 28일은 기록이 뜸한 구간에서 통째로 비었다)
+ *   excerpts   서사에 붙일 최근 기록 발췌 수
+ *   minRecords 이보다 적으면 null(신호라고 부를 만한 양이 아니다)
+ * @returns {object|null}
+ */
+export function deriveDiaryInsights({ windowDays = 56, excerpts = 6, minRecords = 5 } = {}, s = loadUniverse()) {
+  const stars = (s.checkins || [])
+    .filter((c) => hasRecord(c))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (stars.length < minRecords) return null;
+
+  const sig = computeDiarySignals({ windowDays }, s);
+  const whole = analyzeStars(stars); // 1년 전체 — 기분 평균·추세·감정 상위
+
+  // 최근 신호. days=0 인 건 버린다 — 안 나타난 걸 목록에 남기면 프롬프트만 길어진다.
+  const hits = (sig.signals || []).filter((x) => x.days > 0).slice(0, 4);
+
+  // 신호별 근거 문장 — 라벨만 주면 서사가 근거 없이 단정한다. 실제 기록을 함께 넘긴다.
+  const today = todayKey();
+  const inWindow = stars.filter((c) => {
+    const d = daysBetween(c.date, today);
+    return d >= 0 && d <= windowDays;
+  });
+  const snip = (c, max = 70) => {
+    const first = Array.isArray(c.answers) ? c.answers[0]?.a : null;
+    const t = (c.text || c.note || first || "").trim();
+    return t.length > max ? t.slice(0, max) + "…" : t;
+  };
+  // 신호마다 **다른** 기록을 근거로 집는다. 최신순으로 그냥 고르면 1년 회고처럼 긴 글
+  // 하나가 모든 키워드에 걸려 네 신호의 근거가 전부 같은 문장이 된다(실제로 그랬다).
+  const usedDates = new Set();
+  const preference_signals = hits
+    .map((h) => {
+      const words = LEX[h.key]?.words || [];
+      const matched = [...inWindow].reverse().filter((c) => words.some((w) => textOf(c).includes(w)));
+      const src = matched.find((c) => !usedDates.has(c.date)) || matched[0];
+      if (!src) return null;
+      usedDates.add(src.date);
+      return { label: h.label, evidence: `${src.date} — ${snip(src)}` };
+    })
+    .filter(Boolean);
+
+  // 영역 분포는 1년 전체로 본다. 최근 창만 보면 그 달의 사건 하나가 전부를 덮는다.
+  const domainCount = {};
+  for (const c of stars) {
+    if (!Array.isArray(c.domains)) continue;
+    for (const k of c.domains) domainCount[k] = (domainCount[k] || 0) + 1;
+  }
+  const dominant_domains = Object.entries(domainCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([k, n]) => `${DOMAIN_LABEL[k] || k}(${n}회)`);
+
+  const skillCount = {};
+  for (const c of stars) if (c.skill) skillCount[c.skill] = (skillCount[c.skill] || 0) + 1;
+  const skills_used = Object.entries(skillCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([k, n]) => `${k}(${n}회)`);
+
+  const recent_excerpts = stars
+    .slice(-excerpts)
+    .map((c) => `${c.date} — ${snip(c, 90)}`)
+    .filter((line) => line.split("— ")[1]);
+
+  return {
+    source: "diary_records_local", // 로컬 파생(키워드 기반). LLM 추출본(insights)과 구분한다.
+    method: "keyword+checkin-aggregate",
+    record_span: {
+      from: stars[0].date,
+      to: stars[stars.length - 1].date,
+      n_records: stars.length,
+      n_recent: inWindow.length,
+      window_days: windowDays,
+    },
+    mood: {
+      avg_1_to_5: whole.moodAvg ?? null,
+      trend: TREND_LABEL(whole.trend),
+      recent_trend: TREND_LABEL(sig.moodTrend),
+    },
+    concerns: hits.map((h) => `${h.label} — 최근 ${windowDays}일 중 ${h.days}일`),
+    recurring_emotions: whole.topEmotions || [],
+    dominant_domains,
+    skills_used,
+    revealed_axis: sig.revealed?.axis || null, // 기록에서 드러난 가치 축(성장/안정/관계)
+    preference_signals,
+    recent_excerpts,
+  };
+}
+
 // 시뮬레이션 자유서술 입력과 동일한 9영역 분류 정본을 사용한다.
 export const DOMAIN_COMPARE = {
   career: { a: "현재 진로 유지", b: "진로 변경", action: "진로의 두 방향" },

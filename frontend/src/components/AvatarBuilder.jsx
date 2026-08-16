@@ -13,6 +13,7 @@ import {
   HAIR_STYLES,
   MOUTH,
   SKIN_COLORS,
+  TOONHEAD_CREDIT,
   normalizeAvatar,
   randomToonHead,
 } from "../data/avatarOptions.js";
@@ -24,21 +25,14 @@ import AvatarFromPhoto from "./AvatarFromPhoto.jsx";
 // '옆가르마'와 '언더컷' 같은 것들이 구분되지 않는다.
 
 const NONE = (label = "없음") => ({ id: null, label });
-// 빌트인 눈에는 속눈썹이 늘 붙어 있어 남자 아바타가 여성적으로 보인다. 끌 수 있게 한다.
-const LASHES = [
-  { id: true, label: "있음" },
-  { id: false, label: "없음" },
+// 성별은 지금 속눈썹 하나만 좌우한다. 그래서 따로 저장하지 않고 lashes 를 그대로 쓴다 —
+// 값이 하나뿐이라 '성별은 남자인데 속눈썹은 켜짐' 같은 어긋남이 생길 수 없다.
+// 빌트인 눈에는 속눈썹이 늘 붙어 있어서, 끄지 않으면 남자 아바타가 여성적으로 보인다.
+const GENDER = [
+  { id: true, label: "여자" },
+  { id: false, label: "남자" },
 ];
 const FACE_ITEMS = Object.entries(FACE_SHAPES).map(([id, v]) => ({ id, label: v.label }));
-// 사진에서 뽑은 색은 프리셋에 없을 수 있다. 목록에 없으면 맨 앞에 끼워 넣는다 —
-// 안 그러면 스테퍼가 그 색을 못 찾아 첫 프리셋으로 조용히 되돌려버린다.
-const colorItems = (hexes, current) => {
-  const base = hexes.map((id, i) => ({ id, label: `${i + 1}번` }));
-  if (current && !hexes.includes(current)) {
-    return [{ id: current, label: "사진에서" }, ...base];
-  }
-  return base;
-};
 const CATEGORIES = [
   ["base", "기본"],
   ["hair", "헤어"],
@@ -62,9 +56,9 @@ function Arrow({ dir, onClick, label }) {
 /**
  * 한 줄짜리 선택기. 끝에서 반대편으로 순환한다.
  * field 를 주면 그 값만 바꾼 아바타를 가운데에 미리 그린다.
- * swatch 를 주면 아바타 대신 색 원을 보여준다(색 항목용).
+ * (색은 화살표로 넘기기 부적합해서 ColorRow 가 따로 맡는다)
  */
-function Stepper({ label, items, value, onPick, field, config, swatch = false }) {
+function Stepper({ label, items, value, onPick, field, config }) {
   const found = items.findIndex((i) => i.id === value);
   const at = found < 0 ? 0 : found;
   const cur = items[at];
@@ -76,16 +70,9 @@ function Stepper({ label, items, value, onPick, field, config, swatch = false })
       <div className="flex items-center gap-2 rounded-2xl border border-white/[.07] bg-[#0B1423] px-2.5 py-2">
         <Arrow dir={-1} onClick={() => go(-1)} label={label} />
         <div className="flex min-w-0 flex-1 items-center justify-center gap-2.5">
-          {swatch ? (
-            <span
-              className="h-9 w-9 shrink-0 rounded-full border border-black/20"
-              style={{ background: "#" + cur.id }}
-            />
-          ) : (
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/[.035]">
-              <Avatar config={{ ...config, [field]: cur.id }} size={54} ring={false} />
-            </span>
-          )}
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/[.035]">
+            <Avatar config={{ ...config, [field]: cur.id }} size={54} ring={false} />
+          </span>
           <div className="min-w-0">
             <div
               className={`truncate text-[12px] font-medium ${
@@ -100,6 +87,57 @@ function Stepper({ label, items, value, onPick, field, config, swatch = false })
           </div>
         </div>
         <Arrow dir={1} onClick={() => go(1)} label={label} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 색 선택. 화살표로 한 칸씩 넘기면 원하는 색까지 몇 번을 눌러야 하고,
+ * 프리셋에 없는 색(카메라가 뽑아온 실제 머리색 등)은 아예 고를 수가 없었다.
+ * 그래서 프리셋을 전부 펼쳐 보여주고, 옆에 색상표를 열 수 있게 둔다.
+ */
+function ColorRow({ label, colors, value, onPick }) {
+  const isCustom = value && !colors.includes(value);
+  return (
+    <div className="mt-2.5">
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-sub">{label}</span>
+        <label className="tap flex cursor-pointer items-center gap-1.5 text-[10px] font-semibold text-violet-300">
+          색상표
+          <input
+            type="color"
+            value={"#" + value}
+            onChange={(e) => onPick(e.target.value.slice(1).toLowerCase())}
+            aria-label={`${label} 직접 고르기`}
+            className="h-6 w-6 cursor-pointer rounded-md border border-white/15 bg-transparent p-0"
+          />
+        </label>
+      </div>
+      <div className="flex flex-wrap gap-2 rounded-2xl border border-white/[.07] bg-[#0B1423] px-2.5 py-2.5">
+        {colors.map((hex) => (
+          <button
+            key={hex}
+            type="button"
+            onClick={() => onPick(hex)}
+            aria-label={`#${hex}`}
+            aria-pressed={value === hex}
+            className={`tap h-8 w-8 rounded-full transition ${
+              value === hex
+                ? "ring-2 ring-violet-300 ring-offset-2 ring-offset-[#0B1423]"
+                : "border border-black/25"
+            }`}
+            style={{ background: "#" + hex }}
+          />
+        ))}
+        {/* 프리셋에 없는 색(직접 고름·사진에서 뽑음)도 자리를 만들어 보여준다 */}
+        {isCustom && (
+          <span
+            title="직접 고른 색"
+            className="tap h-8 w-8 rounded-full ring-2 ring-violet-300 ring-offset-2 ring-offset-[#0B1423]"
+            style={{ background: "#" + value }}
+          />
+        )}
       </div>
     </div>
   );
@@ -138,7 +176,7 @@ export default function AvatarBuilder({ config, onChange }) {
           </button>
           <button
             type="button"
-            onClick={() => setCamera(true)}
+            onClick={() => setCamera((v) => !v)}
             className="tap mt-1.5 rounded-full border border-white/10 bg-white/[.04] px-3 py-1.5 text-[10px] font-semibold text-sub"
           >
             📷 카메라로 맞추기
@@ -164,6 +202,14 @@ export default function AvatarBuilder({ config, onChange }) {
           {category === "base" && (
             <>
               <Stepper
+                label="성별"
+                items={GENDER}
+                value={avatar.lashes !== false}
+                field="lashes"
+                config={bare}
+                onPick={(v) => set({ lashes: v })}
+              />
+              <Stepper
                 label="얼굴형"
                 items={FACE_ITEMS}
                 value={avatar.face}
@@ -171,12 +217,11 @@ export default function AvatarBuilder({ config, onChange }) {
                 config={bare}
                 onPick={(v) => set({ face: v })}
               />
-              <Stepper
+              <ColorRow
                 label="피부색"
-                items={colorItems(SKIN_COLORS, avatar.skinColor)}
+                colors={SKIN_COLORS}
                 value={avatar.skinColor}
                 onPick={(v) => set({ skinColor: v })}
-                swatch
               />
             </>
           )}
@@ -191,12 +236,11 @@ export default function AvatarBuilder({ config, onChange }) {
                 config={bare}
                 onPick={(v) => set({ hairStyle: v })}
               />
-              <Stepper
+              <ColorRow
                 label="헤어 컬러"
-                items={colorItems(HAIR_COLORS, avatar.hairColor)}
+                colors={HAIR_COLORS}
                 value={avatar.hairColor}
                 onPick={(v) => set({ hairColor: v })}
-                swatch
               />
             </>
           )}
@@ -210,14 +254,6 @@ export default function AvatarBuilder({ config, onChange }) {
                 field="eyes"
                 config={bare}
                 onPick={(v) => set({ eyes: v })}
-              />
-              <Stepper
-                label="속눈썹"
-                items={LASHES}
-                value={avatar.lashes !== false}
-                field="lashes"
-                config={bare}
-                onPick={(v) => set({ lashes: v })}
               />
               <Stepper
                 label="눈썹 모양"
@@ -272,12 +308,11 @@ export default function AvatarBuilder({ config, onChange }) {
                 config={avatar}
                 onPick={(v) => set({ clothes: v })}
               />
-              <Stepper
+              <ColorRow
                 label="의상 컬러"
-                items={colorItems(CLOTHES_COLORS, avatar.clothesColor)}
+                colors={CLOTHES_COLORS}
                 value={avatar.clothesColor}
                 onPick={(v) => set({ clothesColor: v })}
-                swatch
               />
             </>
           )}
@@ -306,9 +341,20 @@ export default function AvatarBuilder({ config, onChange }) {
             />
           </div>
         </div>,
-        document.body,
+        document.body
       )}
 
+      {/* CC BY 4.0 — 저작자·라이선스·변경 사실 세 가지 모두 의무. 지우지 말 것. */}
+      <p className="mt-4 text-center text-[8px] leading-relaxed text-mut">
+        <a href={TOONHEAD_CREDIT.creatorUrl} target="_blank" rel="noreferrer" className="underline">
+          {TOONHEAD_CREDIT.title} by {TOONHEAD_CREDIT.creator}
+        </a>
+        {" · "}
+        <a href={TOONHEAD_CREDIT.licenseUrl} target="_blank" rel="noreferrer" className="underline">
+          {TOONHEAD_CREDIT.license}
+        </a>
+        {" · 원저작물에서 일부 파츠를 추가·변경했습니다"}
+      </p>
     </div>
   );
 }

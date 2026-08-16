@@ -473,6 +473,10 @@ async def visualize(
     avatar_png = await avatar.read()
     if len(avatar_png) > 4 * 1024 * 1024:
         raise HTTPException(413, "Avatar image is too large")
+    # 폭주 가드 — 이미지는 1회 호출에 A/B 두 장이 나가고 단가도 서사보다 높다.
+    # 넘으면 결과 화면은 그대로 두고 이미지만 뺀다(usage_guard 참조).
+    if not usage_guard.take("image"):
+        raise HTTPException(503, usage_guard.IMAGE_BUSY_MESSAGE)
     try:
         try:
             scene_a = json.loads(visual_a) if visual_a else {}
