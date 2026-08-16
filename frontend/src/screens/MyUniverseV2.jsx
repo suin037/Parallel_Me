@@ -15,6 +15,7 @@ import { useResult } from "../data/ResultContext.jsx";
 import { clearSavedReports, REPORT_UID, loadSpeech } from "../data/dispositionApi.js";
 import { planetSkin } from "../data/petShop.js";
 import { PLANET_TEXTURES } from "../data/planetSurface.js";
+import { josa } from "../lib/josa.js";
 
 const DESCRIPTIONS = {
   career: "나의 진로와 커리어에 대한 고민, 선택, 방향성을 기록해요.",
@@ -713,8 +714,8 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
   const stable = trend == null || Math.abs(trend) < .25;
   const status = average == null
     ? `아직 ${planet.label}의 상태를 알아가는 중이에요.`
-    : average >= 4 ? `요즘 ${planet.label}은 전반적으로 좋은 흐름이에요.`
-      : average >= 3 ? `요즘 ${planet.label}은 전반적으로 안정적이에요.`
+    : average >= 4 ? `요즘 ${josa(planet.label, "은", "는")} 전반적으로 좋은 흐름이에요.`
+      : average >= 3 ? `요즘 ${josa(planet.label, "은", "는")} 전반적으로 안정적이에요.`
         : `요즘 ${planet.label}에 조금 더 돌봄이 필요해 보여요.`;
   const flow = analysis?.ok
     ? `최근 기록에는 ${stable ? "약간의 흔들림이 있지만, 전체 흐름은 비교적 안정적입니다." : trend > 0 ? "회복되는 흐름이 나타나고 있어요." : "조금 무거워지는 흐름이 보여요."}`
@@ -756,7 +757,7 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
 
       <section className="relative mt-6 overflow-hidden rounded-[20px] border p-5" style={{borderColor:`${accent}70`,background:`linear-gradient(135deg,${accent}1F,rgba(11,17,31,.72))`,boxShadow:`0 0 32px ${accent}12`}}>
         <span className="pointer-events-none absolute -left-10 -top-16 h-36 w-36 rounded-full blur-2xl" style={{background:`${accent}25`}}/>
-        <div className="relative"><h3 className="text-[14px] font-bold">{planet.label}을 높이면 어떤 미래가 펼쳐질까요?</h3>
+        <div className="relative"><h3 className="text-[14px] font-bold">{josa(planet.label, "을", "를")} 높이면 어떤 미래가 펼쳐질까요?</h3>
           <button onClick={onSimulate} className="tap mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[13px] font-bold text-white shadow-lg" style={{background:`linear-gradient(100deg,${accent},#E84E68)`}}>{planet.label} 미래 보기 <ChevronRight size={16}/></button>
           <p className="mt-2 text-center text-[9px] text-mut">이 영역을 중심으로 미래 시뮬레이션을 시작합니다.</p>
         </div>
