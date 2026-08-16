@@ -44,6 +44,29 @@ export function getPersona(id) {
   return PERSONAS.find((p) => p.id === id) || null;
 }
 
+/**
+ * 그 인물이 지금 고민 중인 두 갈래 — 시뮬레이션 입력 화면의 추천용.
+ *
+ * 페르소나마다 choices 를 들고 있는데 화면이 한 번도 읽지 않아서, 인물로 들어와도
+ * 기본값("이직" vs "유지")부터 다시 타이핑해야 했다. 그 사람의 1년 기록은 이 두
+ * 갈림길로 수렴하도록 쓰였으므로, 기록과 비교 대상이 같아야 결과가 말이 된다.
+ *
+ * conditionHints 는 '조건 더 알려주기' 칸의 추천값이다(키는 scenarioIntake 의 질문 key).
+ */
+export function personaCompare(id) {
+  const persona = getPersona(id);
+  const choices = persona?.profile?.choices;
+  if (!choices?.a || !choices?.b) return null;
+  return {
+    id: persona.id,
+    name: persona.profile.name,
+    tagline: persona.profile.tagline,
+    a: choices.a,
+    b: choices.b,
+    hints: persona.profile.conditionHints || null,
+  };
+}
+
 /** 카드 한 장에 필요한 만큼만 — 1년치를 안 읽는다. */
 export function personaCards() {
   return PERSONAS.map((p) => ({

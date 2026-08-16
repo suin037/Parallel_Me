@@ -14,6 +14,11 @@ export const profile = {
   value_ranking: ["money", "status", "growth", "stability", "freedom", "meaning", "family", "friends"],
   tagline: "3번째 직장 1년차 · 조건 보고 옮길지 남을지",
   choices: { a: "더 좋은 조건으로 이직한다", b: "지금 회사에 남는다" },
+  // '조건 더 알려주기' 추천값(키 = scenarioIntake.DOMAIN_QUESTIONS 의 질문 key).
+  conditionHints: {
+    a: { time_horizon: "1개월 안", income_change: "+18% (약 60만원 증가)" },
+    b: { time_horizon: "1년은 더", income_change: "연 4% 인상" },
+  },
   // 카드 얼굴. 값은 avatarOptions.js 의 id 를 그대로 쓴다(없는 id 는 조용히 무시된다).
   avatarConfig: {
     face: "pointed", hairStyle: "undercut", hairColor: "0e0e0e", skinColor: "edb98a",

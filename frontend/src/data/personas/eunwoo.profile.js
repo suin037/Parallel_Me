@@ -14,6 +14,12 @@ export const profile = {
   value_ranking: ["freedom", "stability", "meaning", "friends", "family", "growth", "money", "status"],
   tagline: "광고대행사 AE 4년차 · 워라밸 찾아 옮길지 남을지",
   choices: { a: "워라밸을 위해 이직한다", b: "지금 회사에 남는다" },
+  // '조건 더 알려주기' 추천값(키 = scenarioIntake.DOMAIN_QUESTIONS 의 질문 key).
+  // 인하우스 합격 280만(-30) vs 최CD 가 붙잡으며 제안한 340만(+30).
+  conditionHints: {
+    a: { time_horizon: "2개월 안", income_change: "30만원 감소 (310→280)" },
+    b: { time_horizon: "당분간 유지", income_change: "30만원 증가 (310→340)" },
+  },
   // 카드 얼굴. 값은 avatarOptions.js 의 id 를 그대로 쓴다(없는 id 는 조용히 무시된다).
   avatarConfig: {
     face: "oval", hairStyle: "wavyParted", hairColor: "724133", skinColor: "f2d3b1",

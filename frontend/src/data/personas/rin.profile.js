@@ -16,6 +16,12 @@ export const profile = {
   value_ranking: ["growth", "freedom", "meaning", "friends", "status", "money", "family", "stability"],
   tagline: "런던 석사 마무리 · 귀국할지 현지에 남을지",
   choices: { a: "귀국해서 이직한다", b: "런던에 남아 현지 취업을 한다" },
+  // '조건 더 알려주기' 추천값(키 = scenarioIntake.DOMAIN_QUESTIONS 의 질문 key).
+  // 린은 비자 시계가 조건이다 — 졸업 후 체류 기한이 곧 결정 기한이 된다.
+  conditionHints: {
+    a: { time_horizon: "졸업 직후 (3개월 안)", income_change: "월 90만 → 300만" },
+    b: { time_horizon: "비자 만료 전 (6개월)", income_change: "현지 오퍼 기준 월 £2,400" },
+  },
   // 카드 얼굴. 값은 avatarOptions.js 의 id 를 그대로 쓴다(없는 id 는 조용히 무시된다).
   avatarConfig: {
     face: "pointedShort", hairStyle: "bun", hairColor: "a55728", skinColor: "f2d3b1",

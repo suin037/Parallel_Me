@@ -14,6 +14,12 @@ export const profile = {
   value_ranking: ["family", "stability", "money", "meaning", "friends", "growth", "freedom", "status"],
   tagline: "제조사 생산관리 8년차 · 카페를 차릴지 남을지",
   choices: { a: "퇴사하고 직원 2명 규모 카페를 창업한다", b: "현재 직장을 유지한다" },
+  // '조건 더 알려주기' 추천값(키 = scenarioIntake.DOMAIN_QUESTIONS 의 질문 key).
+  // 창업은 business(runway·startup_cost), 유지는 career(time_horizon·income_change) 를 묻는다.
+  conditionHints: {
+    a: { runway: "8개월", startup_cost: "1억 2천만원", time_horizon: "3개월 안" },
+    b: { time_horizon: "당분간 유지", income_change: "변화 없음" },
+  },
   // 카드 얼굴. 값은 avatarOptions.js 의 id 를 그대로 쓴다(없는 id 는 조용히 무시된다).
   avatarConfig: {
     face: "square", hairStyle: "sideComed", hairColor: "2c1b18", skinColor: "d08b5b",
