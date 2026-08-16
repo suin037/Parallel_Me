@@ -146,6 +146,49 @@ export function domainScore(planetKey, stars = []) {
  */
 export const MIN_FOR_SCORE = 5;
 
+// ── 점수를 안 내는 영역: 얼마나 자주 떠올랐나 ────────────────────
+//
+// 진로·관계·성장성에 '기분 흐름' 그래프를 그리면, 점수는 안 매긴다고 해놓고
+// 그래프로는 매기는 셈이 된다. 그 기분은 그날 하루 전체의 기분이지 그 영역의
+// 상태가 아니다(같은 날 여러 영역에 똑같이 복사된다).
+//
+// 대신 셀 수 있는 것을 센다 — **주마다 이 영역 이야기가 몇 번 나왔는지.**
+// 이건 좋고 나쁨이 아니라 '요즘 이게 얼마나 마음에 걸리는지'다. 왜곡이 없다:
+// 많이 적혔으면 실제로 많이 적힌 것이다.
+export function domainMentions(entries = [], weeks = 8) {
+  const today = new Date();
+  const bins = [];
+  for (let i = weeks - 1; i >= 0; i -= 1) {
+    const end = new Date(today);
+    end.setDate(end.getDate() - i * 7);
+    const start = new Date(end);
+    start.setDate(start.getDate() - 6);
+    bins.push({
+      from: start.toISOString().slice(0, 10),
+      to: end.toISOString().slice(0, 10),
+      label: `${start.getMonth() + 1}/${start.getDate()}`,
+      count: 0,
+    });
+  }
+  for (const c of entries) {
+    if (!c?.date) continue;
+    const b = bins.find((x) => c.date >= x.from && c.date <= x.to);
+    if (b) b.count += 1;
+  }
+  const recent = bins.slice(-4).reduce((a, b) => a + b.count, 0);
+  const before = bins.slice(0, -4).reduce((a, b) => a + b.count, 0);
+  return {
+    bins,
+    weeks,
+    total: bins.reduce((a, b) => a + b.count, 0),
+    max: Math.max(...bins.map((b) => b.count), 1),
+    // 최근 4주가 그 앞 4주보다 늘었나 — '요즘 부쩍'을 말할 근거.
+    rising: before > 0 ? recent > before : null,
+    recent,
+    before,
+  };
+}
+
 // ── 성장성: 역량 분포 ────────────────────────────────────────
 // 체크인의 '오늘 주로 쓴 역량'이 그대로 쌓인다. 이걸 세면 무엇에 시간을 썼는지가
 // 나온다 — 두터운 칸이 쌓은 것, 비어 있는 칸이 아직 안 가본 쪽이다.

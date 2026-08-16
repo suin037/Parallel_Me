@@ -4,7 +4,7 @@ import { Archive, CalendarDays, ChevronRight, Plus, X } from "lucide-react";
 import UniverseMap from "../components/UniverseMap.jsx";
 import Constellation from "../components/Constellation.jsx";
 import { announceSurface } from "../data/guideAdvice.js";
-import { domainScore, metricOf, skillMix, MIN_FOR_SCORE } from "../data/domainScore.js";
+import { domainScore, domainMentions, metricOf, skillMix, MIN_FOR_SCORE } from "../data/domainScore.js";
 import { PLANETS } from "../data/result.js";
 import { adaptiveGroups, hasRecord, loadUniverse, resetUniverse, scenariosByPlanet, seedDemoCheckins, starGroupsOf, todayKey } from "../data/myUniverse.js";
 // demoYear.js 는 1년치 기록(87KB)을 들고 있다. 개발용 데모 버튼에서만 쓰므로
@@ -716,6 +716,56 @@ function TrendChart({ series, accent }) {
   </div>;
 }
 
+// 진로·관계·성장성 그래프 — 주마다 이 영역 이야기가 몇 번 나왔나.
+//
+// 좋고 나쁨이 아니라 '요즘 이게 얼마나 마음에 걸리는지'다. 기분 그래프와 달리
+// 왜곡될 여지가 없다 — 많이 적혔으면 실제로 많이 적힌 것이다.
+function MentionChart({ mentions, accent, label }) {
+  if (!mentions || !mentions.total) {
+    return (
+      <>
+        <h3 className="text-[14px] font-bold">얼마나 자주 떠올랐나</h3>
+        <p className="mt-2 text-[10px] text-mut">최근 {mentions?.weeks || 8}주 동안 {label} 이야기는 없었어요.</p>
+      </>
+    );
+  }
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <h3 className="text-[14px] font-bold">얼마나 자주 떠올랐나</h3>
+        <span className="text-[9px] text-mut">최근 {mentions.weeks}주 · 주별 기록 수</span>
+      </div>
+
+      <div className="mt-3 flex h-[76px] items-end gap-1.5">
+        {mentions.bins.map((b) => (
+          <div key={b.from} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <span className="text-[8px] tabular-nums text-mut">{b.count || ""}</span>
+            <span
+              className="w-full rounded-t-[3px] transition-[height] duration-500"
+              style={{
+                height: `${Math.max(2, (b.count / mentions.max) * 52)}px`,
+                background: b.count ? accent : "rgba(255,255,255,.08)",
+              }}
+            />
+            <span className="truncate text-[7.5px] text-mut">{b.label}</span>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-2.5 text-[10px] leading-relaxed text-sub">
+        {mentions.rising === null
+          ? `최근 ${mentions.weeks}주에 ${mentions.total}번 나왔어요.`
+          : mentions.rising
+            ? `최근 4주(${mentions.recent}번)가 그 앞 4주(${mentions.before}번)보다 늘었어요. 요즘 더 자주 떠오르고 있어요.`
+            : `최근 4주(${mentions.recent}번)가 그 앞 4주(${mentions.before}번)보다 줄었어요.`}
+      </p>
+      <p className="mt-1 text-[9px] leading-relaxed text-mut">
+        많이 적혔다고 나쁜 건 아니에요. 신경 쓰고 있다는 뜻이에요.
+      </p>
+    </>
+  );
+}
+
 // 성장성 그래프 — 무엇에 시간을 썼는지의 분포.
 //
 // 막대 길이는 '가장 두터운 칸' 기준으로 잡는다. 전체 대비로 하면 다섯 칸이 다
@@ -790,6 +840,11 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
     () => (metric.kind === "mix" ? skillMix(state.checkins || []) : null),
     [metric.kind, state],
   );
+  // 점수를 안 내는 영역이 쓰는 그래프 — 주별 언급 빈도.
+  const mentions = useMemo(
+    () => (metric.kind !== "score" ? domainMentions(entries) : null),
+    [metric.kind, entries],
+  );
   const average = analysis?.ok ? Number(analysis.moodAvg) : null;
   const trend = analysis?.ok && Number.isFinite(Number(analysis.trend)) ? Number(analysis.trend) : null;
   const stable = trend == null || Math.abs(trend) < .25;
@@ -850,14 +905,24 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
       <p className="mt-3 text-[10px] leading-relaxed text-mut">{flow}</p>
 
       <section className="mt-6 border-t border-white/[.08] pt-5">
-        <div className="flex items-center justify-between"><h3 className="text-[14px] font-bold">최근 흐름</h3><span className="text-[9px] text-mut">그날의 기분 · 5점 만점</span></div>
-        <TrendChart series={analysis?.series || []} accent={accent}/>
+        {/* 점수를 안 내는 영역에 기분 그래프를 그리면, 점수는 안 매긴다면서
+            그래프로는 매기는 셈이 된다. 거기는 '얼마나 자주 떠올랐나'를 센다. */}
+        {metric.kind === "score" ? (
+          <>
+            <div className="flex items-center justify-between"><h3 className="text-[14px] font-bold">최근 흐름</h3><span className="text-[9px] text-mut">그날의 기분 · 5점 만점</span></div>
+            <TrendChart series={analysis?.series || []} accent={accent}/>
+          </>
+        ) : (
+          <MentionChart mentions={mentions} accent={accent} label={planet.label} />
+        )}
         <p className="mt-3 text-[9px] font-semibold text-mut">영향 요인</p>
         <div className="mt-2 flex flex-wrap gap-2">{factors.map((factor)=><span key={factor} className="rounded-full border px-3 py-1.5 text-[10px] text-sub" style={{borderColor:`${accent}40`,background:`${accent}10`}}>{factor}</span>)}</div>
 
+        {/* 이 두 장은 '그 영역이 좋았다/나빴다'가 아니라, 그 이야기를 적은 날들 중
+            하루 기분이 가장 높고 낮았던 날의 기록이다. 제목에 그걸 드러낸다. */}
         {(analysis?.best?.text || analysis?.worst?.text) && <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          <InsightCard tone="good" title={`${analysis.best?.mood >= 4 ? "가장 좋았던 날" : "그중 나았던 날"} · ${analysis.best?.date ? dateLabel(analysis.best.date) : "—"}`} text={analysis.best?.text}/>
-          <InsightCard tone="hard" title={`${analysis.worst?.mood <= 2 ? "가장 힘들었던 날" : "그중 무거웠던 날"} · ${analysis.worst?.date ? dateLabel(analysis.worst.date) : "—"}`} text={analysis.worst?.text}/>
+          <InsightCard tone="good" title={`기분이 가장 좋았던 날 · ${analysis.best?.date ? dateLabel(analysis.best.date) : "—"}`} text={analysis.best?.text}/>
+          <InsightCard tone="hard" title={`기분이 가장 무거웠던 날 · ${analysis.worst?.date ? dateLabel(analysis.worst.date) : "—"}`} text={analysis.worst?.text}/>
         </div>}
 
         <div className="mt-4">
