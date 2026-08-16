@@ -39,6 +39,7 @@ from compare import build_comparison
 from choice_classifier import classification_stats
 
 import stat_evidence
+import usage_guard
 import indicators as indicators_mod
 import diary_bridge
 import personalize
@@ -387,6 +388,7 @@ def health() -> dict:
                        "note": "done=false 면 첫 요청이 임베딩 모델 로딩(수십 초)을 "
                                "기다릴 수 있다"},
             "artifacts": artifact_state,
+            "usage": usage_guard.status(),
             "treatment_coverage": _treatment_coverage(),
             "choice_classification": classification_stats()}
 
@@ -636,13 +638,20 @@ def simulate(req: SimulateRequest) -> dict:
 
     note = note.strip()
 
-    try:
-        narrative = generate_scenarios(
-            req.profile.model_dump(), scen_a, scen_b, ev_a, ev_b,
-            note=note, model=settings.claude_model,
-        )
-    except Exception as exc:  # 키/ API 오류에도 수치·지표·근거는 반환
-        narrative = {"a": f"(서사 생성 실패: {type(exc).__name__})", "b": "", "comparison": "", "_error": str(exc)[:300]}
+    # 접속 폭주 가드 — 하루 상한을 넘으면 **서사만** 생략한다(usage_guard 참조).
+    # 수치·그래프·근거는 이미 계산이 끝났으므로 그대로 내려보낸다. 전시에서
+    # 가장 아까운 건 아무것도 안 뜨는 화면이고, 비싼 건 Claude 호출 쪽이다.
+    if not usage_guard.take():
+        log.warning("일일 서사 한도 초과 — 서사 생략, 수치는 그대로 반환")
+        narrative = {"a": "", "b": "", "comparison": "", "_busy": True}
+    else:
+        try:
+            narrative = generate_scenarios(
+                req.profile.model_dump(), scen_a, scen_b, ev_a, ev_b,
+                note=note, model=settings.claude_model,
+            )
+        except Exception as exc:  # 키/ API 오류에도 수치·지표·근거는 반환
+            narrative = {"a": f"(서사 생성 실패: {type(exc).__name__})", "b": "", "comparison": "", "_error": str(exc)[:300]}
 
     # 영역별 데이터 라우팅(항목3) — 각 선택의 삶의 영역 → 실측 집단통계 지표
     routed_a = route_domains(req.choice_a_domains, {

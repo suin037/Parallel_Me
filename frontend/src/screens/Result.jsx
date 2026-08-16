@@ -9,6 +9,7 @@ import { redactPII, redactEntries } from "../data/piiRedact.js";
 import { saveMe, getScenario, getThirdPath } from "../data/api.js";
 import { listUniverses, saveUniverse, universeFromResult } from "../data/savedUniverses.js";
 import { Eyebrow } from "../components/ui.jsx";
+import ServiceNotice from "../components/ServiceNotice.jsx";
 import { Bookmark, Check, ChevronLeft, ChevronRight, LockKeyhole } from "lucide-react";
 import LifeView from "../components/result/LifeView.jsx";
 import ChangeView from "../components/result/ChangeView.jsx";
@@ -100,6 +101,12 @@ export default function Result() {
         </div>
         {step !== 1 && <EvidenceModeBadge a={a} b={b} domains={result.domains || scenarioDomains} />}
       </div>
+
+      {/* 서버에 못 닿았거나(offline) 서사만 생략된(busy) 상태를 **맨 위에서** 알린다.
+          이게 없으면 목업 숫자가 아무 표시 없이 진짜처럼 보인다 — 경고가 근거 탭
+          안쪽에만 있어서 첫 화면만 보고 지나가면 알 수 없었다. */}
+      <ServiceNotice status={result.serviceStatus || "ok"} />
+
       <ol className="mt-5 grid grid-cols-4 gap-2" aria-label="결과 확인 단계">
         {RESULT_STEPS.map((label, index) => (
           <li key={label} className="min-w-0">

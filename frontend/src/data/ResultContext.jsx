@@ -223,6 +223,8 @@ export function ResultProvider({ children }) {
         ...pair,
         ...(real || {}),
         dataMode: real ? "model" : "demo",
+        // 서버에 닿았으니 수치는 진짜다. 서사 생략(폭주 가드)은 아래 서사 단계에서 판별한다.
+        serviceStatus: real ? "ok" : "offline",
         domains: {
           a: opts.choiceADomains ?? scenarioDomains.a,
           b: opts.choiceBDomains ?? scenarioDomains.b,
@@ -253,7 +255,14 @@ export function ResultProvider({ children }) {
         /* 우주 패널 요약 저장 실패는 결과 화면을 막지 않는다. */
       }
     } catch (error) {
-      const fallback = { ...pair, dataMode: "demo", narrativeError: error.message };
+      // 서버에 못 닿았다 → 화면에 남는 건 목업 값이다. 결과 화면이 그걸 숨기지
+      // 않도록 serviceStatus 로 알린다(ServiceNotice 가 맨 위에 띄운다).
+      const fallback = {
+        ...pair,
+        dataMode: "demo",
+        serviceStatus: "offline",
+        narrativeError: error.message,
+      };
       setResult(fallback);
       return fallback;
     }
@@ -286,6 +295,17 @@ export function ResultProvider({ children }) {
         const simulation = await runSimulateRaw(requestArgs);
         if (simulationRunRef.current !== runId) return;
         const narrative = simulation.narrative || {};
+        // 접속 폭주 가드가 서사만 생략한 경우(backend/usage_guard.py).
+        // 수치는 진짜이므로 오류로 처리하지 않고 '지금 사람이 많다'로 안내한다.
+        if (narrative._busy) {
+          setResult({
+            ...preview,
+            serviceStatus: "busy",
+            narrativeLoading: false,
+            imageLoading: false,
+          });
+          return;
+        }
         const hasStory = (story) => typeof story === "string" ? Boolean(story.trim()) : Boolean(story?.summary?.trim());
         if (!hasStory(narrative.a) || !hasStory(narrative.b) || narrative._skipped) {
           throw new Error("Claude 응답을 A/B 서사 형식으로 읽지 못했습니다.");
