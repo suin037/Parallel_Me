@@ -17,8 +17,9 @@ import { LEVEL_TITLES, XP_RULES, universeSummary } from "../data/myUniverse.js";
 import { LEVEL_REWARDS } from "../data/unlocks.js";
 import PetMascot from "../components/PetMascot.jsx";
 import PetShop from "../components/PetShop.jsx";
-import { Bell, ChevronRight, ClipboardCheck, LockKeyhole, Palette, Smartphone, UserRound, LogOut } from "lucide-react";
+import { Bell, ChevronRight, ClipboardCheck, Compass, LockKeyhole, Palette, Smartphone, UserRound, LogOut } from "lucide-react";
 import { toChoiceDomains } from "../data/choices.js";
+import { openGuide } from "../data/tour.js";
 
 // 작은 on/off 토글 (track h-6/w-11 · thumb h-4/w-4 · translate 로 이동 — 크기 균형)
 function Toggle({ on, onClick }) {
@@ -522,6 +523,22 @@ export default function Settings() {
             <Toggle on={!!prefs.notifications[key]} onClick={() => toggleNotif(key)} />
           </div>
         ))}
+      </Card>
+
+      {/* 사용 안내 — 안내를 다시 볼 수 있는 유일한 자리다(헤더에는 두지 않는다).
+          첫 화면(소개)부터 열어 주고, 거기서 화면을 짚어줄지 다시 고를 수 있다. */}
+      <Card>
+        <div className="mb-1 text-xs font-semibold text-mut">사용 안내</div>
+        <p className="text-[10px] leading-relaxed text-sub">
+          서비스 소개부터 다시 열어요. 이어서 화면을 하나씩 짚어주는 안내도 받을 수 있어요.
+        </p>
+        <button
+          type="button"
+          onClick={openGuide}
+          className="tap mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#9B82E8]/45 bg-[#8B6CCF]/15 py-2.5 text-[12px] font-semibold text-[#B8A4F2] transition-colors hover:bg-[#8B6CCF]/25"
+        >
+          <Compass size={14} /> 안내 받기
+        </button>
       </Card>
 
       {/* 가이드 마스코트 */}

@@ -119,7 +119,7 @@ export default function MyUniverseV2() {
         {[['6w','6주'],['1y','1년'],['eunwoo','은우'],['clear','비우기']].map(([key,label])=><button key={key} type="button" onClick={()=>runDemo(key)} className="tap rounded-full border border-white/10 bg-black/25 px-3 py-1.5 text-[9px] font-semibold text-white/60 backdrop-blur hover:border-[#8B6CCF]/50 hover:text-[#C7B5F2]">{label}</button>)}
         <button type="button" onClick={() => navigate("/archive")} className="tap flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3 text-[10px] text-sub backdrop-blur"><Archive size={13} /> 보관함</button>
       </div>
-      <div className={`transition-[margin] duration-300 ease-out ${planet?"md:mr-[420px] lg:mr-[520px] xl:mr-[660px]":""}`}>
+      <div data-tour="universe-map" className={`transition-[margin] duration-300 ease-out ${planet?"md:mr-[420px] lg:mr-[520px] xl:mr-[660px]":""}`}>
         <UniverseMap planets={PLANETS} groups={orbitGroups} skin={skin} scenarios={state.scenarios || []} selectedKey={planet?.key} onPlanetSelect={(key)=>key ? openPlanet(key) : (setPlanet(null),setCluster(null))} onConstellationOpen={(group,key)=>{
           // 기록 별자리를 누르면 그 별자리를 펼친다(행성 전체는 패널 안에서 열 수 있다).
           if (key) setPlanet(PLANETS.find((item) => item.key === key));

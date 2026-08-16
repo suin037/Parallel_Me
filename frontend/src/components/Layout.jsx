@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Bookmark, BookOpen, HelpCircle, LockKeyhole, Orbit, Sparkles } from "lucide-react";
 import TabBar from "./TabBar.jsx";
 import UserGuide from "./UserGuide.jsx";
+import Tour from "./Tour.jsx";
+import { startTour, takeGuideAsk } from "../data/tour.js";
 import ReminderBell from "./ReminderBell.jsx";
 import ReminderToast from "./ReminderToast.jsx";
 import { useResult } from "../data/ResultContext.jsx";
@@ -51,6 +53,17 @@ export default function Layout() {
     try { storage.setItem("pm.guide.seen.v1", "1"); } catch { /* 저장 불가 환경 */ }
     setGuideOpen(false);
   };
+  // 계정을 막 만들고 들어온 참이면 안내를 받을지 여기서 묻는다.
+  // 온보딩이 남긴 표시를 집어 간다(한 번만).
+  useEffect(() => {
+    if (takeGuideAsk()) setGuideOpen(true);
+  }, [pathname]);
+  // 설정의 '안내 다시 보기' — 안내 첫 화면(소개)부터 다시 연다.
+  useEffect(() => {
+    const open = () => setGuideOpen(true);
+    window.addEventListener("pm:guide-open", open);
+    return () => window.removeEventListener("pm:guide-open", open);
+  }, []);
   // /resume 은 링크로 곧장 들어오는 자리라 돌아갈 이전 화면이 없다.
   const showBack = !["/", "/my", "/resume"].includes(pathname);
   const goBack = () => window.history.length > 1 ? navigate(-1) : navigate("/my");
@@ -82,17 +95,19 @@ export default function Layout() {
             <Sparkles size={18} className="hidden text-violet-400 lg:block" /> Parallel Me
           </button>
           </div>
-          {isDesktopWorkspace && <nav className="absolute left-1/2 hidden h-full -translate-x-1/2 items-stretch gap-10 lg:flex xl:gap-14">
+          {/* 안내 5단계는 '네 곳을 오갑니다' — PC 는 이 네비, 폰은 TabBar 가 그 자리다.
+              둘 다 같은 키를 달고, Tour 가 그중 실제로 보이는 쪽을 고른다. */}
+          {isDesktopWorkspace && <nav data-tour="tabbar" className="absolute left-1/2 hidden h-full -translate-x-1/2 items-stretch gap-10 lg:flex xl:gap-14">
             {isSimulationFlow
               ? <div className="flex items-center gap-2 text-[12px] font-semibold text-violet-300"><LockKeyhole size={15}/> 결과를 저장한 뒤 나갈 수 있어요</div>
               : desktopTabs.map(([to,label,Icon])=><NavLink key={to} to={to} className={({isActive})=>`relative flex min-w-[84px] items-center justify-center gap-2 px-2 text-[14px] transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-violet-400 ${isActive?"font-semibold text-violet-300 after:opacity-100":"text-sub hover:text-ink after:opacity-0"}`}><Icon size={15}/>{label}</NavLink>)}
           </nav>}
           <div className="flex items-center gap-3">
-            <button type="button" onClick={() => setGuideOpen(true)} aria-label="Parallel Me 사용 방법" className="tap flex h-10 w-10 items-center justify-center rounded-full text-mut hover:bg-white/[.05]"><HelpCircle size={18}/></button>
             {showReminders && !isSimulationFlow && <ReminderBell />}
             {showProfile && !isSimulationFlow && (
               <button
                 onClick={() => navigate("/settings")}
+                data-tour="settings"
                 aria-label="프로필 · 설정"
                 className="tap flex h-10 w-10 items-center justify-center rounded-full border border-violet-400/25 bg-violet-500/10 text-violet-400 transition-colors hover:bg-violet-500/15 lg:w-auto lg:gap-2 lg:px-3"
               >
@@ -136,7 +151,11 @@ export default function Layout() {
         {showReminders && <ReminderToast />}
 
         {isLanding && <button type="button" onClick={() => setGuideOpen(true)} className="tap absolute right-5 top-5 z-30 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/20 px-3 py-2 text-[11px] font-semibold text-white/80 backdrop-blur-md"><HelpCircle size={15}/> 사용 방법</button>}
-        <UserGuide open={guideOpen} onClose={closeGuide} />
+        {/* 랜딩에서는 소개만 한다 — 아직 계정이 없어 짚어 줄 화면이 없다.
+            안내를 받을지는 계정을 만들고 들어온 뒤(그리고 이후 물음표에서) 고른다. */}
+        <UserGuide open={guideOpen} onClose={closeGuide} onStartTour={isLanding ? undefined : startTour} />
+        {/* 안내는 화면을 넘나들며 이어진다 — 화면 안에 두면 라우트가 바뀔 때 끊긴다. */}
+        <Tour />
       </div>
     </div>
   );

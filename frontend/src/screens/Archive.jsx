@@ -140,7 +140,8 @@ export default function Archive() {
       <div className="pointer-events-none absolute inset-x-[-140px] top-[-220px] -z-10 h-[520px] rounded-full bg-[radial-gradient(circle,rgba(139,108,207,.22)_0%,rgba(74,83,170,.08)_44%,transparent_70%)]" />
       <div className="pointer-events-none absolute inset-0 -z-10 opacity-45 [background-image:radial-gradient(circle,rgba(255,255,255,.55)_0_1px,transparent_1.2px),radial-gradient(circle,rgba(139,108,207,.42)_0_1px,transparent_1.3px)] [background-position:8px_17px,35px_49px] [background-size:79px_79px,113px_113px]" />
 
-      <div className="mb-5 mt-1 flex items-start justify-between gap-3 lg:mb-8">
+      {/* 안내가 짚는 자리 — 목록은 비어 있을 수 있어서 늘 있는 머리말을 대상으로 둔다. */}
+      <div data-tour="archive-list" className="mb-5 mt-1 flex items-start justify-between gap-3 lg:mb-8">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[.12em] text-[#A98DF1]">
             <Orbit size={14} /> PARALLEL LOG

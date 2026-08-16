@@ -29,7 +29,7 @@ export default function HomeHub() {
       </header>
 
       <div className="grid items-start gap-8 border-t border-white/[.08] pt-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,.65fr)] lg:gap-10 lg:pt-8">
-        <main className="min-w-0 lg:pr-2"><DiaryToday /></main>
+        <main data-tour="diary" className="min-w-0 lg:pr-2"><DiaryToday /></main>
 
         <aside className="space-y-4 lg:sticky lg:top-[100px]">
           <section className="rounded-[20px] border border-white/[.08] bg-white/[.025] p-4">
