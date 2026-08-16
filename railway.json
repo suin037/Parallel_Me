@@ -5,9 +5,9 @@
     "buildCommand": "pip install -r requirements-prediction.txt"
   },
   "deploy": {
-    "startCommand": "python scripts/fetch_artifacts.py && uvicorn main:app --app-dir backend --host 0.0.0.0 --port $PORT",
+    "startCommand": "bash scripts/start.sh",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 300,
+    "healthcheckTimeout": 600,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }
