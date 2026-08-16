@@ -15,4 +15,9 @@ export const profile = {
   // 호버 카드에 띄우는 한 줄
   tagline: "게임사 백엔드 개발자 6년차 · 쉬어갈지 버틸지",
   choices: { a: "번아웃으로 퇴사하고 반년 쉬어간다", b: "지금 회사에 남는다" },
+  avatarConfig: {
+    face: "oval", hairStyle: "menCover", beard: null, eyes: "happy", lashes: false,
+    eyebrows: "neutral", browThickness: "normal", glasses: "round", mouth: "smile",
+    clothes: "shirt", skinColor: "ae5d29", hairColor: "0e0e0e", clothesColor: "3c4f5c",
+  },
 };

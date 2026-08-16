@@ -14,4 +14,9 @@ export const profile = {
   value_ranking: ["meaning", "friends", "family", "freedom", "growth", "status", "money", "stability"],
   tagline: "회사원 겸 브랜드 운영 · 본업을 바꿀지 고민",
   choices: { a: "회사를 나와 내 브랜드를 창업한다", b: "현재 직장을 유지한다" },
+  avatarConfig: {
+    face: "oval", hairStyle: "longParted", beard: null, eyes: "wide", lashes: true,
+    eyebrows: "happy", browThickness: "normal", glasses: "none", mouth: "smile",
+    clothes: "openJacket", skinColor: "edb98a", hairColor: "2c1b18", clothesColor: "25557c",
+  },
 };

@@ -14,4 +14,9 @@ export const profile = {
   value_ranking: ["freedom", "stability", "meaning", "friends", "family", "growth", "money", "status"],
   tagline: "광고대행사 AE 4년차 · 저녁이 있는 삶을 찾는 중",
   choices: { a: "워라밸을 위해 이직한다", b: "지금 회사에 남는다" },
+  avatarConfig: {
+    face: "oval", hairStyle: "bobLong", beard: null, eyes: "happy", lashes: true,
+    eyebrows: "happy", browThickness: "thin", glasses: "none", mouth: "smile",
+    clothes: "shirt", skinColor: "d08b5b", hairColor: "d6b370", clothesColor: "a7ffc4",
+  },
 };

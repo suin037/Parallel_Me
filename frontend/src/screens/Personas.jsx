@@ -9,8 +9,8 @@
 //   reloadProfile() 로 컨텍스트만 갈아끼운 뒤 navigate 로 이동한다.
 //   기록은 restoreLive 가 쏘는 'pm:universe' 이벤트로 각 화면이 다시 읽는다.
 //
-// 아바타는 아직 비워둔다 — 아바타 빌더 개편이 끝나면 profile.avatarConfig 를 채워
-//   이 자리에 얼굴이 들어간다. 그때까지는 이름 첫 글자로 대신한다.
+// 아바타는 각 페르소나 프로필 파일(예: jiwon.profile.js)의 avatarConfig 에서
+//   온다. 값이 없으면(향후 추가되는 인물 등) 이름 첫 글자로 대신한다.
 // ─────────────────────────────────────────────────────────────
 
 import { useState } from "react";
@@ -19,6 +19,7 @@ import { Check, Lock, UserPlus } from "lucide-react";
 import { personaCards } from "../data/personas/index.js";
 import { enterPersona, startMyAccount } from "../data/personaSession.js";
 import { useResult } from "../data/ResultContext.jsx";
+import Avatar from "../components/Avatar.jsx";
 
 // 선택 유형별 색. core.py 의 KIND_TREATMENT 와 같은 축이다.
 const KIND_TONE = {
@@ -27,7 +28,20 @@ const KIND_TONE = {
   휴식: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
 };
 
-function Face({ name, ready }) {
+function Face({ name, avatarConfig, ready }) {
+  if (avatarConfig) {
+    return (
+      <div
+        className={`shrink-0 rounded-full transition-opacity ${ready ? "" : "opacity-60"}`}
+        style={{ boxShadow: ready ? "0 0 28px rgba(89,116,255,.12)" : "none" }}
+      >
+        {/* 카드 폭에 맞춰 크기만 바뀐다 — Avatar 는 고정 px 라 브레이크포인트별로 따로 그린다. */}
+        <span className="block sm:hidden"><Avatar config={avatarConfig} size={72} ring={ready} /></span>
+        <span className="hidden sm:block lg:hidden"><Avatar config={avatarConfig} size={84} ring={ready} /></span>
+        <span className="hidden lg:block"><Avatar config={avatarConfig} size={96} ring={ready} /></span>
+      </div>
+    );
+  }
   return (
     <div
       className={`flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full border text-[26px] font-bold tracking-[-.03em] shadow-[inset_0_0_28px_rgba(255,255,255,.06),0_0_28px_rgba(89,116,255,.12)] transition-colors sm:h-[84px] sm:w-[84px] sm:text-[30px] lg:h-[96px] lg:w-[96px] lg:text-[38px] ${
@@ -110,7 +124,7 @@ export default function Personas() {
             } ${busy === card.id ? "border-violet-400 bg-violet-500/10 shadow-[0_0_24px_rgba(139,108,207,.32)]" : ""}`}
           >
             {busy === card.id && <span className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full bg-white text-violet-600"><Check size={16} strokeWidth={3} /></span>}
-            <Face name={card.name} ready={card.ready} />
+            <Face name={card.name} avatarConfig={card.avatarConfig} ready={card.ready} />
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 lg:flex-col lg:gap-0.5">

@@ -16,4 +16,9 @@ export const profile = {
   value_ranking: ["growth", "freedom", "meaning", "friends", "status", "money", "family", "stability"],
   tagline: "런던 석사 마무리 · 돌아올지 남을지",
   choices: { a: "귀국해서 이직한다", b: "런던에 남아 현지 취업을 한다" },
+  avatarConfig: {
+    face: "original", hairStyle: "bun", beard: null, eyes: "wide", lashes: true,
+    eyebrows: "raised", browThickness: "normal", glasses: "none", mouth: "laugh",
+    clothes: "tShirt", skinColor: "614335", hairColor: "c93305", clothesColor: "ff5c5c",
+  },
 };

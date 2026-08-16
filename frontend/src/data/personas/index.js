@@ -51,6 +51,7 @@ export function personaCards() {
     name: p.profile.name,
     age: p.profile.age,
     sex: p.profile.sex,
+    avatarConfig: p.profile.avatarConfig,
     job: p.profile.occupation,
     mbti: p.profile.mbti,
     tagline: p.profile.tagline,

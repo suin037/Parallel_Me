@@ -14,4 +14,9 @@ export const profile = {
   value_ranking: ["money", "status", "growth", "stability", "freedom", "meaning", "family", "friends"],
   tagline: "3번째 직장 1년차 · 다음 이직을 저울질 중",
   choices: { a: "더 좋은 조건으로 이직한다", b: "지금 회사에 남는다" },
+  avatarConfig: {
+    face: "square", hairStyle: "undercut", beard: null, eyes: "wide", lashes: false,
+    eyebrows: "raised", browThickness: "normal", glasses: "none", mouth: "smile",
+    clothes: "shirt", skinColor: "f2d3b1", hairColor: "0e0e0e", clothesColor: "5199e4",
+  },
 };

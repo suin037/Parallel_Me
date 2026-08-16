@@ -12,7 +12,10 @@ import storage from "../data/safeStorage.js";
 //  · 영역 3개: 일상 / 성향(매일 랜덤 질문) / 건강. 각 영역의 질문 리스트를 하나씩 묻고 사용자가 답한다.
 //  · embedded=true: 카드/저장버튼 없이 대화만. onMessagesChange 로 부모(체크인)에 올림 → 부모 '기록 저장'이 흡수.
 const AREAS = [
-  { key: "daily", name: "오늘 돌아보기", desc: "한 일과 기억에 남은 순간을 기록해요.", mascot: "nova", role: "오늘 하루의 일상 기록을 함께 되짚는 대화다." },
+  // 마스코트는 result.js MASCOTS 의 역할 분담을 따른다 — 루미(기록을 돌봄) · 코스모(데이터·선택 분석) ·
+  // 노바(기회·변화)는 설정 화면·가이드 조언(guideAdvice.js)에서도 같은 배정이다. '오늘 돌아보기'는
+  // 일상 기록이라 루미(→ 일기·체크인과 동일)가 맞다. 노바는 새로운 갈림길(시뮬레이션) 쪽에 쓴다.
+  { key: "daily", name: "오늘 돌아보기", desc: "한 일과 기억에 남은 순간을 기록해요.", mascot: "lumi", role: "오늘 하루의 일상 기록을 함께 되짚는 대화다." },
   { key: "disposition", name: "선택 정리", desc: "고민 중인 선택과 중요한 기준을 정리해요.", mascot: "cosmo", role: "가치관·선택을 돌아보는 성향 기록 대화다." },
   { key: "health", name: "몸·마음 체크", desc: "수면·활동·스트레스 상태를 확인해요.", mascot: "lumi", role: "몸과 마음 상태를 살피는 건강 체크 대화다." },
 ];

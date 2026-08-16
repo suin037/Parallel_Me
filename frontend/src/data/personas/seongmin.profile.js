@@ -14,4 +14,9 @@ export const profile = {
   value_ranking: ["family", "stability", "money", "meaning", "friends", "growth", "freedom", "status"],
   tagline: "제조사 생산관리 8년차 · 카페를 차릴지 버틸지",
   choices: { a: "퇴사하고 직원 2명 규모 카페를 창업한다", b: "현재 직장을 유지한다" },
+  avatarConfig: {
+    face: "square", hairStyle: "sideComed", beard: "chin", eyes: "wide", lashes: false,
+    eyebrows: "neutral", browThickness: "thick", glasses: "none", mouth: "smile",
+    clothes: "openJacket", skinColor: "8d5524", hairColor: "2c1b18", clothesColor: "929598",
+  },
 };
