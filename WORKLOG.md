@@ -110,6 +110,30 @@ cp ../yp2021/YP2021_w0*.xlsx data/raw/yp/
 2. **경로 불일치:** `preprocess_goms.py`(sohyun)는 `data/clean/goms_clean.csv`에 저장하는데, `train_models.py`는 `data/goms_clean.csv`를 읽음. (지금은 GOMS 완료본을 후자 경로에 직접 복사해 우회)
 3. **YP→학습 연결이 팀 코드엔 없었음.** `yp_train.py`(신규)로 L4만 연결. YP 패널 기반 L3는 미구현.
 4. **서빙 미연결:** `/predict` 붙이려면 backend 의존성(fastapi/uvicorn/pydantic-settings/anthropic) 설치 + suin-model 의 backend 모델 파일 필요. 아티팩트 형식이 팀(suin-model) 기준이라, `lanollab-data`의 backend 모듈(초기 내 편집본)과는 계약이 다름.
+5. **아티팩트가 두 sklearn 환경에서 섞여 나왔다.** (2026-08-17 확인)
+   HF(`suinnn/parallel-me-artifacts`)에서 12개를 받아 `sklearn 1.6.1`로 열어보니:
+
+   | 아티팩트 | 저장된 sklearn |
+   |---|---|
+   | `knn.pkl` (필수) | **1.9.0** |
+   | `econml_klips.pkl` (필수) | **1.9.0** |
+   | `econml.pkl` (선택) | **1.9.0** |
+   | 나머지 9개 | 경고 없음 |
+
+   서빙(`requirements-prediction.txt`)은 `1.6.1`이라 필수 2개가 cross-version 언피클이다.
+   `InconsistentVersionWarning: might lead to breaking code or invalid results` 가 뜬다.
+   **다만 12개 전부 예외 없이 로드되고 프로덕션도 정상 동작 중이다**(`/health` ok).
+
+   깔끔한 해가 없다 — 어느 쪽으로 맞춰도 반대쪽이 어긋난다:
+   - `1.6.1` 유지 → `knn`·`econml_klips` 가 계속 cross-version (현재 상태)
+   - `1.9.0` 으로 올림 → econml 0.16.0 을 못 씀(`<1.7` 요구). 0.17.0 으로 올리면
+     0.16.0 으로 저장된 `*_break`·`*_startup`·`*_yp` 가 반대로 어긋남
+
+   → **진짜 해결은 한 환경에서 전부 재학습.** 그전까지는 `1.6.1` 고정을 유지한다
+   (배포와 일치하고, 바꾸면 econml 이 깨진다).
+
+   참고: `requirements-prediction.txt` 주석과 RUN.md 는 "아티팩트가 1.6.1 로 저장돼
+   있다"고 적고 있으나 위 3개는 사실이 아니다. 재학습 전까지 그 문구를 근거로 삼지 말 것.
 
 ---
 
@@ -128,4 +152,5 @@ cp ../yp2021/YP2021_w0*.xlsx data/raw/yp/
 - [ ] 경로 정합성 통일(`data/clean/goms_clean.csv` vs `data/goms_clean.csv`)
 - [ ] 서빙 연결: backend 의존성 설치 → 아티팩트를 `/predict`에 배선(L1~L4 통합, KLIPS판 우선)
 - [ ] 폐기: 합성 `lifelines.pkl` 제거
+- [ ] **`knn.pkl`·`econml_klips.pkl`·`econml.pkl` 을 sklearn 1.6.1 + econml 0.16.0 환경에서 재학습** (7-5 참고)
 - [ ] (선택) YP 패널 기반 L3 인과추론 추가
