@@ -24,7 +24,8 @@ const COSMO_DECISION_Q = [
 ];
 
 function shouldAskCosmoDecision() {
-  try { return localStorage.getItem(COSMO_PROMPT_KEY) !== weekStartKey(todayKey()); } catch { return true; }
+  // storage(safeStorage) 경유 — iframe·사파리에서 저장소가 막히면 메모리로 대신한다.
+  return storage.getItem(COSMO_PROMPT_KEY) !== weekStartKey(todayKey());
 }
 
 // 말투(loadSpeech/SPEECH_KEY)는 dispositionApi 에서 온다 — 마스코트가 말하는 화면이
@@ -242,7 +243,7 @@ export default function ChatDiary({ onSaved, embedded = false, onMessagesChange,
     // → buildDisposition → 모든 시뮬 시나리오 개인화에 반영.
     const cur = qs[qi];
     if (cur?.kind === "decision") {
-      try { localStorage.setItem(COSMO_PROMPT_KEY, weekStartKey(todayKey())); } catch { /* 무시 */ }
+      storage.setItem(COSMO_PROMPT_KEY, weekStartKey(todayKey()));
     }
     if (cur?.id && setProfile) {
       setProfile((p) => ({ ...p, psych_answers: { ...(p.psych_answers || {}), [cur.id]: v } }));
