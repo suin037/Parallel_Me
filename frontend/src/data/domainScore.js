@@ -72,7 +72,9 @@ export const DOMAIN_METRIC = {
     note: "수면 점수·수면 시간·에너지·운동이 중심이고(85%), 기분은 보조로 10%만 반영해요. 수면은 7~8시간을 가장 높게 보고, 부족한 쪽을 더 크게 깎아요. 적지 않은 항목은 계산에서 빠져요.",
   },
   career: { kind: "opportunity", label: "진로", why: "일기 몇 줄로 커리어에 점수를 매길 수는 없어요. 대신 아직 안 가본 길을 찾아드려요." },
-  relation: { kind: "opportunity", label: "관계", why: "관계는 좋고 나쁨을 한 숫자로 줄이면 오해가 생겨요. 대신 지금 해볼 수 있는 걸 찾아드려요." },
+  // 관계는 통짜로 보면 안 된다 — 연인·가족·친구·직장은 서로 다른 이야기다.
+  // 한 줄로 합치면 "관계가 힘들다"만 남고 누구와의 일인지가 사라진다.
+  relation: { kind: "people", label: "관계", why: "관계는 좋고 나쁨을 한 숫자로 줄이면 오해가 생겨요. 누구와의 이야기인지로 나눠 보여드려요." },
   // 성장성은 점수가 아니라 **분포**로 본다. 무엇을 얼마나 썼는지가 곧 쌓인 것이고,
   // 비어 있는 칸이 다음에 열어볼 방향이다. 한 숫자로 줄이면 그 정보가 사라진다.
   growth: { kind: "mix", label: "성장성", why: "역량은 점수가 아니라 무엇을 쌓았는지예요. 쓴 시간의 분포로 보여드려요." },
@@ -186,6 +188,39 @@ export function domainMentions(entries = [], weeks = 8) {
     rising: before > 0 ? recent > before : null,
     recent,
     before,
+  };
+}
+
+// ── 관계: 누구와의 이야기인가 ───────────────────────────────
+//
+// diarySignals 가 이미 연인·가족·친구·직장을 가려낸다. 그걸 세어 나눈다.
+// 통짜로 두면 "관계 52번"만 남는데, 그건 연인 문제인지 직장 문제인지 모르는
+// 숫자라 쓸모가 없다. 나눠야 어느 쪽이 요즘 무거운지가 보인다.
+export function relationMix(entries = [], detect) {
+  const order = ["연인", "가족", "친구", "직장"];
+  const count = Object.fromEntries(order.map((k) => [k, 0]));
+  let unknown = 0;
+
+  for (const c of entries) {
+    const text = `${c?.text || ""} ${c?.note || ""} ${c?.chatSummary || ""}`;
+    const k = text.trim() ? detect(text) : null;
+    if (k && count[k] != null) count[k] += 1;
+    else unknown += 1;
+  }
+
+  const total = order.reduce((a, k) => a + count[k], 0);
+  const items = order.map((k) => ({
+    key: k,
+    count: count[k],
+    pct: total ? Math.round((count[k] / total) * 100) : 0,
+  }));
+  const sorted = [...items].sort((a, b) => b.count - a.count);
+  return {
+    items,
+    total,
+    unknown,
+    max: Math.max(...items.map((i) => i.count), 1),
+    top: total ? sorted[0].key : null,
   };
 }
 

@@ -4,12 +4,12 @@ import { Archive, CalendarDays, ChevronRight, Plus, X } from "lucide-react";
 import UniverseMap from "../components/UniverseMap.jsx";
 import Constellation from "../components/Constellation.jsx";
 import { announceSurface } from "../data/guideAdvice.js";
-import { domainScore, domainMentions, metricOf, skillMix, MIN_FOR_SCORE } from "../data/domainScore.js";
+import { domainScore, domainMentions, relationMix, metricOf, skillMix, MIN_FOR_SCORE } from "../data/domainScore.js";
 import { PLANETS } from "../data/result.js";
 import { adaptiveGroups, hasRecord, loadUniverse, resetUniverse, scenariosByPlanet, seedDemoCheckins, starGroupsOf, todayKey } from "../data/myUniverse.js";
 // demoYear.js 는 1년치 기록(87KB)을 들고 있다. 개발용 데모 버튼에서만 쓰므로
 // 정적 import 하지 않는다 — 하면 첫 화면 번들에 그대로 실린다.
-import { domainAnalysis, domainMonths, domainReport } from "../data/diarySignals.js";
+import { domainAnalysis, domainMonths, domainReport, detectRelationSubtype } from "../data/diarySignals.js";
 import { futureMaterials, getCachedFuture, writeFuture, getCachedOpportunities, scanOpportunities } from "../data/futureApi.js";
 import { expeditionsFor, startExpedition } from "../data/expeditions.js";
 import { shapeOf, shapeLineFor, DOMAIN_THEME, MIN_RECORDS_TO_NAME, HONESTY_NOTE } from "../data/constellationRules.js";
@@ -716,6 +716,57 @@ function TrendChart({ series, accent }) {
   </div>;
 }
 
+// 관계 그래프 — 누구와의 이야기였나.
+//
+// 통짜 "관계 52번"은 연인 문제인지 직장 문제인지 모르는 숫자다. 나눠야
+// 어느 쪽이 요즘 무거운지가 보인다.
+function RelationMixChart({ mix, accent }) {
+  if (!mix || !mix.total) {
+    return (
+      <div className="mt-4 rounded-2xl border border-white/[.08] bg-white/[.035] px-4 py-3.5">
+        <span className="text-[11px] font-bold text-ink">누구와의 이야기인지 아직 몰라요</span>
+        <p className="mt-1.5 text-[10px] leading-relaxed text-sub">
+          기록에 &apos;엄마·친구·팀장&apos;처럼 누구인지 적히면 여기서 나눠 보여드려요.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-4 rounded-2xl border border-white/[.08] bg-white/[.035] px-4 py-3.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[11px] font-bold text-ink">누구와의 이야기였나</span>
+        <span className="shrink-0 text-[9px] text-mut">{mix.total}번 · 사람이 적힌 기록</span>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {mix.items.map((it) => (
+          <div key={it.key} className="flex items-center gap-2.5">
+            <span className="w-[34px] shrink-0 text-[10px] text-sub">{it.key}</span>
+            <span className="h-[7px] min-w-0 flex-1 overflow-hidden rounded-full bg-white/[.06]">
+              <span
+                className="block h-full rounded-full transition-[width] duration-500"
+                style={{ width: `${(it.count / mix.max) * 100}%`, background: it.count ? accent : "transparent" }}
+              />
+            </span>
+            <span className="w-[42px] shrink-0 text-right text-[10px] tabular-nums text-mut">
+              {it.count}번<span className="ml-1 text-[9px]">{it.pct}%</span>
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-3 border-t border-white/[.07] pt-2.5 text-[10px] leading-relaxed text-sub">
+        <b className="font-semibold text-ink">{mix.top}</b> 이야기가 가장 자주 나왔어요.
+      </p>
+      {mix.unknown > 0 && (
+        <p className="mt-1 text-[9px] leading-relaxed text-mut">
+          누구인지 안 적힌 기록 {mix.unknown}개는 세지 않았어요.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // 진로·관계·성장성 그래프 — 주마다 이 영역 이야기가 몇 번 나왔나.
 //
 // 좋고 나쁨이 아니라 '요즘 이게 얼마나 마음에 걸리는지'다. 기분 그래프와 달리
@@ -845,6 +896,11 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
     () => (metric.kind !== "score" ? domainMentions(entries) : null),
     [metric.kind, entries],
   );
+  // 관계 — 연인·가족·친구·직장으로 나눈다(감지는 diarySignals 가 이미 한다).
+  const relMix = useMemo(
+    () => (metric.kind === "people" ? relationMix(entries, detectRelationSubtype) : null),
+    [metric.kind, entries],
+  );
   const average = analysis?.ok ? Number(analysis.moodAvg) : null;
   const trend = analysis?.ok && Number.isFinite(Number(analysis.trend)) ? Number(analysis.trend) : null;
   const stable = trend == null || Math.abs(trend) < .25;
@@ -892,16 +948,10 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
       ) : metric.kind === "mix" ? (
         // 성장성 — 한 숫자가 아니라 무엇을 얼마나 썼는지가 본론이다.
         <SkillMixChart mix={mix} accent={accent} why={metric.why} />
-      ) : (
-        // 점수를 매기지 않는 영역 — 왜 안 매기는지 밝히고, 대신 할 수 있는 걸 준다.
-        <div className="mt-4 rounded-2xl border border-white/[.08] bg-white/[.035] px-4 py-3.5">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[11px] font-bold text-ink">{josa(metric.label, "은", "는")} 점수로 재지 않아요</span>
-            <span className="shrink-0 text-[10px] text-mut">기록 {entries.length}개</span>
-          </div>
-          <p className="mt-1.5 text-[10px] leading-relaxed text-sub">{metric.why}</p>
-        </div>
-      )}
+      ) : metric.kind === "people" ? (
+        // 관계 — 통짜로 보면 안 된다. 연인·가족·친구·직장은 서로 다른 이야기다.
+        <RelationMixChart mix={relMix} accent={accent} />
+      ) : null}
       <p className="mt-3 text-[10px] leading-relaxed text-mut">{flow}</p>
 
       <section className="mt-6 border-t border-white/[.08] pt-5">
