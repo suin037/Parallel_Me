@@ -64,12 +64,14 @@ function buildOptions() {
 export default function AvatarFromPhoto({ current, onResult, onClose }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const cameraRequestRef = useRef(0);
   const [status, setStatus] = useState("starting"); // starting | ready | working | review | error
   const [error, setError] = useState(null);
   const [shot, setShot] = useState(null); // 찍은 프레임 (메모리에만)
   const [result, setResult] = useState(null); // 모델이 고른 설정
 
   const stopCamera = useCallback(() => {
+    cameraRequestRef.current += 1; // 진행 중인 getUserMedia 응답도 무효화한다.
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
   }, []);
@@ -77,22 +79,74 @@ export default function AvatarFromPhoto({ current, onResult, onClose }) {
   const startCamera = useCallback(async () => {
     setError(null);
     setStatus("starting");
+    const requestId = cameraRequestRef.current + 1;
+    cameraRequestRef.current = requestId;
     try {
+      if (!window.isSecureContext) {
+        throw new Error("카메라는 HTTPS 또는 localhost 주소에서만 사용할 수 있습니다.");
+      }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("이 브라우저에서는 카메라 기능을 사용할 수 없습니다.");
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 640 } },
         audio: false,
       });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
+      // 개발 모드 StrictMode 재실행이나 닫기 이후 늦게 도착한 스트림은 즉시 폐기한다.
+      if (cameraRequestRef.current !== requestId) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
       }
+      streamRef.current = stream;
+      const video = videoRef.current;
+      if (!video) throw new Error("카메라 화면을 준비하지 못했습니다.");
+      video.srcObject = stream;
+
+      // getUserMedia 성공 직후에도 videoWidth/Height가 한동안 0일 수 있다.
+      // 이때 촬영하면 검은 프레임이 분석 서버로 가므로 실제 프레임을 기다린다.
+      await new Promise((resolve, reject) => {
+        if (video.readyState >= HTMLMediaElement.HAVE_METADATA && video.videoWidth > 0) {
+          resolve();
+          return;
+        }
+        const timeout = window.setTimeout(() => {
+          cleanup();
+          reject(new Error("카메라 영상 준비 시간이 초과되었습니다."));
+        }, 8000);
+        const ready = () => {
+          if (!video.videoWidth || !video.videoHeight) return;
+          cleanup();
+          resolve();
+        };
+        const failed = () => {
+          cleanup();
+          reject(new Error("카메라 영상을 재생하지 못했습니다."));
+        };
+        const cleanup = () => {
+          window.clearTimeout(timeout);
+          video.removeEventListener("loadedmetadata", ready);
+          video.removeEventListener("canplay", ready);
+          video.removeEventListener("error", failed);
+        };
+        video.addEventListener("loadedmetadata", ready);
+        video.addEventListener("canplay", ready);
+        video.addEventListener("error", failed);
+      });
+      await video.play();
       setStatus("ready");
-    } catch {
-      setError("카메라를 열 수 없습니다. 브라우저 권한을 확인해주세요.");
+    } catch (e) {
+      if (cameraRequestRef.current !== requestId) return;
+      stopCamera();
+      const cameraMessage = {
+        NotAllowedError: "카메라 권한이 차단되었습니다. 주소창의 카메라 권한을 허용해주세요.",
+        NotFoundError: "사용할 수 있는 카메라를 찾지 못했습니다.",
+        NotReadableError: "다른 앱이 카메라를 사용 중입니다. 다른 앱을 닫고 다시 시도해주세요.",
+        AbortError: "카메라 연결이 중단되었습니다. 다시 시도해주세요.",
+      }[e?.name];
+      setError(cameraMessage || e?.message || "카메라를 열 수 없습니다. 브라우저 권한을 확인해주세요.");
       setStatus("error");
     }
-  }, []);
+  }, [stopCamera]);
 
   useEffect(() => {
     startCamera();
@@ -101,7 +155,10 @@ export default function AvatarFromPhoto({ current, onResult, onClose }) {
 
   async function shoot() {
     const video = videoRef.current;
-    if (!video || !video.videoWidth) return;
+    if (status !== "ready" || !video || !video.videoWidth || !video.videoHeight) {
+      setError("카메라 영상이 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
     setStatus("working");
     setError(null);
     try {
@@ -126,7 +183,9 @@ export default function AvatarFromPhoto({ current, onResult, onClose }) {
       const image = canvas.toDataURL("image/jpeg", 0.85);
       stopCamera(); // 찍는 즉시 카메라를 끈다
 
-      const base = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
+      // 다른 API 호출과 같은 주소 규칙을 쓴다. 기본값을 localhost로 두면 휴대폰이나
+      // 외부 터널에서는 사용자 기기 자신을 가리켜 요청이 실패한다.
+      const base = import.meta.env.VITE_API_BASE || "/api";
       const res = await fetch(`${base}/avatar/from-photo`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -263,16 +322,21 @@ export default function AvatarFromPhoto({ current, onResult, onClose }) {
           <button
             type="button"
             onClick={status === "error" ? startCamera : shoot}
-            disabled={status === "working"}
+            disabled={status === "starting" || status === "working"}
             className="tap mt-2 w-full rounded-xl border border-violet-400/25 bg-violet-500/15 py-2.5 text-[12px] font-semibold text-violet-200 disabled:opacity-50"
           >
-            {status === "working" ? "분석 중…" : status === "error" ? "다시 시도" : "이 얼굴로 맞추기"}
+            {status === "starting"
+              ? "카메라 준비 중…"
+              : status === "working"
+                ? "분석 중…"
+                : status === "error"
+                  ? "다시 시도"
+                  : "이 얼굴로 맞추기"}
           </button>
 
           <p className="mt-2 text-[10px] leading-relaxed text-mut">
-            사진은 저장되지 않습니다. 분석에만 쓰고 바로 버립니다.
+            사진은 저장되지 않습니다.
             <br />
-            다만 분석은 서버를 거치므로 사진이 기기 밖으로 전송됩니다.
           </p>
         </>
       )}

@@ -155,11 +155,6 @@ export default function DailySuggest() {
         </div>
       )}
 
-      {/* 어디까지가 실측이고 어디부터가 판단인지 숨기지 않는다. */}
-      <p className="mt-2 text-[9px] leading-relaxed text-mut">
-        내 기록을 보고 고른 거예요. 곡 정보는 Deezer에서 가져온 실제 값이고, 어떤 곡이 맞을지는
-        음향 분석이 아니라 취향·기록을 보고 고른 판단이에요.
-      </p>
     </div>
   );
 }

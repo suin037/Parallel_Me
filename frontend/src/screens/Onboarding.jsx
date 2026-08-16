@@ -82,7 +82,14 @@ export default function Onboarding() {
   }
 
   function reveal(index) {
-    setVisibleThrough((current) => Math.max(current, index));
+    if (index <= visibleThrough) {
+      // 이미 열려 있는 단계도 다시 선택하면 그 단계로 확실히 이동한다.
+      window.setTimeout(() => {
+        stepRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 0);
+      return;
+    }
+    setVisibleThrough(index);
   }
 
   function revealOnEnter(event, index) {
@@ -166,13 +173,29 @@ export default function Onboarding() {
       )}
     </div>,
     <div key="sex">
-      <label className="mb-1 block text-xs font-semibold text-sub">성별</label>
-      <p className="mb-3 text-[10px] leading-4 text-mut">현재 패널 데이터의 유사집단 매칭에 사용해요. 데이터셋 코드가 남성·여성 두 범주만 제공하는 한계가 있습니다.</p>
-      <div className="grid grid-cols-2 gap-2">
-        {[["1", "남성"], ["2", "여성"]].map(([value, label]) => (
-          <button key={value} type="button" onClick={() => { setProfile((p) => ({ ...p, sex: value, sexConfirmed: true })); reveal(3); }} className={`tap rounded-xl border py-3 text-[12px] font-semibold ${profile.sex === value ? "border-violet-400 bg-violet-500/15 text-violet-200" : "border-line bg-[#0E1424] text-sub"}`}>{label}</button>
+      <label className="mb-2 block text-xs font-semibold text-sub">성별</label>
+      <div className="grid grid-cols-2 gap-2.5">
+        {[["1", "♂", "남성"], ["2", "♀", "여성"]].map(([value, symbol, label]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => { setProfile((p) => ({ ...p, sex: value, sexConfirmed: true })); reveal(3); }}
+            className={`tap flex min-h-[72px] w-full items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors ${
+              profile.sex === value
+                ? "border-violet-400 bg-violet-500/15 text-violet-200 shadow-[inset_0_0_20px_rgba(139,108,207,.1)]"
+                : "border-line bg-[#0E1424] text-sub"
+            }`}
+          >
+            <span className={`flex h-9 w-9 items-center justify-center rounded-full text-[20px] ${
+              profile.sex === value ? "bg-violet-500/20 text-violet-300" : "bg-white/[.05] text-mut"
+            }`}>{symbol}</span>
+            <span className="text-right">{label}</span>
+          </button>
         ))}
       </div>
+      {profile.sex && visibleThrough < 3 && (
+        <Button type="button" className="mt-3" onClick={() => reveal(3)}>다음</Button>
+      )}
     </div>,
     <div key="occupation">
       <label className="mb-2 block text-xs text-sub">직종</label>
@@ -187,6 +210,9 @@ export default function Onboarding() {
         <option value="" disabled hidden>직종을 골라주세요</option>
         {OCCUPATIONS.map((o) => <option key={o} className="text-ink">{o}</option>)}
       </select>
+      {OCCUPATIONS.includes(profile.occupation) && visibleThrough < 4 && (
+        <Button type="button" className="mt-3" onClick={() => reveal(4)}>다음</Button>
+      )}
     </div>,
     <div key="income">
       <label className="mb-2 block text-xs text-sub">현재 월소득</label>
@@ -271,7 +297,7 @@ export default function Onboarding() {
       </button>
     </div>,
     <div key="avatar">
-      <label className="mb-2 block text-xs text-sub">내 아바타 만들기 <span className="text-[10px] text-mut">· 나중에 설정에서 언제든 바꿀 수 있어요</span></label>
+      <label className="mb-2 block text-xs text-sub">내 아바타 만들기</label>
       <AvatarBuilder
         config={profile.avatarConfig}
         onChange={(cfg) => setProfile((p) => ({ ...p, avatarConfig: cfg }))}

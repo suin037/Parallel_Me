@@ -54,4 +54,12 @@ print("focus_a:", res["focus_a"], "narrate_order:", res["narrate_order"])
 assert res["focus_a"][0] == "성장가능성"
 assert res["narrate_order"][0] == "성장가능성"
 
+# 8) MBTI는 구조화된 서사 스타일 prior로만 반영되고 수치 가중치는 바꾸지 않는다.
+mbti_res = P.build_personalization(value_weights=vw, mbti="INTJ")
+assert mbti_res["mbti_prior_applied"] is True
+assert "근거와 장단점을 구조적으로 제시" in mbti_res["disposition_block"]
+assert "불확실성과 안전장치를 먼저 설명" in mbti_res["disposition_block"]
+assert mbti_res["effective_weights"] == vw
+assert P.mbti_narrative_directive("XXXX") == ""
+
 print("\nALL PASSED (mean 집계) ✅")

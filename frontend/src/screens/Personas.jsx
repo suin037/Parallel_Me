@@ -15,7 +15,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Lock, UserPlus } from "lucide-react";
+import { Check, Lock, UserPlus } from "lucide-react";
 import { personaCards } from "../data/personas/index.js";
 import { enterPersona, startMyAccount } from "../data/personaSession.js";
 import { useResult } from "../data/ResultContext.jsx";
@@ -30,7 +30,7 @@ const KIND_TONE = {
 function Face({ name, ready }) {
   return (
     <div
-      className={`flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full border text-[26px] font-bold tracking-[-.03em] transition-colors sm:h-[84px] sm:w-[84px] sm:text-[30px] ${
+      className={`flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full border text-[26px] font-bold tracking-[-.03em] shadow-[inset_0_0_28px_rgba(255,255,255,.06),0_0_28px_rgba(89,116,255,.12)] transition-colors sm:h-[84px] sm:w-[84px] sm:text-[30px] lg:h-[96px] lg:w-[96px] lg:text-[38px] ${
         ready
           ? "border-violet-400/30 bg-[linear-gradient(155deg,rgba(139,108,207,.35),rgba(47,111,232,.18))] text-white"
           : "border-white/10 bg-white/[.04] text-mut"
@@ -74,17 +74,17 @@ export default function Personas() {
   }
 
   return (
-    <div className="pb-8">
-      <div className="pt-2 lg:pt-4">
-        <div className="text-[12px] font-semibold text-[#8B6CCF] lg:text-[13px]">체험하기</div>
-        <h1 className="mt-0.5 text-[22px] font-bold tracking-[-.035em] lg:text-[32px]">
+    <div className="pb-8 lg:pb-12">
+      <div className="pt-2 text-left lg:mx-auto lg:max-w-[760px] lg:pt-1 lg:text-center">
+        <div className="text-[12px] font-semibold text-violet-300 lg:text-[14px]">체험하기</div>
+        <h1 className="mt-1 text-[22px] font-bold tracking-[-.035em] lg:text-[38px]">
           누구의 1년으로 들어가 볼까요?
         </h1>
-        <p className="mt-2 text-[12px] leading-relaxed text-sub lg:text-[13px]">
+        <p className="mt-3 text-[12px] leading-relaxed text-sub lg:text-[14px] lg:leading-6">
           한 사람의 1년치 기록과 지금 고민 중인 두 선택이 담겨 있어요. 고르면 그 사람의
-          자리에서 바로 비교를 볼 수 있습니다.
+          <span className="lg:block"> 자리에서 바로 비교를 볼 수 있습니다.</span>
         </p>
-        <p className="mt-1.5 text-[11px] leading-relaxed text-mut">
+        <p className="mt-1.5 text-[10px] leading-relaxed text-mut lg:text-[11px]">
           모두 합성(가상) 인물이며 실제 사용자의 기록이 아닙니다.
         </p>
       </div>
@@ -95,7 +95,7 @@ export default function Personas() {
         </p>
       )}
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:mt-7 lg:grid-cols-3 lg:gap-4">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:mx-auto lg:mt-7 lg:max-w-[1120px] lg:grid-cols-3 lg:gap-5">
         {cards.map((card) => (
           <button
             key={card.id}
@@ -103,16 +103,17 @@ export default function Personas() {
             disabled={!card.ready || Boolean(busy)}
             onClick={() => pick(card)}
             aria-label={`${card.name} ${card.ready ? "체험 시작" : "준비 중"}`}
-            className={`tap group relative flex items-center gap-4 rounded-[20px] border p-4 text-left transition-all lg:flex-col lg:items-start lg:gap-3 lg:p-5 ${
+            className={`tap group relative flex items-center gap-4 rounded-[20px] border p-4 text-left transition-all lg:min-h-[250px] lg:flex-col lg:items-center lg:justify-center lg:gap-3 lg:rounded-[22px] lg:p-5 lg:text-center ${
               card.ready
-                ? "border-white/[.08] bg-white/[.035] hover:border-violet-400/35 hover:bg-white/[.06] active:scale-[.99]"
+                ? "border-white/[.14] bg-white/[.035] hover:-translate-y-0.5 hover:border-violet-400/55 hover:bg-violet-500/[.07] hover:shadow-[0_0_30px_rgba(139,108,207,.13)] active:scale-[.99]"
                 : "cursor-default border-white/[.05] bg-white/[.015] opacity-60"
-            } ${busy === card.id ? "border-violet-400/50 bg-violet-500/10" : ""}`}
+            } ${busy === card.id ? "border-violet-400 bg-violet-500/10 shadow-[0_0_24px_rgba(139,108,207,.32)]" : ""}`}
           >
+            {busy === card.id && <span className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full bg-white text-violet-600"><Check size={16} strokeWidth={3} /></span>}
             <Face name={card.name} ready={card.ready} />
 
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 lg:flex-col lg:gap-0.5">
                 <span className="text-[16px] font-bold tracking-[-.02em] text-ink lg:text-[18px]">
                   {card.name}
                 </span>
@@ -125,7 +126,7 @@ export default function Personas() {
                 {card.tagline}
               </p>
 
-              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5 lg:justify-center">
                 <span
                   className={`rounded-full border px-2 py-[3px] text-[10px] font-semibold ${
                     KIND_TONE[card.kind] || "border-white/10 bg-white/5 text-sub"
@@ -144,42 +145,18 @@ export default function Personas() {
               </div>
             </div>
 
-            {card.ready && (
-              <span className="hidden items-center gap-1 self-end text-[11px] font-semibold text-violet-300 opacity-0 transition-opacity group-hover:opacity-100 lg:flex">
-                {busy === card.id ? "여는 중…" : "이 사람으로 시작"} <ArrowRight size={13} />
-              </span>
-            )}
           </button>
         ))}
-
-        {/* 내 계정 카드 — 페르소나와 같은 자리에 둔다. */}
-        <button
-          type="button"
-          onClick={makeMine}
-          disabled={Boolean(busy)}
-          className="tap flex items-center gap-4 rounded-[20px] border border-dashed border-violet-400/30 bg-violet-500/[.06] p-4 text-left transition-all hover:border-violet-400/50 hover:bg-violet-500/[.1] active:scale-[.99] lg:flex-col lg:items-start lg:gap-3 lg:p-5"
-        >
-          <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full border border-violet-400/30 bg-violet-500/10 text-violet-300 sm:h-[84px] sm:w-[84px]">
-            <UserPlus size={26} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <span className="text-[16px] font-bold tracking-[-.02em] text-ink lg:text-[18px]">
-              나만의 계정 만들기
-            </span>
-            <p className="mt-1.5 text-[11px] leading-[1.5] text-mut">
-              내 이름과 아바타로 시작해요. 기록은 오늘부터 직접 쌓습니다.
-            </p>
-          </div>
-        </button>
       </div>
 
-      <button
-        type="button"
-        onClick={() => navigate("/")}
-        className="tap mx-auto mt-7 block text-[12px] font-semibold text-mut hover:text-sub"
-      >
-        처음 화면으로
-      </button>
+      <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <button type="button" onClick={makeMine} disabled={Boolean(busy)} className="tap flex items-center gap-2 rounded-full border border-violet-400/25 bg-violet-500/[.07] px-4 py-2.5 text-[11px] font-semibold text-violet-200 hover:bg-violet-500/[.12]">
+          <UserPlus size={14} /> 내 프로필로 시작하기
+        </button>
+        <button type="button" onClick={() => navigate("/")} className="tap px-3 py-2 text-[11px] font-semibold text-mut hover:text-sub">
+          처음 화면으로
+        </button>
+      </div>
     </div>
   );
 }

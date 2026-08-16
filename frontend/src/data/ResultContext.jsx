@@ -23,7 +23,7 @@ const DEFAULT_PROFILE = {
   age: 29,
   sex: null, // GOMS 코드: "1" 남 / "2" 여. 입력 없이 임의 기본값을 사용하지 않는다.
   sexConfirmed: false,
-  major: "사회", // 전공 계열
+  major: "", // 전공 계열 — 교육 비교에서 사용자가 선택한 경우에만 사용
   // 직종은 기본값을 두지 않는다. 예전 기본값 "사회계열" 은 온보딩 직종 목록
   // (profileOptions.OCCUPATIONS)에 아예 없는 값이라, 사용자는 고른 적도 없고
   // 드롭다운에서 찾을 수도 없는 직종이 화면에 박혀 있었다.
@@ -273,7 +273,7 @@ export function ResultProvider({ children }) {
       const avatarBlob = await avatarToPngBlob(profile.avatarConfig);
       return generateSceneImages({
         avatarBlob,
-        avatarSpec: avatarGenerationSpec(profile.avatarConfig),
+        avatarSpec: avatarGenerationSpec(profile.avatarConfig, profile.sex),
         choiceA,
         choiceB,
         futureYears: requestArgs.futureYears,
@@ -346,7 +346,7 @@ export function ResultProvider({ children }) {
       const avatarBlob = await avatarToPngBlob(profile.avatarConfig);
       const visual = await generateSceneImages({
         avatarBlob,
-        avatarSpec: avatarGenerationSpec(profile.avatarConfig),
+        avatarSpec: avatarGenerationSpec(profile.avatarConfig, profile.sex),
         choiceA: result.a.choice,
         choiceB: result.b.choice,
         futureYears: result.futureYears ?? futureYears,

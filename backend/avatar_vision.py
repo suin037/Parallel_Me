@@ -193,6 +193,9 @@ def analyze(image_data_url: str, options: dict) -> dict:
                 }
             ],
         )
+    except AvatarVisionError:
+        # 키 미설정처럼 사용자가 바로 조치할 수 있는 원인은 일반 오류로 덮지 않는다.
+        raise
     except Exception as e:  # 네트워크·인증·정책 등
         log.warning("아바타 비전 호출 실패: %s", type(e).__name__)  # 이미지는 로그에 남기지 않는다
         raise AvatarVisionError("사진 분석에 실패했습니다. 잠시 후 다시 시도해주세요.")

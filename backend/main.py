@@ -577,6 +577,7 @@ def simulate(req: SimulateRequest) -> dict:
         n_answers=req.diary_n_answers,
         indicator_scores_a=ind_a, indicator_scores_b=ind_b,
         disposition_block=req.disposition_block or "",
+        mbti=req.profile.mbti,
     )
     focus_a = pz["focus_a"][0] if pz["focus_a"] else None
     focus_b = pz["focus_b"][0] if pz["focus_b"] else None
@@ -630,10 +631,10 @@ def simulate(req: SimulateRequest) -> dict:
     if value_weights:
         note = (note + "\n\n" + personalize.narrative_directive(
             pz, req.choice_a, req.choice_b)).strip()
-    elif req.disposition_block:
+    elif pz.get("disposition_block"):
         # 가치 순위를 건너뛰어도 MBTI·서술형 성향 재료는 서사에 전달한다.
         # 수치와 유사집단 매칭에는 쓰지 않고 표현 방식·주의점에만 사용한다.
-        note = (note + "\n\n" + req.disposition_block +
+        note = (note + "\n\n" + pz["disposition_block"] +
                 "\n위 성향은 고정 성격이나 예측 피처로 단정하지 말고 설명의 톤과 관점에만 반영할 것.").strip()
 
     note = note.strip()

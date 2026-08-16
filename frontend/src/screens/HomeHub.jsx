@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, ChevronRight, LockKeyhole, Sparkles } from "lucide-react";
 import DiaryToday from "../components/DiaryToday.jsx";
+import DailySuggest from "../components/DailySuggest.jsx";
 import ApiStatus from "../components/ApiStatus.jsx";
 import { loadUniverse } from "../data/myUniverse.js";
 
@@ -56,6 +57,8 @@ export default function HomeHub() {
               </button>
             )) : <p className="px-4 py-7 text-center text-[10px] text-mut">첫 기록을 남기면 여기에 모여요.</p>}
           </section>
+
+          <DailySuggest />
 
           <ApiStatus />
         </aside>

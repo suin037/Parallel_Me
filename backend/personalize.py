@@ -39,6 +39,36 @@ except Exception:
 INDICATORS = ["경제적안정도", "성장가능성", "삶의질"]
 
 
+def mbti_narrative_directive(mbti_value: str | None) -> str:
+    """MBTI를 고정 성격이 아닌 서사 스타일 prior로 변환한다."""
+    if not mbti_value:
+        return ""
+    try:
+        try:
+            # 저장소 루트에서 실행할 때 사용하는 정식 패키지 경로.
+            from diary_module.qmode.mbti import prior
+        except ImportError:
+            # 서버가 diary_module 자체를 sys.path에 추가한 배포 환경의 경로.
+            from qmode.mbti import prior
+        profile = prior(mbti_value)
+    except Exception:
+        profile = None
+    if not profile:
+        return ""
+
+    decision = "근거와 장단점을 구조적으로 제시" if profile["decision_style"] == "analytic" else "가치와 체감 변화를 함께 설명"
+    risk = "불확실성과 안전장치를 먼저 설명" if profile["risk_tolerance"] < 0.5 else "가능성과 선택의 여지를 함께 설명"
+    flavor = " · ".join(profile.get("delivery_flavor") or [])
+    return "\n".join([
+        f"[MBTI 전달 방식 prior: {profile['mbti']}]",
+        f"· 결정 설명: {decision}",
+        f"· 위험 설명: {risk}",
+        f"· 표현 관점: {flavor}",
+        "· MBTI로 결과 수치, 성공 가능성, 적합도나 선택 권유를 바꾸지 말 것.",
+        "· 고정된 성격으로 단정하지 말고 설명 순서와 예시의 관점에만 약하게 반영할 것.",
+    ])
+
+
 # ── 가중치 변환 ──────────────────────────────────────────────────────
 def indicator_weights(value_weights: dict | None) -> dict | None:
     """5축 가중치 → 3지표 가중치(합=1).
@@ -214,6 +244,7 @@ def build_personalization(value_weights: dict | None = None,
                           indicator_scores_a: dict | None = None,
                           indicator_scores_b: dict | None = None,
                           disposition_block: str = "",
+                          mbti: str | None = None,
                           focus_mode: str = "need_x_value") -> dict:
     """파이프라인이 부르는 단일 진입점.
 
@@ -228,6 +259,10 @@ def build_personalization(value_weights: dict | None = None,
     """
     conf = confidence(n_answers)
     eff = blend_weights(value_weights, diary_weights, conf)
+    mbti_block = mbti_narrative_directive(mbti)
+    combined_disposition = "\n\n".join(
+        part for part in (disposition_block or "", mbti_block) if part
+    )
     result = {
         "value_weights": value_weights,
         "diary_weights": diary_weights,
@@ -238,7 +273,8 @@ def build_personalization(value_weights: dict | None = None,
         "focus_a": None,
         "focus_b": None,
         "emphasis": [],
-        "disposition_block": disposition_block or "",
+        "disposition_block": combined_disposition,
+        "mbti_prior_applied": bool(mbti_block),
     }
     if indicator_scores_a:
         result["focus_a"] = psych_focus(indicator_scores_a, eff, mode=focus_mode)

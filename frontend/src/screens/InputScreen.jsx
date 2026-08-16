@@ -239,7 +239,7 @@ export default function InputScreen() {
       <section className="relative overflow-hidden py-7 lg:grid lg:min-h-[310px] lg:grid-cols-[.9fr_1.1fr] lg:items-center lg:gap-10 lg:py-10">
         <div className="relative z-10 max-w-[630px]">
           <div className="text-[11px] font-bold tracking-[.08em] text-violet-300 lg:text-[13px]">두 미래를 비교하고, 더 나은 선택을 발견하세요</div>
-          <h1 className="mt-2 text-[32px] font-black leading-[1.15] tracking-[-.055em] text-ink sm:text-[38px] lg:text-[48px] xl:text-[54px]">
+          <h1 className="mt-2 text-[32px] font-medium leading-[1.15] tracking-[-.055em] text-ink sm:text-[38px] lg:text-[48px] xl:text-[54px]">
             오늘은 어떤 갈림길을<br className="hidden sm:block" /> 비춰볼까요?
           </h1>
           <p className="mt-3 max-w-[540px] text-[12px] leading-6 text-sub lg:text-[14px]">두 가지 선택지의 미래를 시뮬레이션하고, 나에게 더 잘 맞는 길을 데이터와 이야기로 비교해보세요.</p>
@@ -251,7 +251,6 @@ export default function InputScreen() {
               <History size={16} /> 최근 시뮬 이어보기
             </button>
           </div>
-          <p className="mt-3 flex items-center gap-2 text-[10px] text-mut"><GitCompareArrows size={13} /> 입력한 두 선택은 아래에서 바로 수정할 수 있어요.</p>
         </div>
 
         <div className="pointer-events-none relative hidden h-[270px] lg:block" aria-hidden="true">
@@ -329,9 +328,6 @@ export default function InputScreen() {
       </section>
 
       {duplicate && <Caption className="text-danger">두 미래가 같아요. 회사·조건·상황 중 하나를 다르게 적어주세요.</Caption>}
-      {sameCategory && !duplicate && <Caption className="text-cyan">같은 유형이어도 구체적인 조건이 다르면 비교할 수 있어요.</Caption>}
-      {missingDomains && <Caption className="text-[#FFB36B]">삶의 영역을 찾지 못한 선택은 내용에 맞는 기본 영역으로 자동 분류할게요.</Caption>}
-      {!profile.sex && <Caption className="text-[#FFB36B]">성별을 설정하면 유사집단 매칭이 더 정확해져요. 지금은 전체 집단 기준으로 비교합니다.</Caption>}
 
       {needJobDetails && (
         <section className="mt-4 animate-fade rounded-[22px] border border-cyan/30 bg-[#0B1729]/90 p-4">
@@ -378,12 +374,19 @@ export default function InputScreen() {
       )}
 
       {needMajor && (
-        <div className="mt-4 rounded-2xl border border-white/10 bg-[#0B1423]/80 p-3.5">
-          <label className="mb-2 block text-[11px] font-semibold text-sub">전공 계열</label>
-          <select value={profile.major} onChange={(event) => setProfile((prev) => ({ ...prev, major: event.target.value }))} className="tap w-full rounded-xl border border-line bg-[#0E1424] px-3.5 py-3 text-sm text-ink outline-none focus:border-cyan">
-            {MAJOR_FIELDS.map((major) => <option key={major}>{major}</option>)}
-          </select>
-        </div>
+        <details className="group mt-3 w-fit max-w-full rounded-xl border border-white/10 bg-[#0B1423]/80">
+          <summary className="tap flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-[11px] font-semibold text-sub [&::-webkit-details-marker]:hidden">
+            <span>전공 계열</span>
+            <span className="font-normal text-mut">{profile.major || "선택사항"}</span>
+            <span className="text-[9px] text-mut transition-transform group-open:rotate-180">▼</span>
+          </summary>
+          <div className="border-t border-white/10 p-2.5">
+            <select value={profile.major || ""} onChange={(event) => setProfile((prev) => ({ ...prev, major: event.target.value }))} className="tap min-w-[180px] rounded-lg border border-line bg-[#0E1424] px-3 py-2 text-[12px] text-ink outline-none focus:border-cyan">
+              <option value="">선택하지 않음</option>
+              {MAJOR_FIELDS.map((major) => <option key={major} value={major}>{major}</option>)}
+            </select>
+          </div>
+        </details>
       )}
 
       {normalizedA && normalizedB && (

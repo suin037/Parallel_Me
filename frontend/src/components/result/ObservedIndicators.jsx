@@ -35,22 +35,26 @@ function GrowthCard({ a, b }) {
 
 function RatePair({ a, b }) {
   if (!a?.available && !b?.available) return null;
-  const max = Math.max(a?.rate || 0, b?.rate || 0, .01);
   return (
-    <div>
-      <div className="mb-1 text-[11px] text-sub">{a?.label || b?.label}</div>
-      <RateLine label="A" item={a} max={max} color="#A98BEE" />
-      <RateLine label="B" item={b} max={max} color="#F5C86B" />
+    <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
+      <div className="mb-2 text-center text-[11px] text-sub">{a?.label || b?.label}</div>
+      <div className="flex items-center justify-center gap-8">
+        <RateRing label="A" item={a} color="#A98BEE" />
+        <RateRing label="B" item={b} color="#F5C86B" />
+      </div>
     </div>
   );
 }
 
-function RateLine({ label, item, max, color }) {
+function RateRing({ label, item, color }) {
+  const percent = item?.rate == null ? 0 : Math.max(0, Math.min(100, item.rate * 100));
   return (
-    <div className="mt-1 grid grid-cols-[18px_1fr_92px] items-center gap-2 text-[10px]">
-      <b style={{ color }}>{label}</b>
-      <div className="h-1.5 overflow-hidden rounded-full bg-[#080D19]"><div className="h-full rounded-full" style={{ width: `${item?.rate == null ? 0 : item.rate / max * 100}%`, backgroundColor: color }} /></div>
-      <span className="text-right text-sub">{item?.rate == null ? "—" : `${(item.rate * 100).toFixed(1)}%`} {item?.n ? `· n=${item.n}` : ""}</span>
+    <div className="text-center">
+      <div className="relative flex h-[72px] w-[72px] items-center justify-center rounded-full" style={{ background: `conic-gradient(${color} ${percent}%, rgba(255,255,255,.08) ${percent}% 100%)` }}>
+        <div className="absolute inset-[6px] rounded-full bg-[#0E1424]" />
+        <div className="relative"><b className="block text-[9px]" style={{ color }}>{label}</b><span className="text-[11px] font-semibold text-ink">{item?.rate == null ? "—" : `${percent.toFixed(1)}%`}</span></div>
+      </div>
+      {item?.n ? <span className="mt-1 block text-[8px] text-mut">n={item.n}</span> : null}
     </div>
   );
 }
@@ -72,26 +76,31 @@ function QualityCard({ a, b }) {
 function QualityPair({ a, b }) {
   if (!a?.available && !b?.available) return null;
   return (
-    <div>
-      <div className="mb-1 text-[11px] text-sub">{a?.label || b?.label}</div>
-      <QualityLine label="A" item={a} color="#A98BEE" />
-      <QualityLine label="B" item={b} color="#F5C86B" />
+    <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
+      <div className="mb-2 text-center text-[11px] text-sub">{a?.label || b?.label}</div>
+      <div className="flex items-start justify-center gap-8">
+        <QualityRing label="A" item={a} color="#A98BEE" />
+        <QualityRing label="B" item={b} color="#F5C86B" />
+      </div>
     </div>
   );
 }
 
-function QualityLine({ label, item, color }) {
-  if (!item?.available) return <div className="text-[10px] text-mut">{label} · 관측 부족</div>;
+function QualityRing({ label, item, color }) {
+  if (!item?.available) return <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full border border-white/10 text-[9px] text-mut">{label} · 부족</div>;
   const values = [item.improved_rate || 0, item.unchanged_rate || 0, item.worsened_rate || 0].map((v) => v * 100);
+  const improvedEnd = values[0];
+  const unchangedEnd = values[0] + values[1];
   return (
-    <div className="mt-1 grid grid-cols-[18px_1fr_116px] items-center gap-2 text-[9px]">
-      <b style={{ color }}>{label}</b>
-      <div className="flex h-2 overflow-hidden rounded-full bg-[#080D19]">
-        <div className="bg-[#62C9A7]" style={{ width: `${values[0]}%` }} />
-        <div className="bg-[#657087]" style={{ width: `${values[1]}%` }} />
-        <div className="bg-[#D97882]" style={{ width: `${values[2]}%` }} />
+    <div className="text-center">
+      <div
+        className="relative flex h-[72px] w-[72px] items-center justify-center rounded-full"
+        style={{ background: `conic-gradient(#62C9A7 0 ${improvedEnd}%, #657087 ${improvedEnd}% ${unchangedEnd}%, #D97882 ${unchangedEnd}% 100%)` }}
+      >
+        <div className="absolute inset-[7px] rounded-full bg-[#0E1424]" />
+        <div className="relative"><b className="block text-[9px]" style={{ color }}>{label}</b><span className="text-[10px] font-semibold text-ink">개선 {values[0].toFixed(0)}%</span></div>
       </div>
-      <span className="text-right text-mut">개선 {values[0].toFixed(0)} · 유지 {values[1].toFixed(0)} · 악화 {values[2].toFixed(0)}</span>
+      <span className="mt-1 block text-[8px] text-mut">유지 {values[1].toFixed(0)} · 악화 {values[2].toFixed(0)}</span>
     </div>
   );
 }

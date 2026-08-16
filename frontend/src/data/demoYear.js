@@ -427,5 +427,5 @@ export function seedDemoYear() {
 //   프론트로 옮겨오기 전까지 이 별칭은 지원 데이터를 그대로 돌려준다.
 //   페르소나 선택 화면은 이 함수 대신 personas/index.js 의 레지스트리를 쓴다.
 export function seedDemoEunwoo() {
-  return seedDemoYear();
+  return seedYear(YEAR, FINALE, { demoKind: "eunwoo" });
 }

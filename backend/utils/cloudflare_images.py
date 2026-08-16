@@ -9,7 +9,7 @@ import requests
 from config import settings
 
 
-VISUAL_PROMPT_VERSION = "cinematic-3d-responsive-v5"
+VISUAL_PROMPT_VERSION = "cinematic-3d-responsive-v6-gender"
 
 
 def configured() -> bool:
@@ -21,18 +21,35 @@ def build_visual_prompt(choice: str, narrative: str, visual_scene: dict | None =
                         visual_format: str = "portrait 4:5") -> str:
     scene = json.dumps(visual_scene or {}, ensure_ascii=False, indent=2)
     identity = json.dumps(avatar_spec or {}, ensure_ascii=False, indent=2)
+    selected_gender = (avatar_spec or {}).get("gender", "unspecified")
+    if selected_gender == "male":
+        gender_instruction = (
+            "The user explicitly selected male. Depict this same character as male in both A and B "
+            "scenes while preserving every visible identity attribute from input image 0."
+        )
+    elif selected_gender == "female":
+        gender_instruction = (
+            "The user explicitly selected female. Depict this same character as female in both A and B "
+            "scenes while preserving every visible identity attribute from input image 0."
+        )
+    else:
+        gender_instruction = (
+            "The user did not specify gender. Do not infer or assign one; preserve the gender-neutral "
+            "presentation of the character in input image 0."
+        )
     return f"""
 Create a premium cinematic stylized 3D story scene, like a high-quality animated feature
 film still. Use the exact same single
-gender-neutral avatar character shown in input image 0. Input image 0 is the character identity
+avatar character shown in input image 0. Input image 0 is the character identity
 reference, not merely a loose inspiration. Preserve the character's recognizable
 face shape, eyes, eyebrows, nose, mouth, skin tone, hairstyle, hair color, glasses,
 and head accessories if present. The person in the output must be immediately
 recognizable as the character in input image 0.
-Do not infer, assign, or change the character's gender. Do not add gender-coded facial
-features, body shape, makeup, facial hair, or a different haircut. Treat the reference
-as a stylized avatar, not as a generic man or woman. These identity constraints are
-mandatory and override any conflicting implication in the story or scene direction.
+{gender_instruction}
+Do not exaggerate gender stereotypes or replace the selected avatar with a generic person.
+Do not add makeup, facial hair, or a different haircut unless those attributes are explicitly
+present in the avatar specification. These identity constraints are mandatory and override
+any conflicting implication in the story or scene direction.
 
 Exact avatar attributes to preserve:
 {identity}

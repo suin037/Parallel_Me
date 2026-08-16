@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Database, Info } from "lucide-react";
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { getKowepsEvidence } from "../../api.js";
 
 const LABELS = {
@@ -40,40 +39,26 @@ const valueText = (outcome, value) => {
   return `${Number(value).toFixed(1)}점`;
 };
 
-const scaleText = (outcome) => {
-  if (["annual_10k_krw", "10k_krw"].includes(outcome.unit)) return "금액 · 만원";
-  if (outcome.unit === "monthly_10k_krw") return "월평균 · 만원";
-  if (outcome.unit === "hours_per_week") return "시간/주";
-  if (Array.isArray(outcome.scale)) return `${outcome.scale[0]}~${outcome.scale[1]}점 · 높을수록 만족`;
-  return "설문 응답값";
-};
-
-function OutcomeChart({ outcome }) {
-  const rows = outcome.trajectory.map((point) => ({
-    year: point.wave,
-    selected: point.event.mean,
-    maintained: point.comparison.mean,
-    selectedN: point.event.n,
-    maintainedN: point.comparison.n,
-  }));
+function lastObservation(outcome) {
+  const point = outcome.trajectory?.at(-1);
+  if (typeof point?.event?.mean !== "number" || typeof point?.comparison?.mean !== "number") return null;
+  const difference = point.event.mean - point.comparison.mean;
   const money = ["annual_10k_krw", "10k_krw", "monthly_10k_krw"].includes(outcome.unit);
-  return (
-    <div className="mt-2 h-[116px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={rows} margin={{ top: 5, right: 7, bottom: 0, left: money ? 6 : -18 }}>
-          <XAxis dataKey="year" tickFormatter={(v) => `${v}년`} tick={{ fill: "#8791A8", fontSize: 9 }} axisLine={false} tickLine={false} />
-          <YAxis domain={money ? ["auto", "auto"] : [1, 5]} tick={{ fill: "#8791A8", fontSize: 8 }} axisLine={false} tickLine={false} width={money ? 38 : 24} />
-          <Tooltip
-            contentStyle={{ background: "#0C1424", border: "1px solid rgba(255,255,255,.12)", borderRadius: 10, fontSize: 10 }}
-            labelFormatter={(v) => `약 ${v}년 후 평균`}
-            formatter={(value, name, item) => [valueText(outcome, value), `${name === "selected" ? "선택 집단" : "유지 집단"} (n=${name === "selected" ? item.payload.selectedN : item.payload.maintainedN})`]}
-          />
-          <Line type="monotone" dataKey="selected" stroke="#A98AE8" strokeWidth={2.2} dot={{ r: 2.5, fill: "#A98AE8" }} connectNulls />
-          <Line type="monotone" dataKey="maintained" stroke="#7B879D" strokeWidth={1.6} strokeDasharray="4 3" dot={{ r: 2, fill: "#7B879D" }} connectNulls />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
+  const noticeable = money
+    ? Math.abs(difference) / Math.max(Math.abs(point.comparison.mean), 1) >= 0.05
+    : outcome.unit === "hours_per_week"
+      ? Math.abs(difference) >= 1
+      : Math.abs(difference) >= 0.15;
+  return { outcome, point, difference, noticeable };
+}
+
+function observationHeadline(observations) {
+  const notable = observations
+    .filter((item) => item.noticeable)
+    .sort((left, right) => Math.abs(right.difference) - Math.abs(left.difference))[0];
+  if (!notable) return "관측 집단에서는 눈에 띄는 평균 차이가 크지 않았어요.";
+  const label = LABELS[notable.outcome.key] || notable.outcome.key;
+  return `${label}에서 사건군 평균이 비교군보다 ${notable.difference > 0 ? "높게" : "낮게"} 관측됐어요.`;
 }
 
 export default function KowepsEvidenceCard({ a, b, domains }) {
@@ -101,38 +86,75 @@ export default function KowepsEvidenceCard({ a, b, domains }) {
   }, [payload, embedded]);
 
   if (state.loading) return <div className="mb-3 rounded-2xl border border-white/10 bg-card p-4 text-[11px] text-mut">KOWEPS 관측 근거 확인 중…</div>;
-  if (independent) return null;
+  if (independent) {
+    return (
+      <div className="space-y-3">
+        <CompactObservation data={a.koweps_evidence} tag="A" choice={a.choice} independent />
+        <CompactObservation data={b.koweps_evidence} tag="B" choice={b.choice} independent />
+      </div>
+    );
+  }
   if (state.error || !state.data?.available) return null;
-  const data = state.data;
+  return <CompactObservation data={state.data} />;
+}
+
+function CompactObservation({ data, tag, choice, independent = false }) {
   const matched = data.evidence_level === "personalized_matched_observation";
   const matching = data.personalization || {};
   const wanted = preferredOutcomes(data.scenario);
-  const outcomes = wanted.map((key) => data.outcomes.find((item) => item.key === key)).filter(Boolean);
+  const outcomes = wanted.map((key) => data.outcomes?.find((item) => item.key === key)).filter(Boolean);
+  const observations = outcomes.map(lastObservation).filter(Boolean);
+  const eventCount = Number(matching.event_sample_n || data.event_people || 0);
+  const comparisonCount = Number(matching.comparison_sample_n || data.comparison_people || 0);
 
   return (
-    <div className="mb-3 rounded-2xl border border-violet-400/30 bg-[#151329] p-4">
+    <div className="rounded-2xl border border-violet-400/30 bg-[#151329] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-1.5 text-[12px] font-bold text-violet-200"><Database size={14} />{matched ? "내 조건 기반 관측" : "KOWEPS 종단 관측"}</div>
-          <p className="mt-1 text-[14px] font-semibold text-ink">{data.label}</p>
-          <p className="mt-1 text-[10px] text-mut">{matched ? `가까운 조건: ${(matching.applied_features || []).join(" · ")}` : "선택 당시 25~35세였던 사람들의 이후 관측"}</p>
+          <div className="flex items-center gap-1.5 text-[12px] font-bold text-violet-200">
+            <Database size={14} />{tag ? `${tag} · ${choice}` : matched ? "내 조건 기반 집단 관측" : "KOWEPS 집단 관측"}
+          </div>
+          <p className="mt-1 text-[12px] text-sub">{data.label}</p>
         </div>
         <span className="shrink-0 rounded-full bg-violet-400/10 px-2 py-1 text-[9px] text-violet-200">25~35세</span>
       </div>
-      <p className="mt-2 text-[10px] text-mut">사건군 {Number(matching.event_sample_n || data.event_people).toLocaleString()}명 · 비교군 {Number(matching.comparison_sample_n || data.comparison_people).toLocaleString()}명</p>
-      <div className="mt-3 space-y-2">
-        {outcomes.map((outcome) => (
-          <div key={outcome.key} className="rounded-xl border border-white/[.07] bg-black/15 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[10px] font-semibold text-sub">{LABELS[outcome.key] || outcome.key}</p>
-              <p className="text-[8px] text-mut">{scaleText(outcome)}</p>
-            </div>
-            <OutcomeChart outcome={outcome} />
-            <div className="mt-1 flex items-center gap-4 text-[8px] text-mut"><span><i className="mr-1 inline-block h-0.5 w-3 bg-[#A98AE8] align-middle" />선택 집단</span><span><i className="mr-1 inline-block w-3 border-t border-dashed border-[#7B879D] align-middle" />유지 집단</span><span>선은 집단 평균</span></div>
-          </div>
-        ))}
+      <div className="mt-3 rounded-xl border border-white/[.07] bg-black/15 px-3.5 py-3">
+        <p className="text-[13px] font-semibold leading-relaxed text-ink">{observationHeadline(observations)}</p>
+        <p className="mt-1.5 text-[10px] text-mut">
+          사건군 {eventCount.toLocaleString()}명 · 비교군 {comparisonCount.toLocaleString()}명
+        </p>
       </div>
-      <div className="mt-3 flex gap-1.5 text-[9px] leading-relaxed text-mut"><Info size={12} className="mt-0.5 shrink-0" /><span>{matching.score_definition || "관측된 집단 분포이며 선택의 인과효과나 개인별 확정 미래가 아닙니다."} {data.coding_note}</span></div>
+
+      <details className="group mt-3 rounded-xl border border-white/[.07] bg-white/[.025] px-3 py-2.5">
+        <summary className="cursor-pointer list-none text-[11px] font-semibold text-violet-200">
+          관측값과 비교 기준 자세히 보기
+        </summary>
+        {observations.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {observations.map(({ outcome, point }) => (
+              <div key={outcome.key} className="flex items-center justify-between gap-3 border-t border-white/[.06] pt-2 text-[10px]">
+                <span className="text-sub">{point.wave}년 뒤 · {LABELS[outcome.key] || outcome.key}</span>
+                <span className="shrink-0 text-right text-mut">
+                  사건군 <b className="text-ink">{valueText(outcome, point.event.mean)}</b>
+                  <span className="mx-1">·</span>
+                  비교군 <b className="text-ink">{valueText(outcome, point.comparison.mean)}</b>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        {matching.applied_features?.length > 0 && (
+          <p className="mt-3 text-[9px] leading-relaxed text-mut">가까운 조건 · {matching.applied_features.join(" · ")}</p>
+        )}
+      </details>
+
+      <div className="mt-3 flex gap-1.5 text-[9px] leading-relaxed text-mut">
+        <Info size={12} className="mt-0.5 shrink-0" />
+        <span>
+          {independent && "A와 B를 직접 비교한 결과가 아니라, 이 선택의 사건군과 미발생 집단을 비교했습니다. "}
+          {matching.score_definition || data.claim_limit || "집단 평균 관측이며 개인의 확정 미래나 선택의 인과효과가 아닙니다."}
+        </span>
+      </div>
     </div>
   );
 }

@@ -152,6 +152,9 @@ function buildSimulateBody({ profile, choiceA, choiceB, choiceADetail, choiceBDe
       employment_status: profile.employment_status ?? null,
       tenure_years: profile.tenure_years ?? null,
       firm_size: profile.firm_size ?? null,
+      // MBTI는 수치 예측 피처가 아니라 결과 설명 방식의 약한 prior로만 사용한다.
+      // 백엔드가 4개 축을 구조화해 해석하므로 원문 disposition_block에만 의존하지 않는다.
+      ...(profile.mbti && profile.mbti !== "모름" ? { mbti: profile.mbti } : {}),
       // 성향 개인화 입력: 온보딩/설정 가치 순위(카드 id). 있을 때만 실어 보낸다.
       // 백엔드가 qmode.value_ranking.axis_weights 로 가중치 변환 → 강조·초점·서사 개인화.
       ...(profile.value_ranking?.length ? { value_ranking: profile.value_ranking } : {}),

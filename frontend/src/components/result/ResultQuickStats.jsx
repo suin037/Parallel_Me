@@ -104,10 +104,6 @@ export default function ResultQuickStats({ a, b, futureYears = 3 }) {
       <div className="divide-y divide-white/[.07]">
         {rows.map((row) => <StatRow key={row.key} row={row} futureYears={futureYears} />)}
       </div>
-      <p className="border-t border-white/[.07] px-4 py-2.5 text-[9px] leading-4 text-mut">
-        ‘—’는 해당 선택에 연결된 정량 근거가 없다는 뜻입니다. 관측 연도가 선택 시점과 다르면 실제 사용한 연도를 함께 표시합니다.
-        경제적 안정도·성장 가능성·삶의 질은 성공확률이 아니라 유사 연령 분포에서의 위치를 100점으로 환산한 값입니다.
-      </p>
     </section>
   );
 }

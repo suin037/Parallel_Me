@@ -1,9 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Avatar from "../Avatar.jsx";
 import { labelOf } from "../../data/prediction.js";
 
 export default function AvatarComparison({ avatar, a, b, visuals, narrative, narrativeLoading, loading, error, onRetry }) {
   const [expanded, setExpanded] = useState(null);
+  useEffect(() => {
+    if (!expanded) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setExpanded(null);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [expanded]);
   return (
     <section className="mt-4" aria-labelledby="visual-story-title">
       <div className="mb-2 flex items-end justify-between gap-3">
@@ -22,8 +36,21 @@ export default function AvatarComparison({ avatar, a, b, visuals, narrative, nar
         <StoryCard side="B" result={b} image={visuals?.b} story={narrative?.b} storyLoading={narrativeLoading} avatar={avatar} open={expanded === "B"} onToggle={() => setExpanded((v) => v === "B" ? null : "B")} />
       </div>
 
-      {expanded && (
-        <StoryDetail side={expanded} story={expanded === "A" ? narrative?.a : narrative?.b} />
+      {expanded && createPortal(
+        <div
+          className="fixed inset-0 z-[160] flex animate-backdrop-in items-end justify-center bg-[#02050C]/75 backdrop-blur-[5px] sm:items-center sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`UNIVERSE ${expanded} 상세 이야기`}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setExpanded(null);
+          }}
+        >
+          <div className="max-h-[88dvh] w-full max-w-[600px] animate-sheet-up overflow-y-auto rounded-t-[28px] border border-white/10 bg-[#0D1727] shadow-[0_-22px_70px_rgba(0,0,0,.55)] sm:animate-fade sm:rounded-[28px]">
+            <StoryDetail side={expanded} story={expanded === "A" ? narrative?.a : narrative?.b} onClose={() => setExpanded(null)} />
+          </div>
+        </div>,
+        document.body,
       )}
 
       {error && (
@@ -49,8 +76,30 @@ function StoryCard({ side, result, image, story, storyLoading, avatar, open, onT
   const hasDetail = structured && Boolean(
     detail.present || detail.transition || detail.future || story.gain || story.cost || story.uncertainty
   );
+  const toggleOnKey = (event) => {
+    if (!hasDetail || (event.key !== "Enter" && event.key !== " ")) return;
+    event.preventDefault();
+    onToggle();
+  };
   return (
-    <article className="overflow-hidden rounded-2xl border border-line bg-card">
+    <article
+      role={hasDetail ? "button" : undefined}
+      tabIndex={hasDetail ? 0 : undefined}
+      aria-expanded={hasDetail ? open : undefined}
+      aria-haspopup={hasDetail ? "dialog" : undefined}
+      aria-label={hasDetail ? `${labelOf(result.choice)} 상세 설명 팝업 보기` : undefined}
+      onClick={hasDetail ? onToggle : undefined}
+      onKeyDown={toggleOnKey}
+      className={`overflow-hidden rounded-2xl border bg-card transition-all ${
+        hasDetail ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-400/50" : ""
+      } ${
+        open
+          ? side === "A"
+            ? "border-violet-400/70 shadow-[0_0_24px_rgba(139,108,207,.16)]"
+            : "border-orange-300/60 shadow-[0_0_24px_rgba(243,154,74,.13)]"
+          : "border-line hover:border-white/20 hover:bg-white/[.025]"
+      }`}
+    >
       <div className="relative aspect-[4/5] overflow-hidden bg-[#0E1424] sm:aspect-video">
         {image ? (
           <>
@@ -74,29 +123,27 @@ function StoryCard({ side, result, image, story, storyLoading, avatar, open, onT
         {!image && structured && story.title && <h3 className="mt-1 text-[12px] font-semibold leading-snug text-ink">{story.title}</h3>}
         {!image && <p className="mt-1 text-[11px] leading-relaxed text-sub">{summary || (storyLoading ? "RAG 서사를 생성하고 있어요…" : "RAG 서사를 아직 생성하지 못했어요.")}</p>}
         {image && !summary && <p className="mt-1 text-[11px] leading-relaxed text-sub">{storyLoading ? "서사를 생성하고 있어요…" : "서사를 아직 생성하지 못했어요."}</p>}
-        {hasDetail && (
-          <button
-            type="button"
-            aria-expanded={open}
-            onClick={onToggle}
-            className="tap mt-2 w-full rounded-lg border border-line px-2 py-1.5 text-[10px] font-semibold text-sub"
-          >
-            {open ? "구체적인 설명 접기 ▲" : "구체적인 설명 보기 ▼"}
-          </button>
-        )}
+        {hasDetail && <p className="mt-2 text-[9px] font-semibold text-mut">카드를 눌러 상세 설명 보기 ↗</p>}
       </div>
     </article>
   );
 }
 
-function StoryDetail({ side, story }) {
+function StoryDetail({ side, story, onClose }) {
   if (!story || typeof story !== "object") return null;
   const detail = story.detail || {};
   const color = side === "A" ? "text-cyan" : "text-gold";
   return (
-    <div className="mt-2.5 rounded-xl border border-line bg-card p-3.5 text-[12px] leading-relaxed">
-      <p className={`mb-2 text-[11px] font-bold ${color}`}>UNIVERSE {side} · 상세 이야기</p>
-      <div className="space-y-3">
+    <div className="p-5 text-[12px] leading-relaxed sm:p-6">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <p className={`text-[10px] font-bold tracking-[.14em] ${color}`}>UNIVERSE {side}</p>
+          <h3 className="mt-1 text-lg font-bold text-ink">{story.title || "상세 이야기"}</h3>
+          {story.summary && <p className="mt-1.5 text-[11px] leading-relaxed text-sub">{story.summary}</p>}
+        </div>
+        <button type="button" onClick={onClose} aria-label="상세 설명 닫기" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[.04] text-lg text-sub transition hover:bg-white/10 hover:text-ink">×</button>
+      </div>
+      <div className="space-y-3 border-t border-white/[.07] pt-4">
         <StoryBeat label="지금" text={detail.present} />
         <StoryBeat label="변화 과정" text={detail.transition} />
         <StoryBeat label="그 이후" text={detail.future} />
@@ -122,15 +169,16 @@ function Comparison({ story }) {
   const summary = structured ? story.summary : story;
   if (!summary) return null;
   return (
-    <div className="rounded-xl border border-violet-400/20 bg-violet-500/[.06] p-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] font-bold tracking-wide text-violet-200">두 선택을 가르는 핵심 차이</p>
-        <span className="shrink-0 text-[9px] text-mut">AI 비교 요약</span>
+    <div className="relative overflow-hidden rounded-[20px] border border-white/10 bg-[#091321]/95 p-4 shadow-[0_18px_50px_rgba(0,0,0,.18)] lg:p-5">
+      <div className="pointer-events-none absolute -left-16 -top-20 h-44 w-44 rounded-full bg-violet-500/10 blur-[55px]" />
+      <div className="pointer-events-none absolute -bottom-24 -right-14 h-48 w-48 rounded-full bg-orange-400/[.07] blur-[60px]" />
+
+      <div className="relative text-center">
+        <span className="text-[9px] font-bold tracking-[.18em] text-violet-300/70">CORE INSIGHT</span>
+        <h3 className="mt-1 text-[15px] font-bold tracking-[-.02em] text-ink lg:text-[17px]">두 선택의 핵심 차이</h3>
+        <p className="mx-auto mt-2 max-w-[760px] text-[11px] leading-[1.65] text-sub lg:text-[12px]">{summary}</p>
       </div>
-      <p className="mt-1 text-[11px] leading-relaxed text-sub">{summary}</p>
-      {structured && story.question && (
-        <p className="mt-2 border-t border-line pt-2 text-[11px] leading-relaxed text-ink">{story.question}</p>
-      )}
+
     </div>
   );
 }

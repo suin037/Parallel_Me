@@ -65,7 +65,6 @@ export default function KowepsTrajectoryView({ a, b }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold">1·3·5·10년 뒤 관측 변화</h2>
-          <Caption>{evidence.label} · {matched ? "내 조건과 가까운 KOWEPS 표본" : "KOWEPS 25~35세 종단 관측"}</Caption>
         </div>
         <span className="shrink-0 rounded-full bg-violet-500/10 px-2 py-1 text-[9px] font-semibold text-violet-300">{matched ? "유사 조건 관측" : "집단 관측"}</span>
       </div>
@@ -94,7 +93,6 @@ export default function KowepsTrajectoryView({ a, b }) {
         <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-[#9B7AE5]" />A · {a.choice}</span>
         <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-[#F2C56B]" />B · {b.choice}</span>
       </div>
-      <Caption>각 시점은 사건이 발생한 때로부터 지난 연수입니다. {matched ? `나이·성별·학력·소득 등 사용 가능한 조건으로 가까운 표본을 골랐습니다. ` : ""}관측 평균이며 인과효과나 개인의 확정 미래를 뜻하지 않습니다.</Caption>
     </Card>
   );
 }

@@ -53,6 +53,11 @@ class Profile(BaseModel):
                     "임금 분산의 36.8%를 설명하는 가장 강한 축. 없으면 그 축은 매칭에서 제외")
     persona_block: Optional[str] = Field(None,
         description="qmode 성향 재료(이직 서사 개인화). 없으면 기존과 동일 — 예측 수치엔 미반영, 서사 톤·순서만 조정")
+    mbti: Optional[str] = Field(
+        None,
+        pattern=r"^(?:[EI][SN][TF][JP])$",
+        description="온보딩 MBTI. 수치 예측·유사집단 매칭에는 쓰지 않고 서사 전달 방식의 약한 prior로만 사용.",
+    )
 
     # --- 가치 성향 (선택) — 개인화 레이어용. 모델 매칭 피처 아님(강조·초점·서사에만) ---
     value_weights: Optional[dict[str, float]] = Field(

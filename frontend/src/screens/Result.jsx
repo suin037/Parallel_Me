@@ -8,12 +8,10 @@ import { occupationLabel } from "../data/profileOptions.js";
 import { redactPII, redactEntries } from "../data/piiRedact.js";
 import { saveMe, getScenario, getThirdPath } from "../data/api.js";
 import { listUniverses, saveUniverse, universeFromResult } from "../data/savedUniverses.js";
-import { Eyebrow } from "../components/ui.jsx";
 import ServiceNotice from "../components/ServiceNotice.jsx";
 import { Bookmark, Check, ChevronLeft, ChevronRight, LockKeyhole } from "lucide-react";
 import LifeView from "../components/result/LifeView.jsx";
 import ChangeView from "../components/result/ChangeView.jsx";
-import EvidenceView, { hasEvidenceDetail } from "../components/result/EvidenceView.jsx";
 import ActionView from "../components/result/ActionView.jsx";
 import AvatarComparison from "../components/result/AvatarComparison.jsx";
 import DiarySignalCard from "../components/result/DiarySignalCard.jsx";
@@ -25,11 +23,15 @@ import ResultQuickStats from "../components/result/ResultQuickStats.jsx";
 import { softDomainOf } from "../data/softCompare.js";
 import { DOMAIN_LABEL } from "../data/diarySignals.js";
 
-const RESULT_STEPS = ["결과 요약", "비교 분석", "다음 선택", "저장하고 완료"];
+const RESULT_STEPS = ["결과 요약", "비교하고 선택", "저장하고 완료"];
+const FUTURE_YEAR_OPTIONS = [1, 3, 5, 10];
 
 export default function Result() {
   const navigate = useNavigate();
-  const { result, profile, scenarioDomains, retryVisuals, jobAnalyses, postings, relResults, talks } = useResult();
+  const {
+    result, profile, scenarioDomains, retryVisuals, jobAnalyses, postings, relResults, talks,
+    setFutureYears,
+  } = useResult();
   const { a, b } = result;
   // 온보딩·설정의 직종(8분류) → 없으면 입력 화면의 KSCO 대분류. 둘 다 없으면 빈 문자열.
   const myOccupation = occupationLabel(profile);
@@ -39,17 +41,22 @@ export default function Result() {
   // 그 자리를 기록 기반 장면 비교로 바꾸고, 수치 탭은 뒤로 물린다.
   const softPlanet = softDomainOf([...(result.domains?.a || scenarioDomains?.a || []),
                                    ...(result.domains?.b || scenarioDomains?.b || [])]);
+  const hasKowepsObservation = [a, b].some((side) => side.koweps_evidence?.available);
+  const hasNumericComparison = hasComparableNumbers(a, b);
 
   const tabs = [
-    ...(softPlanet
-      ? [{ key: "soft", label: "두 길의 하루",
-           View: (p) => <SoftCompareView {...p} planet={softPlanet} planetLabel={DOMAIN_LABEL[softPlanet] || ""} /> }]
+    ...(hasNumericComparison
+      ? [{ key: "numbers", label: "수치 비교", View: (p) => <>
+          <ChangeView {...p} />
+          <LifeView {...p} />
+        </> }]
       : []),
-    { key: "indicators", label: softPlanet ? "참고 지표" : "핵심 지표", View: LifeView },
-    // 내용이 없으면 탭 자체를 만들지 않는다 — 열어봐야 "없습니다" 한 줄인 탭은
-    // 고를 것만 늘린다. 공고·관계 분석이 이미 같은 방식이다.
-    ...(hasEvidenceDetail(a, b, result.dataMode || "demo")
-      ? [{ key: "evidence", label: "분석 상세", View: EvidenceView }]
+    { key: "record", label: "기록 근거", View: () => <>
+      <DiarySignalCard />
+      {softPlanet && <SoftCompareView a={a} b={b} planet={softPlanet} planetLabel={DOMAIN_LABEL[softPlanet] || ""} />}
+    </> },
+    ...(hasKowepsObservation
+      ? [{ key: "observation", label: "집단 관측", View: (p) => <KowepsEvidenceCard {...p} /> }]
       : []),
     // 입력에서 공고를 분석했을 때만 — 예측 수치 옆에서 그 공고를 다시 확인한다.
     ...(jobAnalyses?.length || postings?.length
@@ -61,7 +68,9 @@ export default function Result() {
       : []),
   ];
 
-  const [tab, setTab] = useState(softPlanet ? "soft" : "indicators");
+  const [tab, setTab] = useState(
+    hasNumericComparison ? "numbers" : hasKowepsObservation ? "observation" : "record",
+  );
   const [step, setStep] = useState(0);
   const Active = (tabs.find((t) => t.key === tab) || tabs[0]).View;
 
@@ -74,6 +83,12 @@ export default function Result() {
   // 서사가 아직 오는 중이면 반쪽짜리 스냅샷이 저장된다 → 준비된 뒤에 담게 한다.
   const savable = !saved && !result.narrativeLoading;
 
+  function changeFutureYear(years) {
+    if (years === (result.futureYears ?? 3)) return;
+    setFutureYears(years);
+    navigate("/simulate");
+  }
+
   function saveToArchive() {
     saveUniverse(
       universeFromResult(result, profile, { a: a.choice, b: b.choice }, result.domains || scenarioDomains),
@@ -83,7 +98,6 @@ export default function Result() {
 
   return (
     <div className="relative">
-      <Eyebrow>결과 · CHART No.0427</Eyebrow>
       <h1 className="text-[21px] font-bold leading-[1.2] lg:text-[28px]">
         {/* 헤더는 '지금 내 프로필'을 그대로 보여준다. 예전엔 결과 객체 안의 스냅샷
             (a.meta)을 읽어서, 설정에서 나이·직종을 고친 뒤 결과 화면으로 돌아오면
@@ -96,18 +110,39 @@ export default function Result() {
         <span className="font-bold text-gold">{labelOf(b.choice)}</span>
       </p>
       <div className="mt-2 flex flex-col items-start gap-2 lg:flex-row lg:items-center lg:justify-between">
-        <div className="inline-flex h-7 items-center rounded-full border border-violet-400/30 bg-violet-500/10 px-3 text-[11px] font-semibold text-violet-200">
-          지금부터 {result.futureYears ?? 3}년 뒤의 두 미래
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex h-7 items-center rounded-full border border-violet-400/30 bg-violet-500/10 px-3 text-[11px] font-semibold text-violet-200">
+            지금부터 {result.futureYears ?? 3}년 뒤의 두 미래
+          </div>
+          <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/20 p-1" role="radiogroup" aria-label="결과 기준 시점 변경">
+            {FUTURE_YEAR_OPTIONS.map((years) => {
+              const selected = years === (result.futureYears ?? 3);
+              return (
+                <button
+                  key={years}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  title={`${years}년 뒤 기준으로 다시 분석`}
+                  onClick={() => changeFutureYear(years)}
+                  className={`tap !min-h-0 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors ${
+                    selected ? "bg-violet-500/30 text-white" : "text-mut hover:bg-white/[.06] hover:text-sub"
+                  }`}
+                >
+                  {years}년
+                </button>
+              );
+            })}
+          </div>
         </div>
         {step !== 1 && <EvidenceModeBadge a={a} b={b} domains={result.domains || scenarioDomains} />}
       </div>
-
       {/* 서버에 못 닿았거나(offline) 서사만 생략된(busy) 상태를 **맨 위에서** 알린다.
           이게 없으면 목업 숫자가 아무 표시 없이 진짜처럼 보인다 — 경고가 근거 탭
           안쪽에만 있어서 첫 화면만 보고 지나가면 알 수 없었다. */}
       <ServiceNotice status={result.serviceStatus || "ok"} />
 
-      <ol className="mt-5 grid grid-cols-4 gap-2" aria-label="결과 확인 단계">
+      <ol className="mt-5 grid gap-2" style={{ gridTemplateColumns: `repeat(${RESULT_STEPS.length}, minmax(0, 1fr))` }} aria-label="결과 확인 단계">
         {RESULT_STEPS.map((label, index) => (
           <li key={label} className="min-w-0">
             <div className={`h-1 rounded-full ${index <= step ? "bg-violet-400" : "bg-white/10"}`} />
@@ -132,27 +167,13 @@ export default function Result() {
         error={result.visualError || result.narrativeError}
         onRetry={result.visualError ? retryVisuals : null}
       />
-      <div className="mt-4 grid items-start gap-4 xl:grid-cols-2 xl:gap-5">
-        <div className="min-w-0 [&>section]:mt-0">
-          <ResultQuickStats a={a} b={b} futureYears={result.futureYears ?? 3} />
-        </div>
-        <div className="min-w-0 [&>div>div:first-child]:mt-0 [&>div>section:first-child]:mt-0">
-          <ChangeView
-            a={a}
-            b={b}
-            domains={result.domains || scenarioDomains}
-            dataMode={result.dataMode || "demo"}
-          />
-        </div>
+      <div className="mt-4 min-w-0 [&>section]:mt-0">
+        <ResultQuickStats a={a} b={b} futureYears={result.futureYears ?? 3} />
       </div>
       </section>}
 
-      {step === 1 && <section className="mt-5 animate-fade lg:grid lg:grid-cols-[minmax(280px,.7fr)_minmax(0,1.3fr)] lg:items-start lg:gap-7">
-        <div>
-          <DiarySignalCard />
-          <KowepsEvidenceCard a={a} b={b} domains={result.domains || scenarioDomains} />
-        </div>
-        <div>
+      {step === 1 && <section className="mt-5 animate-fade lg:grid lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)] lg:items-start lg:gap-6">
+        <div className="min-w-0">
       <div className="no-scrollbar my-2.5 flex gap-1.5 overflow-x-auto pb-1">
         {tabs.map((t) => {
           const on = t.key === tab;
@@ -174,19 +195,22 @@ export default function Result() {
         <Active a={a} b={b} domains={result.domains || scenarioDomains} dataMode={result.dataMode || "demo"} />
       </div>
         </div>
-      </section>}
-
-      {step === 2 && <section className="mt-5 animate-fade">
-        <div className="mt-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-7">
-          <div><ActionView a={a} b={b} domains={result.domains || scenarioDomains} dataMode={result.dataMode || "demo"} /></div>
-          <div>
+        <aside className="mt-5 rounded-[22px] border border-white/10 bg-[#0B1424]/90 p-4 lg:sticky lg:top-5 lg:mt-2.5">
+          <p className="text-[10px] font-bold tracking-[.14em] text-violet-300">결정 포인트</p>
+          <p className="mt-2 text-[13px] font-semibold leading-relaxed text-ink">
+            {result.narrative?.comparison?.question || "두 선택 중 지금 더 확인해보고 싶은 방향은 무엇인가요?"}
+          </p>
+          <div className="mt-4 border-t border-white/[.07] pt-4">
+            <ActionView a={a} b={b} domains={result.domains || scenarioDomains} dataMode={result.dataMode || "demo"} />
+          </div>
+          <div className="mt-4 border-t border-white/[.07] pt-4">
             <PersonaScenario a={a} b={b} />
             <ThirdPath a={a} b={b} />
           </div>
-        </div>
+        </aside>
       </section>}
 
-      {step === 3 && <section className="mx-auto mt-6 max-w-[680px] animate-fade rounded-[24px] border border-white/10 bg-card/70 p-5 text-center lg:p-8">
+      {step === 2 && <section className="mx-auto mt-6 max-w-[680px] animate-fade rounded-[24px] border border-white/10 bg-card/70 p-5 text-center lg:p-8">
         <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-violet-500/15 text-violet-300"><Bookmark size={21}/></span>
         <h2 className="mt-4 text-[18px] font-bold text-ink">비교 결과를 보관할까요?</h2>
         <p className="mt-2 text-[12px] leading-5 text-mut">결과를 보관함에 저장해야 이번 비교를 마치고 다른 메뉴로 이동할 수 있어요.</p>
@@ -236,12 +260,35 @@ export default function Result() {
           onClick={() => setStep((current) => current + 1)}
           className="tap flex items-center gap-1.5 rounded-xl bg-violet-500 px-4 py-2.5 text-[12px] font-semibold text-white hover:bg-violet-400"
         >
-          다음 단계 <ChevronRight size={15}/>
+          {step === 1 ? "선택 마치고 저장" : "다음 단계"} <ChevronRight size={15}/>
         </button>
       )}
       </div>
     </div>
   );
+}
+
+// 선택과 무관한 참고 통계만 있을 때는 "수치 비교" 탭을 만들지 않는다.
+// 실제로 A/B가 갈리거나 유사사례의 변화 비율이 준비된 경우에만 노출한다.
+function hasComparableNumbers(a, b) {
+  if ([a, b].some((side) => side.observed_outcomes?.status === "available")) return true;
+  if ([a, b].some((side) => side.parallel_trajectory?.status === "available")) return true;
+  if ([a, b].some((side) => Array.isArray(side.trajectory) && side.trajectory.length > 0)) return true;
+  const num = (value) => (value === null || value === undefined || value === "" ? NaN : Number(value));
+  const last = (rows) => (Array.isArray(rows) && rows.length
+    ? num(rows.at(-1)?.value ?? rows.at(-1)?.median)
+    : NaN);
+  const pairs = [
+    [num(a.expected_wage), num(b.expected_wage)],
+    [num(a.causal_effect), num(b.causal_effect)],
+    [num(a.survival_months), num(b.survival_months)],
+    [last(a.wellbeing_trajectory), last(b.wellbeing_trajectory)],
+  ];
+  return pairs.some(([left, right]) => {
+    const leftOk = Number.isFinite(left);
+    const rightOk = Number.isFinite(right);
+    return (leftOk || rightOk) && (!leftOk || !rightOk || left !== right);
+  });
 }
 
 function EvidenceModeBadge({ a, b, domains }) {
@@ -312,13 +359,17 @@ function ThirdPath({ a, b }) {
   }
 
   return (
-    <div className="mb-3 rounded-2xl border border-gold/50 bg-[#211a10] p-3.5">
-      <div className="flex items-center justify-between">
-        <div className="text-[13px] font-bold text-gold">💡 생각지 못한 제3의 길</div>
+    <details className="group mb-3 rounded-2xl border border-gold/35 bg-[#211a10] px-3.5 py-3">
+      <summary className="cursor-pointer list-none text-[12px] font-bold text-gold">
+        💡 A와 B 모두 확신이 없다면
+        <span className="ml-1 text-[10px] font-normal text-mut group-open:hidden">· 제3의 길 보기</span>
+      </summary>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <p className="text-[10px] leading-relaxed text-mut">내 성향과 기록을 바탕으로 다른 선택지를 찾아봅니다.</p>
         <button
           onClick={run}
           disabled={busy}
-          className="tap rounded-xl bg-gold px-3 py-1.5 text-[11px] font-bold text-[#2a1e05] disabled:opacity-60"
+          className="tap shrink-0 rounded-xl bg-gold px-3 py-1.5 text-[11px] font-bold text-[#2a1e05] disabled:opacity-60"
         >
           {busy ? "찾는 중…" : res ? "다시" : "제안 받기"}
         </button>
@@ -333,13 +384,9 @@ function ThirdPath({ a, b }) {
           </p>
         </>
       ) : (
-        !busy && (
-          <p className="mt-2 text-[11px] leading-relaxed text-mut">
-            {a.choice} vs {b.choice} 두 갈래 말고, 내 성향·일기에 맞는 제3의 길을 제안받아요.
-          </p>
-        )
+        null
       )}
-    </div>
+    </details>
   );
 }
 
