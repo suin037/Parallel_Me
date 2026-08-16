@@ -37,7 +37,7 @@ export const HAIR_STYLES = [
   { id: "sideComed", label: "옆가르마", hair: "sideComed", rear: null, desc: "이마 한쪽이 드러나고 옆으로 쓸어넘긴 짧은 머리. 볼륨이 적고 두상에 붙음" },
   { id: "undercut", label: "언더컷", hair: "undercut", rear: null, desc: "옆은 짧고 윗머리를 위로 세워 뒤로 넘긴 머리. 포마드·올백·가일컷이 여기" },
   { id: "spiky", label: "뾰족머리", hair: "spiky", rear: null, desc: "윗머리를 위로 뾰족뾰족 세워 끝이 삐죽삐죽 갈라진 머리. 왁스로 세게 세운 모양" },
-  { id: "bun", label: "번머리", hair: "bun", rear: null, desc: "머리를 뒤로 모아 정수리에 동그랗게 묶어 올린 머리" },
+  { id: "bun", label: "번머리", hair: "bun", rear: null, desc: "머리를 묶은 형태 전부. 똥머리·포니테일·반묶음·상투 모두 여기. 뒤통수나 정수리에서 머리가 하나로 모이거나 뒷목이 드러나면 이것" },
   { id: "menCover", label: "남자 덮머", hair: "menCover", rear: null, custom: true, desc: "이마가 대부분 덮이고 앞머리가 눈썹까지 내려온 머리. 옆으로 자연스럽게 흐름" },
   { id: "menPerm", label: "남자 펌", hair: "menPerm", rear: null, custom: true, desc: "전체가 뚜렷한 곱슬. 이마는 부분적으로만 드러남" },
   { id: "menPermPart", label: "남자 펌 · 5대5 가르마", hair: "menPermPart", rear: null, custom: true, desc: "곱슬인데 가운데로 갈라져 이마 한가운데가 드러남" },
