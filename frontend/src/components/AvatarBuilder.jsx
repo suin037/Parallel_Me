@@ -25,12 +25,17 @@ import AvatarFromPhoto from "./AvatarFromPhoto.jsx";
 // '옆가르마'와 '언더컷' 같은 것들이 구분되지 않는다.
 
 const NONE = (label = "없음") => ({ id: null, label });
-// 성별은 지금 속눈썹 하나만 좌우한다. 그래서 따로 저장하지 않고 lashes 를 그대로 쓴다 —
-// 값이 하나뿐이라 '성별은 남자인데 속눈썹은 켜짐' 같은 어긋남이 생길 수 없다.
-// 빌트인 눈에는 속눈썹이 늘 붙어 있어서, 끄지 않으면 남자 아바타가 여성적으로 보인다.
-const GENDER = [
-  { id: true, label: "여자" },
-  { id: false, label: "남자" },
+// 속눈썹은 그냥 속눈썹이다 — '남자/여자'라고 부르지 않는다.
+//
+// 이 항목이 실제로 바꾸는 건 속눈썹 하나뿐인데 이름을 '성별'로 달아두면,
+// 속눈썹을 켜고 싶은 사람이 자기 성별을 바꿔야 하고 그 반대도 마찬가지다.
+// 이름은 실제로 하는 일을 가리켜야 한다.
+//
+// 대신 처음 값은 온보딩에서 고른 성별이 정한다(profile.sex). 대부분은 그대로
+// 두면 맞고, 바꾸고 싶은 사람만 여기서 바꾸면 된다.
+const LASHES = [
+  { id: true, label: "있음" },
+  { id: false, label: "없음" },
 ];
 const FACE_ITEMS = Object.entries(FACE_SHAPES).map(([id, v]) => ({ id, label: v.label }));
 const CATEGORIES = [
@@ -202,8 +207,8 @@ export default function AvatarBuilder({ config, onChange }) {
           {category === "base" && (
             <>
               <Stepper
-                label="성별"
-                items={GENDER}
+                label="속눈썹"
+                items={LASHES}
                 value={avatar.lashes !== false}
                 field="lashes"
                 config={bare}

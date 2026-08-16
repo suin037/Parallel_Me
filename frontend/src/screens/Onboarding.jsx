@@ -105,6 +105,24 @@ export default function Onboarding() {
     setProfile((p) => ({ ...p, income: normalized === "" ? null : Number(normalized) }));
   }
 
+  /**
+   * 성별 선택 — 속눈썹 초기값도 여기서 정한다.
+   *
+   * 아바타 만들기에서 이 항목의 이름은 '속눈썹'이다. 실제로 바꾸는 게 속눈썹
+   * 하나뿐인데 '성별'이라 부르면, 속눈썹을 켜고 싶은 사람이 자기 성별을 바꿔야
+   * 한다. 그래서 이름은 속눈썹으로 두고, 첫 값만 여기서 정해 준다.
+   * 아바타 단계는 이 뒤에 오므로 사용자가 고친 값을 덮어쓸 일이 없다.
+   */
+  function pickSex(value) {
+    setProfile((p) => ({
+      ...p,
+      sex: value,
+      sexConfirmed: true,
+      avatarConfig: { ...(p.avatarConfig || {}), lashes: value === "2" },
+    }));
+    reveal(3);
+  }
+
   function confirmIncome() {
     if (incomeInput === "") return;
     reveal(5);
@@ -179,7 +197,7 @@ export default function Onboarding() {
           <button
             key={value}
             type="button"
-            onClick={() => { setProfile((p) => ({ ...p, sex: value, sexConfirmed: true })); reveal(3); }}
+            onClick={() => pickSex(value)}
             className={`tap flex min-h-[72px] w-full items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors ${
               profile.sex === value
                 ? "border-violet-400 bg-violet-500/15 text-violet-200 shadow-[inset_0_0_20px_rgba(139,108,207,.1)]"
