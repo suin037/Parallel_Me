@@ -10,6 +10,7 @@
 from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 import functools
+import importlib.util
 import json
 import logging
 import os
@@ -320,11 +321,37 @@ def _measured(scores: dict, detail: dict, override: dict | None) -> dict:
 
 
 @functools.lru_cache(maxsize=1)
+def _required_artifacts() -> frozenset[str] | None:
+    """서빙에 **반드시** 있어야 하는 아티팩트 이름. 못 읽으면 None(판단 불가).
+
+    정본은 `scripts/fetch_artifacts.py` 의 FILES 다 — 배포가 실제로 내려받는 목록이라
+    "무엇이 필수인가" 를 아는 유일한 자리다. 그 표를 여기 복사해두면 두 곳이 조용히
+    어긋난다(backend/requirements.txt 가 아티팩트 학습 버전과 어긋나 있던 것과 같은
+    실패다). 그래서 파일을 직접 읽는다.
+    """
+    path = ROOT / "scripts" / "fetch_artifacts.py"
+    try:
+        spec = importlib.util.spec_from_file_location("_fetch_artifacts_table", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return frozenset(name for name, required, _ in mod.FILES if required)
+    except Exception as exc:
+        log.warning("필수 아티팩트 목록을 %s 에서 못 읽었다(%s) — "
+                    "빠진 파일을 모두 필수로 본다", path, type(exc).__name__)
+        return None
+
+
+@functools.lru_cache(maxsize=1)
 def _artifact_manifest() -> dict:
     """서빙 중인 모델 아티팩트 명세(scripts/build_artifact_manifest.py 생성).
 
     training_report.json 만 보면 실제 서빙 구성(연령대별 YP/KLIPS 라우팅)을 알 수 없어
     실제로 두 파일이 어긋나 있었다 → 무엇이 서빙되는지 런타임에서 확인 가능하게 노출한다.
+
+    빠진 파일은 **필수/선택으로 나눠서** 돌려준다. 전에는 한 덩어리라, 폐기 대상
+    (lifelines.pkl)이나 폴백(knn_yp.pkl 등)이 없다는 이유만으로 필수 8개가 전부
+    멀쩡해도 /health 가 계속 degraded 였다. 늘 degraded 면 진짜 고장을 못 알아본다.
+    실제로 그 신호를 보고 "폐기한 lifelines.pkl 을 올려야 한다" 고 읽은 일이 있었다.
     """
     p = settings.artifacts_abspath / "manifest.json"
     if not p.exists():
@@ -334,12 +361,19 @@ def _artifact_manifest() -> dict:
         m = json.loads(p.read_text(encoding="utf-8"))
     except Exception as exc:
         return {"available": False, "error": f"{type(exc).__name__}"}
+    required = _required_artifacts()
     artifacts = {}
-    runtime_missing = []
+    missing_required: list[str] = []
+    missing_optional: list[str] = []
     for name, entry in (m.get("artifacts") or {}).items():
         actual_present = (settings.artifacts_abspath / name).is_file()
         if not actual_present:
-            runtime_missing.append(name)
+            # 필수 목록을 못 읽었으면 보수적으로 전부 필수 취급한다 —
+            # 판단이 안 될 때 조용히 ok 로 넘어가는 게 제일 나쁘다.
+            if required is None or name in required:
+                missing_required.append(name)
+            else:
+                missing_optional.append(name)
         artifacts[name] = {
             **{k: entry[k] for k in ("layer", "source", "causal", "survival")
                if k in entry},
@@ -350,7 +384,11 @@ def _artifact_manifest() -> dict:
         "generated_at": m.get("generated_at"),
         "git": m.get("git"),
         "data_vintage": m.get("data_vintage"),
-        "missing": runtime_missing,
+        # missing = 없으면 기능이 죽는 것(= degraded 판정 근거).
+        # missing_optional = 폴백·폐기 대상. 보이되 degraded 로 세지 않는다.
+        "missing": missing_required,
+        "missing_optional": missing_optional,
+        "required_known": required is not None,
         "manifest_missing": m.get("missing") or [],
         # 파일별 한 줄 요약(용량·features 등 상세는 manifest.json 원본 참조)
         "artifacts": artifacts,
@@ -425,6 +463,8 @@ def health() -> dict:
     from rag import psych_retriever as _pr
 
     # qmode 또는 필수 모델 아티팩트가 빠지면 degraded 로 노출해 배포 단계에서 잡는다.
+    # "필수" 는 scripts/fetch_artifacts.py 의 FILES 기준이다(_required_artifacts).
+    # 폴백·폐기 대상은 artifacts.missing_optional 에만 실리고 여기 안 센다.
     artifact_state = _artifact_manifest()
     qmode = {**QMODE_MOUNT,
              "affects": "/qmode/* — 두 길의 하루·챗봇·성향분석·기업분석·관계분석·주간리포트"}
