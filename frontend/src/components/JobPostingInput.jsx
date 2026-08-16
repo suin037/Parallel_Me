@@ -4,6 +4,39 @@ import { isPostingReady, extractFromUrl, extractFromPdf } from "../data/jobAnaly
 // 공고 담기 — 입력 화면에서는 '모으기만' 한다. 분석 결과는 시뮬레이션을 돌린 뒤
 // 결과 화면의 '공고 분석' 탭에서 보여준다(입력과 결과를 섞지 않는다).
 // 여러 개 담으면 같은 성향 기준으로 나란히 비교된다.
+
+/** 서버가 준 실패 이유 → 사용자가 무엇을 하면 되는지.
+ *
+ * 예전에는 어떤 이유든 "주소를 읽지 못했어요" 한 문장만 띄웠다. 주소가 잘못된 건지,
+ * 그 공고가 만료된 건지, 우리 서버가 안 뜬 건지 구분할 수가 없어서 제보가 와도
+ * 스크린샷만으로는 원인을 못 잡았다.
+ */
+function urlFailNote(reason) {
+  const r = String(reason || "");
+  if (r === "bad_url") return "주소 형식이 올바르지 않아요. http 로 시작하는 전체 주소를 넣어주세요.";
+  if (r.startsWith("fetch_failed")) {
+    return "그 주소를 열지 못했어요. 로그인해야 보이거나 만료된 공고일 수 있어요 — 본문을 붙여넣어 주세요.";
+  }
+  return "주소를 읽지 못했어요. 본문을 붙여넣어 주세요.";
+}
+
+/** 읽어온 게 '공고'인지까지 말해준다.
+ *
+ * source="page" 는 공고 구조화 정보(JobPosting)를 못 찾아 페이지 글자를 그대로 긁은 것이다.
+ * 채용 포털 첫 화면을 넣으면 메뉴·안내문이 1,800자쯤 담기는데 thin 도 아니라서,
+ * 예전에는 "잘 불러왔어요"라고 말하고 그 메뉴를 그대로 분석에 넘겼다.
+ */
+function readNote(data) {
+  const who = `${data.company || ""} ${data.title || ""}`.trim();
+  if (data.thin) {
+    return `${who} — 제목만 읽혔어요. 이 사이트는 본문이 스크립트로 그려져서, 붙여넣으면 훨씬 정확해집니다.`.trim();
+  }
+  if (data.source === "page") {
+    return `${who} — 공고 본문을 찾지 못해 페이지 글자를 그대로 가져왔어요 (${data.chars}자). `
+      .trim() + "개별 공고 페이지 주소를 넣거나, 본문을 붙여넣는 쪽이 정확합니다.";
+  }
+  return `불러왔어요 (${data.chars}자). 빠진 부분은 아래에서 고쳐도 돼요.`;
+}
 export default function JobPostingInput({ postings, setPostings }) {
   const [text, setText] = useState("");
   const [mode, setMode] = useState("paste");   // paste | url | pdf
@@ -34,13 +67,13 @@ export default function JobPostingInput({ postings, setPostings }) {
     setBusy(true); setNote(null);
     try {
       const data = await extractFromUrl(url.trim());
-      if (!data.ok) { setNote("주소를 읽지 못했어요. 본문을 붙여넣어 주세요."); return; }
+      if (!data.ok) { setNote(urlFailNote(data.reason)); return; }
       setText(data.text || "");
-      setNote(data.thin
-        ? `${data.company || ""} ${data.title || ""} — 제목만 읽혔어요. 이 사이트는 본문이 스크립트로 그려져서, 붙여넣으면 훨씬 정확해집니다.`.trim()
-        : `불러왔어요 (${data.chars}자). 빠진 부분은 아래에서 고쳐도 돼요.`);
+      setNote(readNote(data));
     } catch {
-      setNote("주소를 읽지 못했어요. 본문을 붙여넣어 주세요.");
+      // 서버까지 못 갔을 때. 위(!data.ok)와 문구를 나눠야 한다 — 예전엔 같은 문장이라
+      // '주소가 문제'인지 '서버가 문제'인지 화면만 보고는 알 수 없었다.
+      setNote("서버에 연결하지 못했어요. 잠시 뒤 다시 시도하거나 본문을 붙여넣어 주세요.");
     } finally {
       setBusy(false);
     }
