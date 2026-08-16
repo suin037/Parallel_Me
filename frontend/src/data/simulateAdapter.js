@@ -34,6 +34,10 @@ function normalizeLifeIndicators(list) {
     // 추측하던 것을 대체한다(예전 방식은 관계에서 15개 중 14개를 버렸다).
     domains: it.domains || [],
     lower_is_better: it.lower_is_better ?? false,
+    // 같은 지표의 전체 집단 값. 유병률·인지율에는 만점이 없어서 이게 있어야
+    // '높다/낮다'를 말할 수 있다 — 화면은 이 값을 0으로 두고 격차를 그린다.
+    baseline: it.baseline ?? null,
+    baseline_group: it.baseline_group ?? null,
   }));
 }
 
@@ -102,6 +106,13 @@ function buildSide(scenario, choice, detail, profile, evidence, domainCov, domai
     satisfaction_summary: scenario?.satisfaction_summary || null,
     satisfaction_facets: scenario?.satisfaction_facets || [],
     growth_potential: scenario?.growth_potential || [],
+    // 백엔드는 연차별 소득/만족도에 출처 문자열을 함께 준다. 화면은 raw.trajectory
+    // 쪽만 써서 그 문자열이 통째로 유실됐는데, 거기 "명목 — 물가상승분 포함" 경고가
+    // 들어 있다. 10년 뒤 소득을 명목으로 보여주면서 그 말을 빼면 실제보다 좋아 보인다.
+    income_series: scenario?.income || [],
+    // KNHANES·KWCS 실측(스트레스인지율·우울장애유병률 등). 선택별로 갈리는 값이
+    // 아니라 '같은 조건 집단은 지금 이렇다'는 배경 수치다.
+    health_context: scenario?.health_context || [],
     choice_context: normalizeLifeIndicators(scenario?.choice_context || []),
     matched_on: raw.matched_on || [],
     regret_summary: scenario?.regret_summary || null,

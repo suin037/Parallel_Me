@@ -224,8 +224,10 @@ export default function Settings() {
     navigate("/");
   }
 
+  // 설정은 읽는 화면이라 본문을 넓게 펴면 눈이 좌우로 흔들린다.
+  // Layout 의 `[&>*]:max-w-*` 가 특이도로 이기므로 여기서 ! 로 되돌려 좁힌다.
   return (
-    <div className="mx-auto w-full max-w-[1080px] pb-4 lg:pb-12">
+    <div className="mx-auto w-full pb-4 lg:!max-w-[920px] lg:pb-12">
       <div className="flex items-center justify-between lg:items-end">
         <Eyebrow>SETTINGS · 설정</Eyebrow>
         <button onClick={() => navigate(-1)} className="tap text-[13px] text-sub">

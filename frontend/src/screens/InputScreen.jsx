@@ -12,6 +12,8 @@ import { Caption } from "../components/ui.jsx";
 import JobPostingInput from "../components/JobPostingInput.jsx";
 import RelationshipInput from "../components/RelationshipInput.jsx";
 import Mascot from "../components/Mascot.jsx";
+import FutureYearPicker from "../components/FutureYearPicker.jsx";
+import { WELLBEING_MAX_YEAR } from "../data/futureYears.js";
 import { BriefcaseBusiness, GraduationCap, Sprout, Wallet, HeartPulse, House, Users, Leaf, Compass, ArrowRight, GitCompareArrows, History, Sparkles } from "lucide-react";
 
 const MAJOR_FIELDS = ["공학", "자연", "사회", "인문", "교육", "예체능", "의약"];
@@ -21,7 +23,6 @@ const DOMAIN_ICONS = {
   relationship: Users, lifestyle: Leaf, long_term_values: Compass,
 };
 const CAREER_DETAIL_DOMAINS = new Set(["career", "business"]);
-const FUTURE_YEAR_OPTIONS = [1, 3, 5, 10];
 const JOB_POSTING_INTENT = /이직|취업|재취업|입사|지원(?:할|하려|하고|하기|하는)?|옮기(?:기|려|고)|다른\s*(?:회사|직장)|새로운\s*(?:회사|직장|직무)/;
 const NON_POSTING_CAREER_INTENT = /현재\s*(?:상황|직장|회사).*유지|그대로|남(?:기|는다)|휴직|쉬어가기|번아웃|업무량|근무시간|야근|창업|사업/;
 const GENERIC_COUNTERPART = /현상\s*유지|지금처럼|그대로|계속|보류|하지\s*않|안\s*하|현재를?\s*유지/;
@@ -477,23 +478,29 @@ function DiaryContextSection({ diary, setDiary, emotions }) {
   );
 }
 
+// 1~10년 전부 고를 수 있다(소득 궤적은 매 연차 실측이 있다). 기본은 자주 쓰는
+// 값(1·3·5·10)만 보여주고 "더보기"로 펼친다 — 열 개를 다 늘어놓으면 좁은
+// 폭에서 두 줄로 꺾여 부산했다.
 function CompactFuturePicker({ futureYears, setFutureYears }) {
+  const beyondWellbeing = futureYears > WELLBEING_MAX_YEAR;
   return (
-    <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end" role="radiogroup" aria-label="미래 비교 시점">
-      <span className="shrink-0 text-[9px] font-semibold text-mut">몇 년 뒤?</span>
-      <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/20 p-1">
-        {FUTURE_YEAR_OPTIONS.map((years) => {
-          const selected = futureYears === years;
-          return (
-            <button key={years} type="button" role="radio" aria-checked={selected} onClick={() => setFutureYears(years)}
-              title={`${years}년 후 비교`}
-              className={`tap !min-h-0 rounded-full px-2.5 py-1 text-[10px] font-bold transition-all duration-200 ${selected ? "bg-violet-500/30 text-white shadow-[0_0_12px_rgba(139,108,207,.2)]" : "text-mut hover:bg-white/[.06] hover:text-sub"}`}>
-              {years}년
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    <FutureYearPicker
+      className="w-full sm:w-auto"
+      years={futureYears}
+      onChange={setFutureYears}
+      label="몇 년 뒤?"
+      ariaLabel="미래 비교 시점"
+      titleFor={(years) => `${years}년 후 비교`}
+      note={
+        // 만족도만 관측 천장이 낮다 — 고르기 전에 미리 알린다. 막지는 않는다:
+        // 소득·재직기간은 10년까지 실측이 있어서 함께 막으면 그쪽이 손해다.
+        beyondWellbeing && (
+          <p className="mt-1.5 text-[9px] leading-4 text-mut sm:text-right">
+            삶의 만족은 {WELLBEING_MAX_YEAR}년까지만 관측돼요 — 소득·재직기간은 {futureYears}년 기준으로 나옵니다.
+          </p>
+        )
+      }
+    />
   );
 }
 

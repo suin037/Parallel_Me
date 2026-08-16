@@ -9,7 +9,7 @@ import { redactPII, redactEntries } from "../data/piiRedact.js";
 import { saveMe, getScenario, getThirdPath } from "../data/api.js";
 import { listUniverses, saveUniverse, universeFromResult } from "../data/savedUniverses.js";
 import ServiceNotice from "../components/ServiceNotice.jsx";
-import { Bookmark, Check, ChevronLeft, ChevronRight, LockKeyhole } from "lucide-react";
+import { Bookmark, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import LifeView from "../components/result/LifeView.jsx";
 import ChangeView from "../components/result/ChangeView.jsx";
 import ActionView from "../components/result/ActionView.jsx";
@@ -21,12 +21,17 @@ import JobAnalysisView from "../components/result/JobAnalysisView.jsx";
 import RelationshipView from "../components/result/RelationshipView.jsx";
 import SoftCompareView from "../components/result/SoftCompareView.jsx";
 import ResultQuickStats from "../components/result/ResultQuickStats.jsx";
+import ResultDataNotes from "../components/result/ResultDataNotes.jsx";
 import DetailedInsights from "../components/result/DetailedInsights.jsx";
 import { softDomainOf } from "../data/softCompare.js";
 import { DOMAIN_LABEL } from "../data/diarySignals.js";
+import FutureYearPicker from "../components/FutureYearPicker.jsx";
 
-const RESULT_STEPS = ["결과 요약", "비교하고 선택", "저장하고 완료"];
-const FUTURE_YEAR_OPTIONS = [1, 3, 5, 10];
+// 저장은 단계가 아니라 '비교하고 선택'의 마무리 동작이다. 예전엔 3단계였는데
+// 그 화면에 있던 건 아이콘 하나·문구 한 줄·버튼 두 개가 전부라, 단계 표시줄만
+// 늘리고 클릭을 한 번 더 받는 역할이었다. 저장해야 나갈 수 있다는 규칙은 그대로
+// 두고 위치만 2단계 하단으로 내렸다.
+const RESULT_STEPS = ["결과 요약", "비교하고 선택"];
 
 export default function Result() {
   const navigate = useNavigate();
@@ -116,26 +121,12 @@ export default function Result() {
           <div className="inline-flex h-7 items-center rounded-full border border-violet-400/30 bg-violet-500/10 px-3 text-[11px] font-semibold text-violet-200">
             지금부터 {result.futureYears ?? 3}년 뒤의 두 미래
           </div>
-          <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/20 p-1" role="radiogroup" aria-label="결과 기준 시점 변경">
-            {FUTURE_YEAR_OPTIONS.map((years) => {
-              const selected = years === (result.futureYears ?? 3);
-              return (
-                <button
-                  key={years}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  title={`${years}년 뒤 기준으로 다시 분석`}
-                  onClick={() => changeFutureYear(years)}
-                  className={`tap !min-h-0 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors ${
-                    selected ? "bg-violet-500/30 text-white" : "text-mut hover:bg-white/[.06] hover:text-sub"
-                  }`}
-                >
-                  {years}년
-                </button>
-              );
-            })}
-          </div>
+          <FutureYearPicker
+            years={result.futureYears ?? 3}
+            onChange={changeFutureYear}
+            ariaLabel="결과 기준 시점 변경"
+            titleFor={(years) => `${years}년 뒤 기준으로 다시 분석`}
+          />
         </div>
         {step !== 1 && <EvidenceModeBadge a={a} b={b} domains={result.domains || scenarioDomains} />}
       </div>
@@ -171,6 +162,7 @@ export default function Result() {
       />
       <div className="mt-4 min-w-0 [&>section]:mt-0">
         <ResultQuickStats a={a} b={b} futureYears={result.futureYears ?? 3} />
+        <ResultDataNotes a={a} b={b} futureYears={result.futureYears ?? 3} />
       </div>
       {hasKowepsObservation && (
         <div className="mt-4 min-w-0 [&>.bg-card]:mt-0">
@@ -219,59 +211,52 @@ export default function Result() {
         </aside>
       </section>}
 
-      {step === 2 && <section className="mx-auto mt-6 max-w-[680px] animate-fade rounded-[24px] border border-white/10 bg-card/70 p-5 text-center lg:p-8">
-        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-violet-500/15 text-violet-300"><Bookmark size={21}/></span>
-        <h2 className="mt-4 text-[18px] font-bold text-ink">비교 결과를 보관할까요?</h2>
-        <p className="mt-2 text-[12px] leading-5 text-mut">결과를 보관함에 저장해야 이번 비교를 마치고 다른 메뉴로 이동할 수 있어요.</p>
-      <div className="mt-5 grid gap-2 sm:grid-cols-2">
-        <button
-          type="button"
-          onClick={saveToArchive}
-          disabled={!savable}
-          className={`tap flex items-center justify-center gap-1.5 rounded-2xl border px-3 py-3 text-[14px] font-semibold transition-colors ${
-            savable
-              ? "border-cyan/45 bg-cyan/[.12] text-cyan hover:bg-cyan/[.18]"
-              : "border-white/10 bg-white/[.04] text-mut"
-          }`}
-        >
-          {saved ? (
-            <>
-              <Check size={16} strokeWidth={2.4} />
-              보관함에 저장됨
-            </>
-          ) : result.narrativeLoading ? (
-            "결과 준비 중…"
-          ) : (
-            <>
-              <Bookmark size={16} strokeWidth={2.1} />
-              보관함에 저장
-            </>
-          )}
-        </button>
-        <button
-          type="button"
-          disabled={!saved}
-          onClick={() => navigate("/archive", { replace: true })}
-          className="tap flex items-center justify-center gap-1.5 rounded-2xl bg-violet-500 px-3 py-3 text-[14px] font-semibold text-white transition-colors hover:bg-violet-400 disabled:cursor-not-allowed disabled:bg-white/[.06] disabled:text-mut"
-        >
-          {saved ? <>최종 나가기 <ChevronRight size={16}/></> : <><LockKeyhole size={15}/> 저장 후 나갈 수 있어요</>}
-        </button>
-      </div>
-      </section>}
-
-      <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-4">
         {step > 0 ? (
           <button type="button" onClick={() => setStep((current) => current - 1)} className="tap flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-semibold text-sub hover:bg-white/[.05]"><ChevronLeft size={15}/> 이전</button>
         ) : <span />}
-        {step < RESULT_STEPS.length - 1 && (
-        <button
-          type="button"
-          onClick={() => setStep((current) => current + 1)}
-          className="tap flex items-center gap-1.5 rounded-xl bg-violet-500 px-4 py-2.5 text-[12px] font-semibold text-white hover:bg-violet-400"
-        >
-          {step === 1 ? "선택 마치고 저장" : "다음 단계"} <ChevronRight size={15}/>
-        </button>
-      )}
+        {step < RESULT_STEPS.length - 1 ? (
+          <button
+            type="button"
+            onClick={() => setStep((current) => current + 1)}
+            className="tap flex items-center gap-1.5 rounded-xl bg-violet-500 px-4 py-2.5 text-[12px] font-semibold text-white hover:bg-violet-400"
+          >
+            다음 단계 <ChevronRight size={15}/>
+          </button>
+        ) : (
+          /* 마지막 단계 — 저장하고 나간다. 저장 전에는 나가기가 잠긴다(기존 규칙 유지).
+             잠금 아이콘은 뺐다 — 저장 버튼이 바로 옆에 있어서 자물쇠까지 붙이면
+             경고처럼 읽혔다. 이유는 버튼 밑 한 줄로만 조용히 알린다. */
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={saveToArchive}
+              disabled={!savable}
+              className={`tap flex items-center justify-center gap-1.5 rounded-xl border px-3.5 py-2.5 text-[12px] font-semibold transition-colors ${
+                savable
+                  ? "border-cyan/45 bg-cyan/[.12] text-cyan hover:bg-cyan/[.18]"
+                  : "border-white/10 bg-white/[.04] text-mut"
+              }`}
+            >
+              {saved ? (
+                <><Check size={15} strokeWidth={2.4} /> 저장됨</>
+              ) : result.narrativeLoading ? (
+                "결과 준비 중…"
+              ) : (
+                <><Bookmark size={15} strokeWidth={2.1} /> 보관함에 저장</>
+              )}
+            </button>
+            <button
+              type="button"
+              disabled={!saved}
+              onClick={() => navigate("/archive", { replace: true })}
+              className="tap flex items-center justify-center gap-1.5 rounded-xl bg-violet-500 px-4 py-2.5 text-[12px] font-semibold text-white transition-colors hover:bg-violet-400 disabled:cursor-not-allowed disabled:bg-white/[.06] disabled:text-mut"
+            >
+              나가기 <ChevronRight size={15}/>
+            </button>
+            {!saved && <p className="basis-full text-[10px] text-mut sm:basis-auto">보관함에 저장하면 나갈 수 있어요.</p>}
+          </div>
+        )}
       </div>
     </div>
   );

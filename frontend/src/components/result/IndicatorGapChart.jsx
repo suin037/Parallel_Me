@@ -1,5 +1,6 @@
 import { Card, Caption } from "../ui.jsx";
 import { labelOf } from "../../data/prediction.js";
+import { DivergePoint, HalfBar, SIDE_COLORS, divergingShape } from "./DivergingBar.jsx";
 
 /**
  * A/B 지표 비교 — 두 종류를 엄격히 분리해서 그린다.
@@ -18,6 +19,12 @@ export default function IndicatorGapChart({ a, b, domains = { a: [], b: [] } }) 
   const selected = [...new Set([...(domains.a || []), ...(domains.b || [])])];
   const gaps = buildGapRows(a, b);
   const shared = buildSharedRows(a, b, selected);
+  // 공유 축 — 가장 크게 벗어난 지표가 트랙을 채운다. 바닥값 1은 확대경 방지용이다
+  // (전부 0.2%p 차이인 표에서 최대값에 맞춰 늘리면 미미한 차이가 압도적으로 보인다).
+  const sharedDomain = Math.max(1, ...shared.map((row) => (
+    Number.isFinite(row.baseline) && Number.isFinite(row.value)
+      ? Math.abs(row.value - row.baseline) : 0
+  )));
 
   if (!gaps.length && !shared.length) return null;
 
@@ -26,19 +33,21 @@ export default function IndicatorGapChart({ a, b, domains = { a: [], b: [] } }) 
       <div className="flex items-center justify-between">
         <div className="text-sm font-semibold text-ink">지표별 격차</div>
         <div className="flex items-center gap-3 text-[10px] text-mut">
-          <Legend color="#8B6CCF" label="A" />
-          <Legend color="#F5C86B" label="B" />
+          <Legend color={SIDE_COLORS.A} label="A" />
+          <Legend color={SIDE_COLORS.B} label="B" />
         </div>
       </div>
 
       {gaps.length > 0 ? (
         <>
           <Caption>두 선택에서 예측값이 갈리는 지표입니다.</Caption>
-          <div className="mt-3 space-y-3">
-            {gaps.map((row) => <GapRow key={row.name} row={row} />)}
-          </div>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {gaps.map((row) => <GapChip key={row.name} row={row} a={a} b={b} />)}
+          {/* 예전엔 지표 하나당 68px 원형 게이지 두 개(최대 8개)를 그리고, 그
+              아래 같은 내용을 알약으로 한 번 더 썼다. 원은 길이 비교가 안 되는
+              데다 게이지 최댓값이 max(|A|,|B|) 라 이긴 쪽은 항상 꽉 찬 원이었다
+              — 격차가 1이든 100이든 그림이 똑같았다는 뜻이다. 이제 다른 카드와
+              같은 발산 막대를 쓰고, 중복이던 알약 줄은 없앴다. */}
+          <div className="mt-3 divide-y divide-white/[.06]">
+            {gaps.map((row) => <GapRow key={row.name} row={row} a={a} b={b} />)}
           </div>
         </>
       ) : (
@@ -49,10 +58,11 @@ export default function IndicatorGapChart({ a, b, domains = { a: [], b: [] } }) 
         <div className="mt-5 border-t border-line pt-4">
           <div className="text-[12px] font-semibold text-ink">두 선택 공통 · 참고 기준</div>
           <Caption>
-            선택과 무관한 또래 집단 통계입니다. A·B가 같은 값이라 한 줄로 표시합니다.
+            선택과 무관한 또래 집단 통계입니다. A·B가 같은 값이라 한 줄로 표시하며,
+            막대는 <b className="font-semibold text-sub">전체 평균 대비 차이</b>입니다 — 가운데가 전체 평균.
           </Caption>
           <div className="mt-3 space-y-2.5">
-            {shared.map((row) => <SharedRow key={row.name} row={row} />)}
+            {shared.map((row) => <SharedRow key={row.name} row={row} domain={sharedDomain} />)}
           </div>
         </div>
       )}
@@ -108,6 +118,7 @@ function buildSharedRows(a, b, selected) {
     rows.push({
       name: it.indicator, value: num(it.value), unit: it.unit,
       source: it.source, lowerIsBetter: it.lower_is_better, side,
+      baseline: num(it.baseline),
     });
   };
   for (const it of a.life_indicators || []) push(it, bNames.has(it.indicator) ? null : "A");
@@ -124,6 +135,7 @@ function buildSharedRows(a, b, selected) {
         rows.push({
           name: item.name, value: num(item.value), unit: item.unit,
           source: item.source, lowerIsBetter: false, side: null,
+          baseline: num(item.baseline),
         });
       }
     }
@@ -133,58 +145,71 @@ function buildSharedRows(a, b, selected) {
 
 const num = (v) => (v === null || v === undefined || v === "" ? NaN : Number(v));
 
-/** A/B 원형 게이지. 단위가 지표마다 달라 각 항목의 최댓값 기준으로 채움 정도를 비교한다. */
-function GapRow({ row }) {
-  const max = Math.max(Number.isFinite(row.av) ? Math.abs(row.av) : 0, Number.isFinite(row.bv) ? Math.abs(row.bv) : 0, 1);
+/**
+ * 지표 한 줄 = [이름] [A값 ◀막대│막대▶ B값] [격차 배지].
+ * 결과 화면 어디서나 같은 발산 막대를 쓴다(DivergingBar).
+ */
+function GapRow({ row, a, b }) {
+  const bothKnown = Number.isFinite(row.av) && Number.isFinite(row.bv);
+  const shape = bothKnown ? divergingShape(row.av, row.bv) : null;
   return (
-    <div className="rounded-xl border border-white/[.06] bg-white/[.02] px-3 py-3">
-      <div className="mb-2 text-center text-[11px] text-sub">{row.name}{row.unit ? <span className="ml-1 text-[9px] text-mut">({row.unit})</span> : null}</div>
-      <div className="flex items-center justify-center gap-8">
-        <GapRing side="A" value={row.av} max={max} color="#8B6CCF" />
-        <GapRing side="B" value={row.bv} max={max} color="#F5C86B" />
+    <article className="grid items-center gap-x-3 gap-y-1 py-2.5 sm:grid-cols-[7.5rem_minmax(0,1fr)_7.5rem]">
+      <h4 className="truncate text-[11px] font-semibold text-sub">
+        {row.name}
+        {row.unit ? <span className="ml-1 text-[9px] font-normal text-mut">({row.unit})</span> : null}
+      </h4>
+
+      <div className="grid grid-cols-[5rem_minmax(0,1fr)_10px_minmax(0,1fr)_5rem] items-center gap-1.5">
+        <SideValue side="A" value={row.av} align="right" />
+        <HalfBar side="A" shape={shape?.A} />
+        <DivergePoint clipped={shape?.clipped} />
+        <HalfBar side="B" shape={shape?.B} />
+        <SideValue side="B" value={row.bv} align="left" />
       </div>
-    </div>
+
+      <GapBadge row={row} a={a} b={b} />
+    </article>
   );
 }
 
-function GapRing({ side, value, max, color }) {
-  const fill = Number.isFinite(value) ? Math.max(4, Math.min(100, Math.abs(value) / max * 100)) : 0;
+function SideValue({ side, value, align }) {
   return (
     <div
-      className="relative flex h-[68px] w-[68px] items-center justify-center rounded-full"
-      style={{ background: `conic-gradient(${color} ${fill}%, rgba(255,255,255,.08) ${fill}% 100%)` }}
-      aria-label={`${side} ${fmt(value)}`}
+      className="flex items-baseline gap-1 whitespace-nowrap"
+      style={{ justifyContent: align === "right" ? "flex-end" : "flex-start" }}
     >
-      <div className="absolute inset-[6px] rounded-full bg-[#0E1424]" />
-      <div className="relative text-center">
-        <div className="text-[9px] font-bold" style={{ color }}>{side}</div>
-        <div className="text-[11px] font-semibold tabular-nums text-ink">{fmt(value)}</div>
-      </div>
+      <span className="text-[9px] font-black" style={{ color: SIDE_COLORS[side] }}>{side}</span>
+      <strong className="text-[11px] tabular-nums text-ink">{fmt(value)}</strong>
     </div>
   );
 }
 
-function GapChip({ row, a, b }) {
+function GapBadge({ row, a, b }) {
   if (!Number.isFinite(row.av) || !Number.isFinite(row.bv)) {
-    const only = Number.isFinite(row.av) ? "A" : "B";
-    const other = only === "A" ? "B" : "A";
+    const other = Number.isFinite(row.av) ? "B" : "A";
     return (
-      <span className="rounded-full bg-white/[.05] px-2.5 py-1 text-[10px] text-mut">
-        {row.name} · {other}는 예측 데이터 없음
+      <span className="justify-self-start truncate rounded-full bg-white/[.05] px-2 py-0.5 text-[9px] text-mut sm:justify-self-end">
+        {other}는 예측 없음
       </span>
     );
   }
   const diff = row.av - row.bv;
+  if (Math.abs(diff) < 0.05) {
+    return (
+      <span className="justify-self-start truncate rounded-full border border-white/10 bg-white/[.04] px-2 py-0.5 text-[9px] font-bold text-mut sm:justify-self-end">
+        거의 같음
+      </span>
+    );
+  }
   const win = diff > 0 ? "A" : "B";
   const label = win === "A" ? labelOf(a.choice) : labelOf(b.choice);
   return (
     <span
-      className="rounded-full px-2.5 py-1 text-[10px] font-semibold"
-      style={win === "A"
-        ? { background: "rgba(139,108,207,.16)", color: "#B79BF5" }
-        : { background: "rgba(245,200,107,.16)", color: "#F5C86B" }}
+      className="justify-self-start truncate rounded-full border border-white/10 bg-white/[.04] px-2 py-0.5 text-[9px] font-bold tabular-nums sm:justify-self-end"
+      style={{ color: SIDE_COLORS[win] }}
+      title={`${win} · ${label}`}
     >
-      {row.name} {win}({label}) +{fmt(Math.abs(diff))}
+      {win}가 {fmt(Math.abs(diff))}{row.unit} 높음
     </span>
   );
 }
@@ -208,13 +233,29 @@ function NoGapNotice({ a, b }) {
   );
 }
 
-function SharedRow({ row }) {
-  const scaleMax = row.unit === "%" ? 100
-    : String(row.unit).includes("10") ? 10
-      : String(row.unit).includes("점") ? 5
-        : Math.max(row.value, 1);
-  const width = Number.isFinite(row.value)
-    ? Math.max(4, Math.min(100, (row.value / scaleMax) * 100)) : 0;
+// 전체 평균을 0으로 두고 좌우로 그린다.
+//
+// 예전엔 0~100% 축에 값 하나를 막대로 그렸는데, 유병률·인지율에는 만점이 없어서
+// 그 축이 아무 의미가 없었다. 게다가 이 지표들은 전부 '낮을수록 좋음'이라
+// 스트레스인지율 37.5% 가 가장 긴 막대 = 가장 좋아 보이는 그림이 됐다.
+// 이제 기준은 전체 집단 값이고, 막대 길이는 거기서 벗어난 정도다. 방향과 색이
+// lower_is_better 를 반영하므로 길이가 곧 '나쁨'으로 뒤집히지 않는다.
+//
+// 축은 이 카드 안의 모든 행이 공유한다(gapDomain) — 행끼리 "어느 지표가 가장
+// 크게 벗어났는가"를 비교할 수 있어야 표로서 의미가 있다.
+const WORSE = "#F0846B";   // 또래가 더 나쁜 쪽
+const BETTER = "#5FC9A6";  // 또래가 더 나은 쪽
+
+function SharedRow({ row, domain }) {
+  const hasBaseline = Number.isFinite(row.baseline) && Number.isFinite(row.value);
+  const delta = hasBaseline ? row.value - row.baseline : null;
+  // 값이 클수록 나쁜 지표면 +가 나쁨, 아니면 +가 좋음.
+  const worse = hasBaseline && (row.lowerIsBetter ? delta > 0 : delta < 0);
+  const width = hasBaseline && domain
+    ? Math.max(3, Math.min(100, (Math.abs(delta) / domain) * 100)) : 0;
+  const negligible = hasBaseline && Math.abs(delta) < 0.05;
+  const color = negligible ? "#8994A8" : worse ? WORSE : BETTER;
+
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
@@ -236,12 +277,38 @@ function SharedRow({ row }) {
           <span className="ml-1 text-[9px] text-sub">{row.unit}</span>
         </span>
       </div>
-      <div className="mt-1 h-2 overflow-hidden rounded-full bg-[#080D19]">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-[#7455C5] to-[#B093F0]"
-          style={{ width: `${width}%` }}
-        />
-      </div>
+
+      {hasBaseline ? (
+        <>
+          <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] items-center gap-1">
+            <div className="flex h-2 items-center justify-end overflow-hidden rounded-l-full bg-white/[.05]" aria-hidden="true">
+              {delta < 0 && !negligible && (
+                <div className="h-full rounded-l-full transition-[width] duration-500"
+                     style={{ width: `${width}%`, backgroundColor: color }} />
+              )}
+            </div>
+            <div className="h-4 bg-white/25" aria-hidden="true" />
+            <div className="flex h-2 items-center justify-start overflow-hidden rounded-r-full bg-white/[.05]" aria-hidden="true">
+              {delta > 0 && !negligible && (
+                <div className="h-full rounded-r-full transition-[width] duration-500"
+                     style={{ width: `${width}%`, backgroundColor: color }} />
+              )}
+            </div>
+          </div>
+          <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-2 text-[9px]">
+            <span className="text-mut">전체 {fmt(row.baseline)}{row.unit} 기준</span>
+            <span className="font-semibold tabular-nums" style={{ color }}>
+              {negligible ? "전체와 거의 같음"
+                : `${delta > 0 ? "+" : "−"}${fmt(Math.abs(delta))}${row.unit} · 또래가 ${worse ? "나쁨" : "나음"}`}
+            </span>
+          </div>
+        </>
+      ) : (
+        /* 기준선이 없으면 막대를 그리지 않는다 — 견줄 데가 없는 값에 길이를 주면
+           그 길이가 곧 판단처럼 읽힌다(예전 화면이 그랬다). */
+        <div className="mt-1 text-[9px] text-mut">비교할 전체 기준값이 없어 수치만 표시합니다.</div>
+      )}
+
       <div className="mt-1 text-[9px] text-mut">
         {row.source}{row.lowerIsBetter ? " · 낮을수록 좋음" : ""}
       </div>
