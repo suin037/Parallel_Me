@@ -13,7 +13,6 @@ import {
   MOUTH,
   SKIN_COLORS,
 } from "../data/avatarOptions.js";
-import { FACE_SHAPES } from "../data/customParts.js";
 
 // 카메라로 얼굴을 한 장 찍어 아바타 설정의 '시작점'을 잡는다.
 //
@@ -24,8 +23,8 @@ import { FACE_SHAPES } from "../data/customParts.js";
 // 사진 취급: 프레임은 메모리(state)에만 있고 적용·취소 어느 쪽이든 즉시 버린다.
 // 파일이나 localStorage 에 쓰지 않는다. 다만 분석은 서버를 거치므로 기기 밖으로 전송된다.
 
+// 얼굴형은 buildOptions 에서 뺐다 — 되살리면 여기도 같이 되살릴 것.
 const FIELD_LABELS = {
-  face: "얼굴형",
   hairStyle: "헤어스타일",
   hairColor: "헤어 컬러",
   skinColor: "피부색",
@@ -45,8 +44,32 @@ const FIELD_LABELS = {
 // 새 헤어스타일을 추가하면 자동으로 후보에 포함된다.
 function buildOptions() {
   const ids = (arr) => arr.map((x) => x.id);
+  const labels = (arr) => Object.fromEntries(arr.map((x) => [x.id, x.label]));
   return {
-    face: Object.keys(FACE_SHAPES),
+    // id 만 보내면 모델이 'pointedShort' 가 무슨 모양인지 알 수가 없어 무난한 값으로
+    // 몰린다. 뜻을 같이 보낸다. 헤어는 이름만으로도 부족해서(우리 '언더컷'은 올백
+    // 계열인데 이름만 보면 투블럭으로 읽힌다) 그려진 모양 설명까지 붙인다.
+    labels: {
+      hairStyle: Object.fromEntries(
+        HAIR_STYLES.map((h) => [h.id, h.desc ? `${h.label} (${h.desc})` : h.label])
+      ),
+      eyes: labels(EYES),
+      eyebrows: labels(BROW_SHAPE_ITEMS),
+      browThickness: labels(BROW_THICKNESS),
+      mouth: labels(MOUTH),
+      glasses: labels(GLASSES_OPTIONS),
+      beard: labels(BEARD),
+      clothes: labels(CLOTHES),
+    },
+    // 얼굴형은 일부러 뺐다. 목록에 없으면 모델이 값을 못 내고, 그러면 사용자가
+    // 직접 고른 얼굴형이 그대로 남는다.
+    //
+    // 왜 뺐나: 우리 아바타를 얼굴형만 바꿔 5장 만들어 그대로 넣었더니 1/5 만 맞혔다.
+    // 사진 노이즈도 없고 우리가 그린 그림인데 네모형을 계란형이라고 했다. 5종의
+    // 차이가 턱 부근 15~30px 뿐이라 640px 로 줄이면 판별이 안 된다. 실사진 10장에서도
+    // 9~10장이 계란형 하나로 몰렸고, 프롬프트에 판단 기준을 넣어도 1칸만 움직였다.
+    // 그대로 두면 '못 맞히는' 게 아니라 '사용자가 고른 얼굴형을 계란형으로 덮는' 것이라
+    // 안 건드리는 편이 낫다. 얼굴형을 더 뚜렷하게 다시 그리면 그때 되살리면 된다.
     hairStyle: ids(HAIR_STYLES),
     eyes: ids(EYES),
     eyebrows: ids(BROW_SHAPE_ITEMS),
