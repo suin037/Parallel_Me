@@ -54,6 +54,9 @@ export function personaCards() {
     job: p.profile.occupation,
     mbti: p.profile.mbti,
     tagline: p.profile.tagline,
+    // 카드 얼굴. 참조를 그대로 넘긴다 — 화면이 이 값으로 렌더를 메모하므로
+    // 여기서 새 객체를 만들면 매 렌더마다 아바타 7장을 다시 그리게 된다.
+    avatar: p.profile.avatarConfig || null,
     kind: p.kind,
     ready: p.dataStatus === "ready",
   }));

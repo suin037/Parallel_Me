@@ -9,16 +9,20 @@
 //   reloadProfile() 로 컨텍스트만 갈아끼운 뒤 navigate 로 이동한다.
 //   기록은 restoreLive 가 쏘는 'pm:universe' 이벤트로 각 화면이 다시 읽는다.
 //
-// 아바타는 아직 비워둔다 — 아바타 빌더 개편이 끝나면 profile.avatarConfig 를 채워
-//   이 자리에 얼굴이 들어간다. 그때까지는 이름 첫 글자로 대신한다.
+// 얼굴은 각 페르소나의 profile.avatarConfig 를 아바타 빌더와 같은 엔진으로 그린다
+//   (lib/renderAvatar.js). 그림 파일이 아니라 SVG 를 즉석에서 만드는 것이라 새로 받을
+//   에셋이 없고, 나중에 파츠를 고쳐도 카드가 같이 따라온다.
+//   avatarConfig 가 없는 인물은 예전처럼 이름 첫 글자로 대신한다.
 // ─────────────────────────────────────────────────────────────
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Lock, UserPlus } from "lucide-react";
 import { personaCards } from "../data/personas/index.js";
 import { enterPersona, startMyAccount } from "../data/personaSession.js";
 import { useResult } from "../data/ResultContext.jsx";
+import { avatarDataUri } from "../lib/renderAvatar.js";
+import { AVATAR_BG } from "../components/Avatar.jsx";
 
 // 선택 유형별 색. core.py 의 KIND_TREATMENT 와 같은 축이다.
 const KIND_TONE = {
@@ -27,17 +31,40 @@ const KIND_TONE = {
   휴식: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
 };
 
-function Face({ name, ready }) {
+// 카드 7장이 한 화면에 있고 아바타 한 장을 그릴 때마다 SVG 를 만들어 문자열로 손보므로
+// (renderAvatar.js) 매 렌더마다 다시 그리면 낭비다. config 는 프로필 모듈의 고정 참조라
+// useMemo 의 의존값으로 그대로 쓸 수 있다.
+const FACE_BOX =
+  "h-[72px] w-[72px] shrink-0 overflow-hidden rounded-full border transition-colors sm:h-[84px] sm:w-[84px] lg:h-[96px] lg:w-[96px]";
+
+function Face({ name, avatar, ready }) {
+  const src = useMemo(() => (avatar ? avatarDataUri(avatar, { size: 96 }) : null), [avatar]);
+  const tone = ready ? "border-violet-400/30" : "border-white/10";
+
+  if (!src) {
+    return (
+      <div
+        className={`flex items-center justify-center text-[26px] font-bold tracking-[-.03em] shadow-[inset_0_0_28px_rgba(255,255,255,.06),0_0_28px_rgba(89,116,255,.12)] sm:text-[30px] lg:text-[38px] ${FACE_BOX} ${
+          ready
+            ? "border-violet-400/30 bg-[linear-gradient(155deg,rgba(139,108,207,.35),rgba(47,111,232,.18))] text-white"
+            : "border-white/10 bg-white/[.04] text-mut"
+        }`}
+        aria-hidden="true"
+      >
+        {name.slice(0, 1)}
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full border text-[26px] font-bold tracking-[-.03em] shadow-[inset_0_0_28px_rgba(255,255,255,.06),0_0_28px_rgba(89,116,255,.12)] transition-colors sm:h-[84px] sm:w-[84px] sm:text-[30px] lg:h-[96px] lg:w-[96px] lg:text-[38px] ${
-        ready
-          ? "border-violet-400/30 bg-[linear-gradient(155deg,rgba(139,108,207,.35),rgba(47,111,232,.18))] text-white"
-          : "border-white/10 bg-white/[.04] text-mut"
-      }`}
+      // 아바타 SVG 는 배경이 투명하다. 어두운 테마에서 머리카락·윤곽선이 묻히므로
+      // Avatar.jsx 와 같은 밝은 바탕을 깔아 프로필 사진처럼 보이게 한다.
+      className={`${FACE_BOX} ${tone} ${ready ? "" : "opacity-55 grayscale"}`}
+      style={{ background: AVATAR_BG }}
       aria-hidden="true"
     >
-      {name.slice(0, 1)}
+      <img src={src} alt="" width={96} height={96} className="block h-full w-full" />
     </div>
   );
 }
@@ -110,7 +137,7 @@ export default function Personas() {
             } ${busy === card.id ? "border-violet-400 bg-violet-500/10 shadow-[0_0_24px_rgba(139,108,207,.32)]" : ""}`}
           >
             {busy === card.id && <span className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full bg-white text-violet-600"><Check size={16} strokeWidth={3} /></span>}
-            <Face name={card.name} ready={card.ready} />
+            <Face name={card.name} avatar={card.avatar} ready={card.ready} />
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 lg:flex-col lg:gap-0.5">

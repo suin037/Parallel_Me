@@ -12,6 +12,12 @@ export const profile = {
   tenure_years: 5,
   mbti: "ENFJ",
   value_ranking: ["meaning", "friends", "family", "freedom", "growth", "status", "money", "stability"],
-  tagline: "회사원 겸 브랜드 운영 · 본업을 바꿀지 고민",
+  tagline: "회사원 겸 브랜드 운영 5년차 · 독립할지 겸업을 이어갈지",
   choices: { a: "회사를 나와 내 브랜드를 창업한다", b: "현재 직장을 유지한다" },
+  // 카드 얼굴. 값은 avatarOptions.js 의 id 를 그대로 쓴다(없는 id 는 조용히 무시된다).
+  avatarConfig: {
+    face: "original", hairStyle: "bobShortParted", hairColor: "2c1b18", skinColor: "edb98a",
+    eyes: "happy", eyebrows: "happy", browThickness: "normal",
+    glasses: "round", mouth: "smile", clothes: "openJacket", clothesColor: "ff5c5c",
+  },
 };
