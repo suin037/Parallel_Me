@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Card, Caption } from "./ui.jsx";
-import { addCheckin, setDomains, todayKey, loadUniverse, weekStartKey } from "../data/myUniverse.js";
-import { detectLifeDomains } from "../data/choices.js";
+import { addCheckin, todayKey, loadUniverse, weekStartKey } from "../data/myUniverse.js";
+import { tagEntry } from "../data/tagging.js";
 import { chatTurn, composeDiary, weeklyComfort, loadSpeech, SPEECH_KEY } from "../data/dispositionApi.js";
 import { todayQuestions } from "../data/questions.js";
 import { useResult } from "../data/ResultContext.jsx";
@@ -301,11 +301,11 @@ export default function ChatDiary({ onSaved, embedded = false, onMessagesChange,
     try {
       const c = await composeDiary(msgs);
       const today = todayKey();
-      const verifiedDomains = detectLifeDomains(c.text);
+      // 키워드만 쓰면 절반쯤 놓친다 — 서버 분류까지 합치는 공용 경로를 쓴다.
+      const verifiedDomains = tagEntry(today, c.text);
       addCheckin({ date: today, text: c.text, mood: c.mood, keyword: c.emotion,
         domains: verifiedDomains, insights: c.insights || null, chatSummary: c.text,
         health: Object.keys(healthVals).length ? healthVals : null });
-      if (verifiedDomains.length) setDomains(today, verifiedDomains);
       setSaved(c);
       onSaved?.();
     } finally {
