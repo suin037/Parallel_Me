@@ -15,6 +15,7 @@ v4: **treatment 축을 추가**했다.
     · enroll  (진학) — 없음(이탈을 정의할 스펠 자체가 없다).
 """
 
+import logging
 from functools import lru_cache
 
 import joblib
@@ -22,6 +23,19 @@ import numpy as np
 import pandas as pd
 
 from config import settings
+
+log = logging.getLogger(__name__)
+
+# 열다가 실패한 artifact — {파일명: "예외타입: 메시지"}. /health 가 '파일이 없음'과
+# '파일은 있는데 못 읽음'을 구분해 보여줄 수 있도록 남긴다.
+_LOAD_ERRORS: dict[str, str] = {}
+
+
+def load_errors() -> dict[str, str]:
+    """로딩에 실패한 artifact 와 그 이유. 비어 있으면 전부 정상."""
+    _load_all()          # 아직 안 읽었으면 여기서 읽힌다(lru_cache).
+    return dict(_LOAD_ERRORS)
+
 
 YOUTH_MAX = 31
 
@@ -44,8 +58,19 @@ def _load_all() -> dict:
             p = A / fname
             if not p.exists():
                 continue
-            art = joblib.load(p)
-            enc = joblib.load(A / "encoders.pkl") if key == "goms" else art
+            # 파일 하나가 못 열려도 나머지는 살린다. 예전엔 여기서 예외가 그대로
+            # 올라가 _load_all() 전체가 죽었다 — 구버전 sklearn(1.6.1)으로 굳은
+            # lifelines.pkl 하나 때문에 정상인 yp·klips 모델까지 통째로 사라졌고,
+            # 화면에는 이유 없이 데모 숫자가 떴다. 폴백 순서(yp→klips→goms)가
+            # 있는 구조라 하나를 잃어도 답은 나온다.
+            try:
+                art = joblib.load(p)
+                enc = joblib.load(A / "encoders.pkl") if key == "goms" else art
+            except Exception as exc:
+                log.warning("lifelines artifact '%s' 로딩 실패 — 이 소스만 건너뛴다: %s: %s",
+                            fname, type(exc).__name__, exc)
+                _LOAD_ERRORS[fname] = f"{type(exc).__name__}: {exc}"
+                continue
             found[key] = (art, enc)
         if found:
             out[treatment] = found

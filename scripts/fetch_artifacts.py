@@ -33,6 +33,28 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 ARTIFACTS = ROOT / "backend/models/artifacts"
 
+
+def _load_dotenv() -> None:
+    """.env 를 환경변수로 올린다 — 없으면 조용히 넘어간다.
+
+    backend/config.py 는 pydantic-settings 로 .env 를 자동으로 읽는데 이 스크립트는
+    os.environ 만 봤다. 그래서 .env 에 HF_TOKEN 을 넣어둔 사람이 "서버는 되는데
+    받기만 안 되는" 상태에 빠졌다(HF_REPO_ID 가 없다며 즉시 종료). 배포 환경처럼
+    이미 환경변수가 있으면 그쪽이 이긴다 — .env 로 덮지 않는다.
+    """
+    path = ROOT / ".env"
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+_load_dotenv()
+
 # 서빙 코드가 실제로 여는 파일. backend/models/*.py 의 TREATMENT_FILES 와 같은 목록이다.
 #   required=True  없으면 그 기능이 통째로 죽는다
 #   required=False 라우팅 폴백. 없어도 다른 소스로 답한다

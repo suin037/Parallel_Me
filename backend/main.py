@@ -362,6 +362,16 @@ def _artifact_manifest() -> dict:
     except Exception as exc:
         return {"available": False, "error": f"{type(exc).__name__}"}
     required = _required_artifacts()
+    # '파일이 없다' 와 '파일은 있는데 못 읽었다' 는 원인도 대응도 다르다.
+    # 후자는 대개 학습 때와 다른 sklearn 으로 돌리고 있다는 뜻이라, 받아오면
+    # 해결되는 전자와 헷갈리면 시간을 통째로 버린다(실제로 그랬다).
+    load_errors: dict[str, str] = {}
+    for mod in ("models.econml_model", "models.lifelines_model"):
+        try:
+            load_errors.update(__import__(mod, fromlist=["load_errors"]).load_errors())
+        except Exception:      # 로딩 상태 조회 실패가 /health 를 막으면 안 된다
+            pass
+
     artifacts = {}
     missing_required: list[str] = []
     missing_optional: list[str] = []
@@ -378,6 +388,7 @@ def _artifact_manifest() -> dict:
             **{k: entry[k] for k in ("layer", "source", "causal", "survival")
                if k in entry},
             "present": actual_present,
+            **({"load_error": load_errors[name]} if name in load_errors else {}),
         }
     return {
         "available": True,
@@ -389,6 +400,7 @@ def _artifact_manifest() -> dict:
         "missing": missing_required,
         "missing_optional": missing_optional,
         "required_known": required is not None,
+        "unreadable": load_errors,
         "manifest_missing": m.get("missing") or [],
         # 파일별 한 줄 요약(용량·features 등 상세는 manifest.json 원본 참조)
         "artifacts": artifacts,
@@ -470,7 +482,9 @@ def health() -> dict:
              "affects": "/qmode/* — 두 길의 하루·챗봇·성향분석·기업분석·관계분석·주간리포트"}
     degraded = (not QMODE_MOUNT["mounted"] or
                 not artifact_state.get("available") or
-                bool(artifact_state.get("missing")))
+                bool(artifact_state.get("missing")) or
+                # 파일은 있는데 못 읽는 것도 그 레이어가 죽은 것이므로 degraded 다.
+                bool(artifact_state.get("unreadable")))
     return {"status": "degraded" if degraded else "ok",
             "model": settings.claude_model,
             "qmode": qmode,

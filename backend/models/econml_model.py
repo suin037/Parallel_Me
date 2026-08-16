@@ -17,12 +17,25 @@ YP/KLIPS artifact 는 medians 를 자체 포함하므로 enc = art 로 둔다.
 GOMS 폴백만 encoders.pkl 을 별도로 쓴다.
 """
 
+import logging
 from functools import lru_cache
 
 import joblib
 import numpy as np
 
 from config import settings
+
+log = logging.getLogger(__name__)
+
+# 열다가 실패한 artifact — {파일명: "예외타입: 메시지"}. lifelines_model 과 같은 이유로 남긴다.
+_LOAD_ERRORS: dict[str, str] = {}
+
+
+def load_errors() -> dict[str, str]:
+    """로딩에 실패한 artifact 와 그 이유. 비어 있으면 전부 정상."""
+    _load_all()
+    return dict(_LOAD_ERRORS)
+
 
 # YP(청년패널) 표본 상한(≈31세). 이 나이 이하 입력은 YP 모델을 우선 사용한다.
 YOUTH_MAX = 31
@@ -48,9 +61,18 @@ def _load_all() -> dict:
             p = A / fname
             if not p.exists():
                 continue
-            art = joblib.load(p)
-            # GOMS 폴백만 encoders 별도, 종단 artifact 는 medians 자체 포함
-            enc = joblib.load(A / "encoders.pkl") if key == "goms" else art
+            # 파일 하나가 못 열려도 나머지 소스는 살린다(폴백 순서가 있으므로
+            # 하나를 잃어도 답은 나온다). 예외를 그대로 올리면 _load_all() 전체가
+            # 죽어 정상 artifact 까지 사라지고, 화면엔 이유 없이 데모 숫자가 뜬다.
+            try:
+                art = joblib.load(p)
+                # GOMS 폴백만 encoders 별도, 종단 artifact 는 medians 자체 포함
+                enc = joblib.load(A / "encoders.pkl") if key == "goms" else art
+            except Exception as exc:
+                log.warning("econml artifact '%s' 로딩 실패 — 이 소스만 건너뛴다: %s: %s",
+                            fname, type(exc).__name__, exc)
+                _LOAD_ERRORS[fname] = f"{type(exc).__name__}: {exc}"
+                continue
             found[key] = (art, enc)
         if found:
             out[treatment] = found
