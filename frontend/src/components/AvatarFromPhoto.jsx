@@ -13,7 +13,6 @@ import {
   MOUTH,
   SKIN_COLORS,
 } from "../data/avatarOptions.js";
-import { FACE_SHAPES } from "../data/customParts.js";
 
 // 카메라로 얼굴을 한 장 찍어 아바타 설정의 '시작점'을 잡는다.
 //
@@ -24,15 +23,16 @@ import { FACE_SHAPES } from "../data/customParts.js";
 // 사진 취급: 프레임은 메모리(state)에만 있고 적용·취소 어느 쪽이든 즉시 버린다.
 // 파일이나 localStorage 에 쓰지 않는다. 다만 분석은 서버를 거치므로 기기 밖으로 전송된다.
 
+// 얼굴형은 buildOptions 에서 뺐다 — 되살리면 여기도 같이 되살릴 것.
 const FIELD_LABELS = {
-  face: "얼굴형",
   hairStyle: "헤어스타일",
   hairColor: "헤어 컬러",
   skinColor: "피부색",
-  eyes: "눈",
+  eyes: "눈 모양",
+  eyeScale: "눈 크기",
   lashes: "속눈썹",
   eyebrows: "눈썹 모양",
-  browThickness: "눈썹 굵기",
+  browWeight: "눈썹 굵기",
   mouth: "표정",
   glasses: "안경",
   beard: "수염",
@@ -45,12 +45,36 @@ const FIELD_LABELS = {
 // 새 헤어스타일을 추가하면 자동으로 후보에 포함된다.
 function buildOptions() {
   const ids = (arr) => arr.map((x) => x.id);
+  // 이름만으로는 부족하다 — 우리 '언더컷'은 올백 계열인데 이름만 보면 투블럭으로
+  // 읽히고, '웃는 눈'과 '작은 눈'이 어떻게 다른지도 알 수 없다. 그려진 모양을 붙인다.
+  const labels = (arr) =>
+    Object.fromEntries(arr.map((x) => [x.id, x.desc ? `${x.label} (${x.desc})` : x.label]));
   return {
-    face: Object.keys(FACE_SHAPES),
+    labels: {
+      hairStyle: labels(HAIR_STYLES),
+      eyes: labels(EYES),
+      eyebrows: labels(BROW_SHAPE_ITEMS),
+      mouth: labels(MOUTH),
+      glasses: labels(GLASSES_OPTIONS),
+      beard: labels(BEARD),
+      clothes: labels(CLOTHES),
+    },
+    // 얼굴형은 일부러 뺐다. 목록에 없으면 모델이 값을 못 내고, 그러면 사용자가
+    // 직접 고른 얼굴형이 그대로 남는다.
+    //
+    // 왜 뺐나: 우리 아바타를 얼굴형만 바꿔 5장 만들어 그대로 넣어봤더니 1/5 만
+    // 맞혔다. 사진 노이즈도 없고 우리가 그린 그림인데도 네모형을 계란형이라고 했다.
+    // 5종의 차이가 턱 부근 15~30px 뿐이라 640px 로 줄이면 판별이 안 된다.
+    // 실사진 10장에서도 9~10장이 계란형 하나로 몰렸다.
+    // 그대로 두면 '못 맞히는' 게 아니라 '사용자가 고른 얼굴형을 계란형으로 덮는' 것이라
+    // 안 건드리는 편이 낫다. 얼굴형을 더 뚜렷하게 다시 그리면 그때 되살리면 된다.
     hairStyle: ids(HAIR_STYLES),
     eyes: ids(EYES),
     eyebrows: ids(BROW_SHAPE_ITEMS),
-    browThickness: ids(BROW_THICKNESS),
+    // 눈 크기와 눈썹 굵기는 목록에서 고르지 않는다. 백엔드가 eyeScale/browWeight
+    // 를 숫자로 받는다 — 3지선다로 두면 매번 같은 칸에 몰린다(실사진 10장에서
+    // 눈이 10/10 'small', 우리 그림에 정답을 넣고 물어도 눈 1/3, 굵기 1/2).
+    // 옷 무늬를 숫자로 받아 잘 맞는 것과 같은 이유다.
     mouth: ids(MOUTH),
     glasses: ids(GLASSES_OPTIONS),
     beard: [...ids(BEARD), null], // null = 수염 없음
