@@ -244,7 +244,7 @@ export default function InputScreen() {
           </h1>
           <p className="mt-3 max-w-[540px] text-[12px] leading-6 text-sub lg:text-[14px]">두 가지 선택지의 미래를 시뮬레이션하고, 나에게 더 잘 맞는 길을 데이터와 이야기로 비교해보세요.</p>
           <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
-            <button type="button" onClick={focusFirstChoice} className="tap flex items-center justify-center gap-2 rounded-xl border border-violet-300/50 bg-gradient-to-r from-[#7250DB] to-[#8B61E8] px-6 py-3.5 text-[13px] font-bold text-white shadow-[0_12px_34px_rgba(114,80,219,.28)]">
+            <button type="button" data-tour="simulate-start" onClick={focusFirstChoice} className="tap flex items-center justify-center gap-2 rounded-xl border border-violet-300/50 bg-gradient-to-r from-[#7250DB] to-[#8B61E8] px-6 py-3.5 text-[13px] font-bold text-white shadow-[0_12px_34px_rgba(114,80,219,.28)]">
               <Sparkles size={16} /> 시뮬레이션 시작
             </button>
             <button type="button" onClick={() => navigate("/archive")} className="tap flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[.035] px-6 py-3.5 text-[13px] font-semibold text-sub hover:bg-white/[.07]">

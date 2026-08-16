@@ -31,7 +31,7 @@ export default function TabBar() {
     { to: "/archive", label: "보관함", Icon: Bookmark },
   ];
   return (
-    <nav className="z-30 mx-3 mb-2 flex rounded-[22px] border border-line bg-[#111B2AF2] px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_12px_36px_rgba(0,0,0,.35)] backdrop-blur-xl lg:hidden">
+    <nav data-tour="tabbar" className="z-30 mx-3 mb-2 flex rounded-[22px] border border-line bg-[#111B2AF2] px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_12px_36px_rgba(0,0,0,.35)] backdrop-blur-xl lg:hidden">
       {tabs.map(({ to, label, Icon }) => (
         <NavLink
           key={to}

@@ -1,4 +1,11 @@
-import { BookOpen, GitCompareArrows, Orbit, Save, X } from "lucide-react";
+import { BookOpen, Compass, GitCompareArrows, Orbit, Save, X } from "lucide-react";
+
+// 이 모달은 "이 서비스가 뭔지"를 한 장으로 말한다. 그다음 "그래서 어디를 누르면
+// 되는지"는 화면을 직접 짚어 주는 안내(Tour)가 맡는다. 아래 두 버튼이 그 갈림길이다.
+//
+// 왜 고르게 하나: 처음 만든 계정에는 안내가 필요하지만, 둘러보고 싶은 사람에게
+// 6단계를 강제로 태우면 그게 더 방해다. 켜고 끄는 걸 본인이 정하게 둔다.
+// (나중에 마음이 바뀌면 헤더의 물음표나 설정에서 다시 열 수 있다.)
 
 const STEPS = [
   { icon: GitCompareArrows, title: "두 갈림길 비교", text: "고민 중인 두 선택을 자유롭게 적으면 관련 삶의 영역과 데이터를 연결해요." },
@@ -7,7 +14,7 @@ const STEPS = [
   { icon: Save, title: "선택 이후까지 기록", text: "비교 결과를 항해일지에 저장하고 결정·실행·회고를 이어갈 수 있어요." },
 ];
 
-export default function UserGuide({ open, onClose }) {
+export default function UserGuide({ open, onClose, onStartTour }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#02050C]/80 px-4 py-6 backdrop-blur-md" onClick={onClose}>
@@ -32,7 +39,30 @@ export default function UserGuide({ open, onClose }) {
         <div className="mt-4 rounded-2xl border border-violet-400/20 bg-violet-500/[.07] px-4 py-3 text-[11px] leading-relaxed text-sub">
           일기는 예측 숫자를 임의로 바꾸지 않고, 비교할 주제 추천·심리 해석·결과 설명과 안전 안내에 사용돼요. 결과는 확정 미래나 선택 권유가 아닙니다.
         </div>
-        <button type="button" onClick={onClose} className="tap mt-5 w-full rounded-full bg-[#8B6CCF] py-3.5 text-[13px] font-bold text-white">이해했어요</button>
+        {/* onStartTour 가 없으면(랜딩) 소개만 하고 닫는다 — 짚어 줄 화면이 아직 없다. */}
+        {onStartTour ? (
+          <>
+            <div className="mt-5 flex flex-col gap-2.5 sm:flex-row-reverse">
+              <button
+                type="button"
+                onClick={() => { onClose(); onStartTour(); }}
+                className="tap flex flex-1 items-center justify-center gap-2 rounded-full bg-[#8B6CCF] py-3.5 text-[13px] font-bold text-white"
+              >
+                <Compass size={16} /> 화면을 짚어주며 안내받기
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="tap flex-1 rounded-full border border-white/15 bg-white/[.04] py-3.5 text-[13px] font-semibold text-sub hover:bg-white/[.07]"
+              >
+                혼자 둘러볼게요
+              </button>
+            </div>
+            <p className="mt-2.5 text-center text-[10px] text-mut">설정 → 알림 · 가이드에서 언제든 다시 볼 수 있어요.</p>
+          </>
+        ) : (
+          <button type="button" onClick={onClose} className="tap mt-5 w-full rounded-full bg-[#8B6CCF] py-3.5 text-[13px] font-bold text-white">이해했어요</button>
+        )}
       </section>
     </div>
   );

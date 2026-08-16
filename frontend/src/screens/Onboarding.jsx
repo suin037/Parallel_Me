@@ -7,6 +7,7 @@ import { OCCUPATIONS } from "../data/profileOptions.js";
 import StarterDataDialog from "../components/StarterDataDialog.jsx";
 import { seedStarterData } from "../data/personaSession.js";
 import { saveActiveSlot } from "../data/personaSlots.js";
+import { askGuideOnEnter } from "../data/tour.js";
 
 // 성향 = 가치 강제순위(8카드 → 5축). diary_module/qmode/value_ranking.py 와 1:1.
 // 다중선택이 아니라 '순서'를 받는다 — "다 중요해요" 편향을 막고 진짜 우선순위를 드러냄.
@@ -62,6 +63,9 @@ export default function Onboarding() {
 
   function enterApp() {
     setOnboarded(true); // 이후 홈 탭은 '나의 우주' 허브로 진입
+    // 계정을 막 만들고 처음 들어가는 순간 — 여기서 안내를 받을지 고르게 한다.
+    // (랜딩에서 물으면 계정도 없는 상태에서 화면 설명이 시작돼 버린다.)
+    askGuideOnEnter();
     navigate("/my");
   }
 
