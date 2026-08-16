@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-16T18:26:16.398648+00:00",
-  "git": "6c222ea",
+  "generated_at": "2026-08-16T21:53:43.907679+00:00",
+  "git": "da39c60",
   "routing": {
     "treatment": "선택 유형 → treatment: 이직=move / 창업=startup / 쉬어가기=break / 진학=매핑 없음(표본 부족)",
     "L2 (knn)": "이직에만 적용. age ≤ 31 이면 GOMS + YP 를 절반씩 섞고, 그 외엔 GOMS 단독",
@@ -325,7 +325,38 @@
       ]
     }
   },
-  "data_vintage": {},
+  "data_vintage": {
+    "klips": {
+      "waves": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27
+      ],
+      "years": [
+        2009,
+        2024
+      ],
+      "deflated": true,
+      "cpi_base_year": 2024,
+      "rows": 289154,
+      "persons": 32364,
+      "wage_median_real": 254.2,
+      "job_change_rate": 0.03877172717652185
+    }
+  },
   "artifacts": {
     "knn.pkl": {
       "layer": "L2",
