@@ -210,9 +210,15 @@ export function ResultProvider({ children }) {
       choiceBContext: withDiaryInsights(opts.choiceBContext ?? scenarioContexts.b),
       diary: currentDiary,
     };
+    // 로딩 화면의 단계 표시는 이 콜백으로만 움직인다. 타이머로 미리 채우면
+    // 실제로 끝나지 않은 일을 끝난 것처럼 보여주게 된다.
+    const report = typeof opts.onProgress === "function" ? opts.onProgress : () => {};
+
     let preview;
     try {
+      report("connect");
       const comparison = await runCompareRaw(requestArgs);
+      report("compare");
       const real = mapSimulateToPair({ compare: comparison }, {
         choiceA,
         choiceB,
@@ -235,6 +241,7 @@ export function ResultProvider({ children }) {
       };
       setResult(preview);
       setHasSimulationResult(true);
+      report("ready");
       try {
         const summarize = (side) => {
           if (!side) return "";

@@ -16,10 +16,12 @@ import ActionView from "../components/result/ActionView.jsx";
 import AvatarComparison from "../components/result/AvatarComparison.jsx";
 import DiarySignalCard from "../components/result/DiarySignalCard.jsx";
 import KowepsEvidenceCard from "../components/result/KowepsEvidenceCard.jsx";
+import KowepsTrajectoryView from "../components/result/KowepsEvidenceView.jsx";
 import JobAnalysisView from "../components/result/JobAnalysisView.jsx";
 import RelationshipView from "../components/result/RelationshipView.jsx";
 import SoftCompareView from "../components/result/SoftCompareView.jsx";
 import ResultQuickStats from "../components/result/ResultQuickStats.jsx";
+import DetailedInsights from "../components/result/DetailedInsights.jsx";
 import { softDomainOf } from "../data/softCompare.js";
 import { DOMAIN_LABEL } from "../data/diarySignals.js";
 
@@ -170,10 +172,16 @@ export default function Result() {
       <div className="mt-4 min-w-0 [&>section]:mt-0">
         <ResultQuickStats a={a} b={b} futureYears={result.futureYears ?? 3} />
       </div>
+      {hasKowepsObservation && (
+        <div className="mt-4 min-w-0 [&>.bg-card]:mt-0">
+          <KowepsTrajectoryView a={a} b={b} />
+        </div>
+      )}
       </section>}
 
       {step === 1 && <section className="mt-5 animate-fade lg:grid lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)] lg:items-start lg:gap-6">
         <div className="min-w-0">
+      <DetailedInsights a={a} b={b} futureYears={result.futureYears ?? 3} />
       <div className="no-scrollbar my-2.5 flex gap-1.5 overflow-x-auto pb-1">
         {tabs.map((t) => {
           const on = t.key === tab;
@@ -276,7 +284,7 @@ function hasComparableNumbers(a, b) {
   if ([a, b].some((side) => Array.isArray(side.trajectory) && side.trajectory.length > 0)) return true;
   const num = (value) => (value === null || value === undefined || value === "" ? NaN : Number(value));
   const last = (rows) => (Array.isArray(rows) && rows.length
-    ? num(rows.at(-1)?.value ?? rows.at(-1)?.median)
+    ? num(rows.at(-1)?.value ?? rows.at(-1)?.median ?? rows.at(-1)?.satis_p50)
     : NaN);
   const pairs = [
     [num(a.expected_wage), num(b.expected_wage)],

@@ -71,12 +71,49 @@ const VALUE_TO_DOMAINS = {
 // 일이 일(work)이 아닌 자리. 지워도 다른 영역 키워드는 건드리지 않는다.
 const FALSE_FRIENDS = /집중|집안|집합|편집|모집|수집|밀집|소집|불안정|동일|통일|균일|단일|매일|생일|제일/g;
 
+// 이 단어들은 삶의 맥락을 보태지만, 하나만으로 분석 영역을 확정하기에는 너무 넓다.
+// 영역별로 따로 두는 이유는 "프리랜서"처럼 직업을 정하는 데에는 충분하지만
+// 재무·생활방식을 동시에 주영역으로 만들면 안 되는 단어가 있기 때문이다.
+const WEAK_DOMAIN_KEYWORDS = {
+  finance: new Set(["프리랜서"]),
+  health: new Set(["스트레스", "불안", "마음"]),
+  relationship: new Set(["사람", "전문가", "객관적인 의견", "조언"]),
+  lifestyle: new Set(["시간", "자유", "삶", "프리랜서", "일정 기간", "새로운 방식"]),
+  long_term_values: new Set(["성장", "안정", "미래"]),
+};
+
 export function detectLifeDomains(text) {
   const normalized = (text || "").trim().toLowerCase().replace(FALSE_FRIENDS, " ");
   if (!normalized.trim()) return [];
   return LIFE_DOMAINS
     .filter((domain) => domain.keywords.some((keyword) => normalized.includes(keyword)))
     .map((domain) => domain.key);
+}
+
+/**
+ * 시뮬레이션 입력용 대표 영역 감지.
+ * 강한 단서가 있는 영역 하나만 반환하고, 일반적인 보조 단어만 있으면 사용자가
+ * 직접 고를 수 있도록 비워 둔다. 일기 태깅은 기존 detectLifeDomains의 복수 영역을 유지한다.
+ */
+export function detectPrimaryLifeDomain(text) {
+  const normalized = (text || "").trim().toLowerCase().replace(FALSE_FRIENDS, " ");
+  if (!normalized.trim()) return [];
+
+  const ranked = LIFE_DOMAINS.map((domain, index) => {
+    const weak = WEAK_DOMAIN_KEYWORDS[domain.key] || new Set();
+    let strongMatches = 0;
+    let weakMatches = 0;
+    for (const keyword of domain.keywords) {
+      if (!normalized.includes(keyword)) continue;
+      if (weak.has(keyword)) weakMatches += 1;
+      else strongMatches += 1;
+    }
+    return { key: domain.key, index, strongMatches, score: strongMatches * 3 + weakMatches };
+  })
+    .filter((item) => item.strongMatches > 0)
+    .sort((left, right) => right.score - left.score || left.index - right.index);
+
+  return ranked.length ? [ranked[0].key] : [];
 }
 
 /** 최근 기록·가치·반대편 입력을 반영하고, 서로 다른 영역 후보를 반환한다. */

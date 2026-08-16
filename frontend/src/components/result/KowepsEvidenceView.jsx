@@ -21,6 +21,10 @@ const PRIORITY = ["disposable_income", "family_satisfaction", "overall_satisfact
 const priorityFor = (scenario) => {
   if (scenario?.startsWith("finance.")) return ["installment_savings", "financial_loan", "living_expenses"];
   if (scenario?.startsWith("lifestyle.")) return ["weekly_work_hours", "leisure_satisfaction", "overall_satisfaction"];
+  if (scenario?.startsWith("career.")) return ["disposable_income", "job_satisfaction", "overall_satisfaction"];
+  if (scenario?.startsWith("education.")) return ["disposable_income", "job_satisfaction", "overall_satisfaction"];
+  if (scenario?.startsWith("housing.")) return ["disposable_income", "housing_satisfaction", "overall_satisfaction"];
+  if (scenario?.startsWith("relationship.")) return ["disposable_income", "family_satisfaction", "overall_satisfaction"];
   return PRIORITY;
 };
 

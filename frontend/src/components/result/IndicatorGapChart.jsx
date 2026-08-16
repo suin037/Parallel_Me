@@ -72,7 +72,7 @@ function Legend({ color, label }) {
 /** A와 B가 실제로 다른 값을 갖는 예측만 뽑는다. 한쪽만 있는 것도 격차로 본다. */
 function buildGapRows(a, b) {
   const last = (rows) => (Array.isArray(rows) && rows.length
-    ? Number(rows[rows.length - 1]?.value ?? rows[rows.length - 1]?.median ?? NaN)
+    ? Number(rows[rows.length - 1]?.value ?? rows[rows.length - 1]?.median ?? rows[rows.length - 1]?.satis_p50 ?? NaN)
     : NaN);
   const candidates = [
     { name: "예상 월소득", unit: "만원", av: num(a.expected_wage), bv: num(b.expected_wage) },

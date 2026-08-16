@@ -12,7 +12,7 @@ export default function ChangeView({ a, b, domains = { a: [], b: [] }, dataMode 
   const hasBusinessRisk = businessRelevant && [a, b].some((s) => Object.keys(s.risk_timeline || {}).length);
   const hasCareerTrajectory = [a, b].some((s) => s.parallel_trajectory?.status === "available");
   const relationshipRelevant = selected.has("relationship");
-  const isJobComparison = [a.choice, b.choice].some((choice) => ["이직", "유지"].includes(choice));
+  const isJobComparison = [a, b].some((side) => ["이직", "유지"].includes(side.kind));
 
   // API/모델 연결 실패 시 만들어지는 고정 데모 궤적을 실제 분석처럼 그리지 않는다.
   if (dataMode !== "model") {

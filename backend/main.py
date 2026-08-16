@@ -30,13 +30,14 @@ from schemas import (
     CompareRequest,
     CompareResponse,
     SimulateRequest,
+    ChoiceClassifyPairRequest,
     AvatarGenerateRequest,
     AvatarGenerateResponse,
 )
 import avatar_gen
 from core import run_prediction
 from compare import build_comparison
-from choice_classifier import classification_stats
+from choice_classifier import classify, classification_stats
 
 import stat_evidence
 import usage_guard
@@ -60,6 +61,40 @@ DOMAIN_LABELS = {
     "health": "건강", "housing": "주거", "relationship": "관계",
     "lifestyle": "생활방식", "long_term_values": "장기 가치",
 }
+
+CHOICE_TAXONOMY = {
+    "이직": ("career", "career.occupation_change", "직업 이동"),
+    "유지": ("career", "career.maintain", "현재 경로 유지"),
+    "진학": ("education", "education.level_increase", "교육수준 높이기"),
+    "창업": ("business", "business.self_employment_start", "창업"),
+    "휴식": ("career", "career.work_break", "일에서 잠시 쉬기"),
+    "결혼": ("relationship", "relationship.marriage_start", "결혼"),
+    "주택": ("housing", "housing.homeownership_start", "주택 구입"),
+    "이사": ("housing", "housing.move", "이사"),
+}
+
+
+def _choice_contract(result, hints: list[str], counterpart_domain: str | None = None) -> dict:
+    known = CHOICE_TAXONOMY.get(result.kind)
+    if known:
+        domain, event, event_label = known
+        if result.kind == "유지" and counterpart_domain and counterpart_domain != "long_term_values":
+            domain = counterpart_domain
+            event = f"{domain}.maintain"
+            event_label = f"{DOMAIN_LABELS.get(domain, domain)} 상태 유지"
+    else:
+        domain = next((key for key in hints if key in DOMAIN_LABELS), "long_term_values")
+        event, event_label = f"{domain}.unspecified", "구체 사건 미확인"
+    domains = [domain, "health"] if result.kind == "휴식" else [domain]
+    return {
+        "kind": result.kind,
+        "domain": domain,
+        "domains": domains,
+        "event": event,
+        "event_label": event_label,
+        "confidence": result.confidence,
+        "matched_keywords": result.matched,
+    }
 
 
 def _domain_labels(keys) -> list[str]:
@@ -352,6 +387,21 @@ def _treatment_coverage() -> dict:
 def koweps_evidence(payload: dict = Body(...)) -> dict:
     """선택 문장을 감사된 KOWEPS 사건 패널의 관측분포에 연결한다."""
     return koweps_evidence_for_request(payload)
+
+
+@app.post("/choices/classify-pair")
+def classify_choice_pair(req: ChoiceClassifyPairRequest) -> dict:
+    """프론트·예측·근거 라우팅이 공유할 A/B 선택 분류 정본을 반환한다."""
+    left = classify(req.choice_a)
+    right = classify(req.choice_b)
+    left_known = CHOICE_TAXONOMY.get(left.kind)
+    right_known = CHOICE_TAXONOMY.get(right.kind)
+    left_counterpart = right_known[0] if right_known and right.kind != "유지" else None
+    right_counterpart = left_known[0] if left_known and left.kind != "유지" else None
+    return {
+        "A": {"text": req.choice_a, **_choice_contract(left, req.choice_a_domain_hints, left_counterpart)},
+        "B": {"text": req.choice_b, **_choice_contract(right, req.choice_b_domain_hints, right_counterpart)},
+    }
 
 
 @app.post("/avatar/generate", response_model=AvatarGenerateResponse)

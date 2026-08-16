@@ -213,19 +213,19 @@ export default function Settings() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[720px] pb-4 lg:pb-12">
+    <div className="mx-auto w-full max-w-[1080px] pb-4 lg:pb-12">
       <div className="flex items-center justify-between lg:items-end">
         <Eyebrow>SETTINGS · 설정</Eyebrow>
         <button onClick={() => navigate(-1)} className="tap text-[13px] text-sub">
           닫기
         </button>
       </div>
-      <div className="lg:text-center">
+      <div>
         <h1 className="mb-1 text-[22px] font-bold tracking-[-.025em] lg:text-[34px]">{SETTINGS_META[activeSection][0]}</h1>
         <p className="mb-4 text-[11px] text-mut lg:mb-6 lg:text-[13px]">{SETTINGS_META[activeSection][1]}</p>
       </div>
 
-      <div className="no-scrollbar -mx-1 mb-4 flex gap-2 overflow-x-auto px-1 lg:mx-auto lg:mb-7 lg:flex-wrap lg:justify-center lg:overflow-visible">
+      <div className="no-scrollbar -mx-1 mb-4 flex gap-2 overflow-x-auto px-1 lg:hidden">
         <SettingsNav active={activeSection === "profile"} onClick={() => setActiveSection("profile")} icon={UserRound}>프로필</SettingsNav>
         <SettingsNav active={activeSection === "careerValues"} onClick={() => setActiveSection("careerValues")} icon={ClipboardCheck}>직업 가치관</SettingsNav>
         <SettingsNav active={activeSection === "security"} onClick={() => setActiveSection("security")} icon={LockKeyhole}>보안</SettingsNav>
@@ -234,8 +234,8 @@ export default function Settings() {
         <button type="button" onClick={resetToStart} aria-label="로그아웃" title="로그아웃" className="tap flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/[.07] text-mut hover:border-danger/40 hover:bg-danger/10 hover:text-danger"><LogOut size={17}/></button>
       </div>
 
-      <div>
-        <aside className="hidden">
+      <div className="lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start lg:gap-8 xl:grid-cols-[240px_minmax(0,1fr)] xl:gap-10">
+        <aside className="hidden lg:sticky lg:top-[108px] lg:block">
           <nav className="rounded-[20px] border border-white/[.07] bg-[#0D1828]/75 p-2 shadow-[0_18px_45px_rgba(0,0,0,.18)] backdrop-blur-xl">
             <SettingsNav active={activeSection === "profile"} onClick={() => setActiveSection("profile")} icon={UserRound}>프로필</SettingsNav>
             <SettingsNav active={activeSection === "careerValues"} onClick={() => setActiveSection("careerValues")} icon={ClipboardCheck}>직업 가치관</SettingsNav>
@@ -247,7 +247,7 @@ export default function Settings() {
           <p className="mt-3 px-3 text-[10px] leading-relaxed text-mut">변경한 설정은 이 기기의 사용자 환경에 바로 반영됩니다.</p>
         </aside>
 
-        <div className="mx-auto min-w-0 max-w-[620px] lg:[&_.bg-card]:rounded-[22px] lg:[&_.bg-card]:border lg:[&_.bg-card]:border-white/[.06] lg:[&_.bg-card]:bg-[#0D1828]/80 lg:[&_.bg-card]:p-5 lg:[&_.bg-card]:shadow-[0_18px_45px_rgba(0,0,0,.18)]">
+        <div className="min-w-0 lg:[&_.bg-card]:rounded-[22px] lg:[&_.bg-card]:border lg:[&_.bg-card]:border-white/[.06] lg:[&_.bg-card]:bg-[#0D1828]/80 lg:[&_.bg-card]:p-5 lg:[&_.bg-card]:shadow-[0_18px_45px_rgba(0,0,0,.18)]">
 
       {/* 생활 관리 친구 — 홈을 방해하지 않도록 설정에서 관리한다. */}
       {activeSection === "personalize" && <section className="animate-fade">
@@ -266,53 +266,29 @@ export default function Settings() {
       {/* 프로필 */}
       {activeSection === "profile" && <section className="animate-fade">
       <Card>
-        <div className="mb-3 text-xs font-semibold text-mut">내 프로필</div>
-        <div className="grid grid-cols-[96px_minmax(0,1fr)] items-start gap-6">
-          <div className="flex flex-col items-center">
-            <Avatar config={profile.avatarConfig} size={100} />
-            <button
-              type="button"
-              onClick={() => setEditingAvatar(true)}
-              className="tap mt-2 w-full rounded-xl border border-line bg-[#0E1424] px-2 text-[10px] font-semibold text-cyan"
-            >
-              아바타 수정
-            </button>
+        <div className="grid gap-5 md:grid-cols-[minmax(180px,30%)_minmax(0,70%)] md:gap-0">
+          <div className="relative flex min-w-0 flex-col items-center border-b border-white/[.07] pb-5 text-center md:border-b-0 md:border-r md:pb-0 md:pr-5">
+            <button type="button" onClick={() => setEditingAvatar(true)} className="tap absolute right-0 top-0 rounded-lg px-2 py-1 text-[9px] font-semibold text-mut hover:bg-white/[.05] hover:text-cyan">수정</button>
+            <Avatar config={profile.avatarConfig} size={104} />
+            <h2 className="mt-3 max-w-full truncate text-[18px] font-bold text-ink">{profile.name?.trim() || "닉네임 미설정"}</h2>
+            <p className="mt-1 text-[11px] text-sub">{profile.age}세 · {profile.occupation || "직종 미설정"}</p>
+            <span className="mt-2 rounded-full border border-violet-400/25 bg-violet-500/10 px-3 py-1 text-[10px] font-bold text-violet-200">
+              {profile.mbti && profile.mbti !== "모름" ? profile.mbti : "MBTI 미설정"}
+            </span>
           </div>
 
-          <div className="min-w-0 divide-y divide-line/70">
+          <div className="min-w-0 md:pl-6">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-[13px] font-bold text-ink">기본 정보</h3>
+              <button type="button" onClick={startProfileEdit} className="tap rounded-lg px-2 py-1 text-[9px] font-semibold text-mut hover:bg-white/[.05] hover:text-cyan">수정</button>
+            </div>
+            <div className="divide-y divide-line/70">
             <ProfileItem label="나이" value={`${profile.age}세`} />
             <ProfileItem label="성별" value={profile.sex === "1" ? "남성" : profile.sex === "2" ? "여성" : "—"} />
-            <ProfileItem label="직종" value={profile.occupation || "—"} />
             <ProfileItem label="월소득" value={`${profile.income}만원`} />
-            <ProfileItem label="MBTI" value={profile.mbti && profile.mbti !== "모름" ? profile.mbti : "—"} />
             <ProfileItem label="중요 가치" value={topAxes(profile.value_ranking, 2).join(" · ") || "—"} />
-            <button
-              type="button"
-              onClick={startProfileEdit}
-              className="tap w-full pt-2 text-right text-[10px] font-semibold text-sub"
-            >
-              기본 정보 수정
-            </button>
+            </div>
           </div>
-        </div>
-      </Card>
-
-      {/* 기기 옮기기 — 폰에서 하던 체험을 노트북에서 이어서. 서버 없이 링크로 옮긴다. */}
-      <Card>
-        <div className="flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <div className="text-xs font-semibold text-mut">다른 기기에서 이어서 하기</div>
-            <p className="mt-1 text-[10px] leading-relaxed text-sub">
-              지금 기록을 링크·QR로 옮겨서 폰과 노트북을 오갈 수 있어요.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate("/handoff")}
-            className="tap flex shrink-0 items-center gap-1.5 rounded-xl bg-[#8B6CCF] px-4 py-2.5 text-[11px] font-bold text-white"
-          >
-            <Smartphone size={13} /> 옮기기
-          </button>
         </div>
       </Card>
 
@@ -510,6 +486,19 @@ export default function Settings() {
           onChange={(value) => setProfile((p) => ({ ...p, mbti: value }))}
         />
       </Card>
+
+      {/* 기기 옮기기는 프로필 설정을 모두 확인한 뒤 만나는 마지막 항목이다. */}
+      <Card>
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="text-xs font-semibold text-mut">다른 기기에서 이어서 하기</div>
+            <p className="mt-1 text-[10px] leading-relaxed text-sub">지금 기록을 링크·QR로 옮겨서 폰과 노트북을 오갈 수 있어요.</p>
+          </div>
+          <button type="button" onClick={() => navigate("/handoff")} className="tap flex shrink-0 items-center gap-1.5 rounded-xl bg-[#8B6CCF] px-4 py-2.5 text-[11px] font-bold text-white">
+            <Smartphone size={13} /> 옮기기
+          </button>
+        </div>
+      </Card>
       </section>}
 
       {/* 알림 설정 */}
@@ -647,5 +636,5 @@ export default function Settings() {
 }
 
 function SettingsNav({ active, onClick, icon: Icon, children }) {
-  return <button type="button" onClick={onClick} className={`tap group flex shrink-0 items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-semibold transition-colors ${active ? "bg-violet-500/20 text-violet-200" : "text-sub hover:bg-violet-500/10 hover:text-violet-200"}`}><span className={`flex h-8 w-8 items-center justify-center rounded-lg ${active ? "bg-violet-500/20" : "bg-white/[.04] group-hover:bg-violet-500/15"}`}><Icon size={15}/></span><span className="whitespace-nowrap">{children}</span><ChevronRight size={14} className="hidden" /></button>;
+  return <button type="button" onClick={onClick} className={`tap group flex shrink-0 items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-semibold transition-colors lg:w-full lg:gap-3 ${active ? "bg-violet-500/20 text-violet-200" : "text-sub hover:bg-violet-500/10 hover:text-violet-200"}`}><span className={`flex h-8 w-8 items-center justify-center rounded-lg ${active ? "bg-violet-500/20" : "bg-white/[.04] group-hover:bg-violet-500/15"}`}><Icon size={15}/></span><span className="flex-1 whitespace-nowrap text-left">{children}</span><ChevronRight size={14} className={`hidden lg:block ${active ? "opacity-80" : "opacity-30"}`} /></button>;
 }

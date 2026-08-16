@@ -85,6 +85,8 @@ export default function ResultQuickStats({ a, b, futureYears = 3 }) {
     A: metricValue(a, row.key, futureYears),
     B: metricValue(b, row.key, futureYears),
   })).filter((row) => row.A || row.B);
+  const comparableRows = rows.filter((row) => row.A && row.B);
+  const oneSidedRows = rows.filter((row) => !row.A || !row.B);
 
   if (!rows.length) return null;
 
@@ -101,10 +103,40 @@ export default function ResultQuickStats({ a, b, futureYears = 3 }) {
         </div>
       </div>
 
-      <div className="divide-y divide-white/[.07]">
-        {rows.map((row) => <StatRow key={row.key} row={row} futureYears={futureYears} />)}
-      </div>
+      {comparableRows.length > 0 && <div className="divide-y divide-white/[.07]">
+        {comparableRows.map((row) => <StatRow key={row.key} row={row} futureYears={futureYears} />)}
+      </div>}
+      {oneSidedRows.length > 0 && (
+        <div className="border-t border-white/[.07] px-4 py-3.5">
+          <div className="mb-2.5">
+            <h3 className="text-[11px] font-semibold text-sub">선택별 모델 참고</h3>
+            <p className="mt-0.5 text-[9px] leading-4 text-mut">한 선택에만 정의된 값은 A/B 막대로 비교하지 않습니다.</p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {oneSidedRows.map((row) => <SingleSideMetric key={row.key} row={row} futureYears={futureYears} />)}
+          </div>
+        </div>
+      )}
     </section>
+  );
+}
+
+function SingleSideMetric({ row, futureYears }) {
+  const side = row.A ? "A" : "B";
+  const metric = row[side];
+  return (
+    <article className="rounded-xl border border-white/[.07] bg-white/[.025] px-3 py-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold text-sub">{row.label}</span>
+        <span className="rounded-full px-2 py-0.5 text-[8px] font-bold" style={{ color: COLORS[side], background: `${COLORS[side]}15` }}>{side}에만 연결</span>
+      </div>
+      <div className="mt-2 flex items-baseline gap-1.5">
+        <b className="text-[10px]" style={{ color: COLORS[side] }}>{side}</b>
+        <strong className="text-[15px] tabular-nums text-ink">{formatMetric(metric)}</strong>
+        {metric?.year != null && metric.year !== futureYears && <span className="text-[8px] text-[#D7B7FF]">{metric.year}년 관측</span>}
+      </div>
+      <p className="mt-1 text-[8.5px] leading-4 text-mut">반대 선택의 값이 0이라는 뜻이 아니라, 같은 정의의 모델값이 없다는 뜻입니다.</p>
+    </article>
   );
 }
 

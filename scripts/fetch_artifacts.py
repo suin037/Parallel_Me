@@ -11,7 +11,7 @@
 
 받는 곳 — ARTIFACT_SOURCE 로 고른다
     hf   HuggingFace 비공개 레포 (기본). 카드 등록이 없고 모델 파일에 맞는 용도.
-         HF_REPO_ID  = "suin037/parallel-me-artifacts"
+         HF_REPO_ID  = "suinnn/parallel-me-artifacts"
          HF_TOKEN    = 읽기 권한 토큰
     url  아무 HTTPS 베이스 주소 (R2 공개 버킷·S3 서명 URL 등)
          ARTIFACT_BASE_URL = "https://.../artifacts"

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Check, GitCompareArrows, Search, Sparkles, TrendingUp } from "lucide-react";
 import { useResult } from "../data/ResultContext.jsx";
 import { labelOf } from "../data/prediction.js";
@@ -14,22 +14,63 @@ const STATUS_MESSAGES = [
   { label: "결과 화면 준비하기", icon: Sparkles },
 ];
 
+// runSimulation 이 알려주는 실제 진행 단계 → STATUS_MESSAGES 인덱스.
+// 0번("입력한 선택 이해하기")은 이 화면에 오기 전 InputScreen 에서 이미 끝났다.
+const STAGE_INDEX = { connect: 1, compare: 2, ready: 3 };
+
+// 한 단계가 눈에 보이는 최소 시간. 표시는 실제 진행보다 **앞서지 않고 뒤처지기만** 한다.
+const STEP_MS = 260;
+// 화면 전체의 최소 표시 시간. /compare 가 0.3초에 끝나면 로딩 화면이 깜빡이고 사라져
+// 무슨 일이 있었는지 읽을 수가 없다. 진행을 지어내지 않으면서 전환만 눈에 담기게 한다.
+const MIN_VISIBLE_MS = 1100;
+
 export default function Simulate() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { runSimulation, choices, scenarioTexts, scenarioDomains } = useResult();
   const [messageIndex, setMessageIndex] = useState(0);
+  const targetRef = useRef(0);   // 실제 진행이 도달한 단계
+  const shownRef = useRef(0);    // 화면에 그려진 단계
+  const doneRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
-    // 실제 비교 요청이 끝날 때까지만 유지한다. 가짜 퍼센트나 최소 대기시간 없이
-    // 처리 중이라는 연속 애니메이션만 보여준다.
-    const sim = runSimulation();
-    const ticker = setInterval(() => {
-      setMessageIndex((current) => Math.min(current + 1, STATUS_MESSAGES.length - 1));
-    }, 1800);
-    sim.finally(() => {
-      if (!cancelled) navigate("/result", { replace: true });
+    // 단계 표시는 runSimulation 의 onProgress 로만 전진한다 — 가짜 퍼센트도,
+    // 시간이 지났다고 저절로 넘어가는 타이머도 쓰지 않는다.
+    // (예전엔 1.8초 간격 타이머였는데 /compare 가 0.3초에 끝나면서 4단계 중
+    //  1단계만 켜진 채로 화면이 사라졌다.)
+    const startedAt = performance.now();
+    const classifiedDomains = location.state?.classifiedDomains;
+    const classifiedContexts = location.state?.classifiedContexts;
+    const sim = runSimulation({
+      ...(classifiedDomains?.a ? { choiceADomains: classifiedDomains.a } : {}),
+      ...(classifiedDomains?.b ? { choiceBDomains: classifiedDomains.b } : {}),
+      ...(classifiedContexts?.a ? { choiceAContext: classifiedContexts.a } : {}),
+      ...(classifiedContexts?.b ? { choiceBContext: classifiedContexts.b } : {}),
+      onProgress: (stage) => {
+        targetRef.current = Math.max(targetRef.current, STAGE_INDEX[stage] ?? 0);
+      },
     });
+    // 실패해도(서버 다운·폭주) 목업 폴백이 result 에 남으므로 결과 화면으로 넘긴다.
+    sim.finally(() => {
+      doneRef.current = true;
+      targetRef.current = STATUS_MESSAGES.length - 1;
+    });
+
+    const ticker = setInterval(() => {
+      if (shownRef.current < targetRef.current) {
+        shownRef.current += 1;
+        setMessageIndex(shownRef.current);
+      }
+      const finished = doneRef.current
+        && shownRef.current >= STATUS_MESSAGES.length - 1
+        && performance.now() - startedAt >= MIN_VISIBLE_MS;
+      if (finished) {
+        clearInterval(ticker);
+        if (!cancelled) navigate("/result", { replace: true });
+      }
+    }, STEP_MS);
+
     return () => {
       cancelled = true;
       clearInterval(ticker);

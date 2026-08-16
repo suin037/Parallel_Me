@@ -219,6 +219,21 @@ export async function runCompareRaw(args) {
   return res.json();
 }
 
+export async function classifyChoicePair({ choiceA, choiceB, domainsA = [], domainsB = [] }) {
+  const res = await fetch(`${API_BASE}/choices/classify-pair`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      choice_a: choiceA,
+      choice_b: choiceB,
+      choice_a_domain_hints: domainsA,
+      choice_b_domain_hints: domainsB,
+    }),
+  });
+  if (!res.ok) throw new Error(`choice classification ${res.status}`);
+  return res.json();
+}
+
 // 검증 중인 이직 재정 모델을 단독 확인할 때 사용한다.
 // 집단 검증값(population_evidence)과 개인 실험값(personalized_estimate)을 구분해 읽어야 한다.
 export async function getJobChangeFinancialImpact(profile) {
@@ -256,10 +271,10 @@ export async function generateSceneImages({ avatarBlob, avatarSpec, choiceA, cho
       .join(" ");
   };
   const form = new FormData();
-  const desktopImage = typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
-  const visualSize = desktopImage
-    ? { width: 768, height: 432, format: "landscape 16:9" }
-    : { width: 512, height: 640, format: "portrait 4:5" };
+  // 결과 장면은 화면 크기와 무관하게 데스크톱용 가로 이미지 하나만 생성한다.
+  // 같은 시뮬레이션이 모바일/데스크톱 접속 여부에 따라 서로 다른 캐시 키와
+  // 이미지 호출을 만들지 않도록 생성 규격을 고정한다.
+  const visualSize = { width: 768, height: 432, format: "landscape 16:9" };
   form.append("avatar", avatarBlob, "avatar.png");
   form.append("avatar_spec", JSON.stringify(avatarSpec || {}));
   form.append("choice_a", choiceA);

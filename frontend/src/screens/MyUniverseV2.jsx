@@ -4,15 +4,13 @@ import { Archive, CalendarDays, ChevronRight, Plus, X } from "lucide-react";
 import UniverseMap from "../components/UniverseMap.jsx";
 import Constellation from "../components/Constellation.jsx";
 import { PLANETS } from "../data/result.js";
-import { adaptiveGroups, hasRecord, loadUniverse, resetUniverse, scenariosByPlanet, seedDemoCheckins, starGroupsOf, todayKey } from "../data/myUniverse.js";
-// demoYear.js 는 1년치 기록(87KB)을 들고 있다. 개발용 데모 버튼에서만 쓰므로
-// 정적 import 하지 않는다 — 하면 첫 화면 번들에 그대로 실린다.
+import { adaptiveGroups, hasRecord, loadUniverse, scenariosByPlanet, starGroupsOf, todayKey } from "../data/myUniverse.js";
 import { domainAnalysis, domainMonths, domainReport } from "../data/diarySignals.js";
 import { futureMaterials, getCachedFuture, writeFuture, getCachedOpportunities, scanOpportunities } from "../data/futureApi.js";
 import { expeditionsFor, startExpedition } from "../data/expeditions.js";
 import { shapeOf, shapeLineFor, DOMAIN_THEME, MIN_RECORDS_TO_NAME, HONESTY_NOTE } from "../data/constellationRules.js";
 import { useResult } from "../data/ResultContext.jsx";
-import { clearSavedReports, REPORT_UID, loadSpeech } from "../data/dispositionApi.js";
+import { loadSpeech } from "../data/dispositionApi.js";
 import { planetSkin } from "../data/petShop.js";
 import { PLANET_TEXTURES } from "../data/planetSurface.js";
 
@@ -47,7 +45,6 @@ export default function MyUniverseV2() {
   // 3D 에서 별자리를 누르면 그 별자리 하나를 펼쳐 본다(모양·상태·그 안의 기록).
   const [cluster, setCluster] = useState(null);
   const [skin,setSkin]=useState(planetSkin);
-  const [demoBusy, setDemoBusy] = useState(null);
   useEffect(() => { const refresh = () => setState(loadUniverse()); window.addEventListener("pm:universe", refresh); return () => window.removeEventListener("pm:universe", refresh); }, []);
   useEffect(()=>{const refresh=()=>setSkin(planetSkin());window.addEventListener("pm:pet-shop",refresh);return()=>window.removeEventListener("pm:pet-shop",refresh);},[]);
 
@@ -96,46 +93,12 @@ export default function MyUniverseV2() {
     () => (planet ? scenariosByPlanet(planet.key, state) : []), [planet, state]);
 
   function openPlanet(key) { setPlanet(PLANETS.find((item) => item.key === key)); setCluster(null); }
-  async function runDemo(kind) {
-    if (demoBusy) return;
-    setDemoBusy(kind);
-    try {
-      clearSavedReports(REPORT_UID);
-      setPlanet(null); setCluster(null);
-      if (kind === "clear") resetUniverse();
-      else if (kind === "6w") { resetUniverse(); seedDemoCheckins(); }
-      else if (kind === "1y" || kind === "eunwoo") {
-        // 누르는 순간에만 1년치를 받아온다.
-        const demo = await import("../data/demoYear.js");
-        if (kind === "1y") demo.seedDemoYear();
-        else demo.seedDemoEunwoo();
-      }
-      setState(loadUniverse());
-    } finally {
-      setDemoBusy(null);
-    }
-  }
-
-  const selectedDemo = state.demo
-    ? state.demoKind === "eunwoo" ? "eunwoo" : state.demoKind === "year" ? "1y" : "6w"
-    : (state.checkins || []).length === 0 ? "clear" : null;
 
   return (
     <div className="relative h-full min-h-[620px] overflow-hidden bg-[#030712] lg:min-h-[calc(100dvh-76px)]">
       <div className="pointer-events-none absolute left-8 top-6 z-20">
         <h1 className="text-[25px] font-bold tracking-[-.03em]">나의 우주</h1>
         <p className="mt-1 text-[11px] text-sub">당신의 기록이 별이 되고, 별들이 연결되어 우주가 됩니다.</p>
-      </div>
-      <div className="absolute left-8 top-[78px] z-30 flex flex-wrap gap-1.5">
-        {[['6w','6주'],['1y','1년'],['eunwoo','은우'],['clear','비우기']].map(([key,label])=>{
-          const selected=selectedDemo===key;
-          return <button key={key} type="button" onClick={()=>runDemo(key)} disabled={Boolean(demoBusy)} aria-pressed={selected}
-            className={`tap rounded-full border px-3 py-1.5 text-[9px] font-semibold backdrop-blur transition-colors disabled:opacity-60 ${selected
-              ? "border-[#A98BE8] bg-[#8B6CCF] text-white shadow-[0_0_16px_rgba(139,108,207,.35)]"
-              : "border-white/10 bg-black/25 text-white/60 hover:border-[#8B6CCF]/50 hover:text-[#C7B5F2]"}`}>
-            {demoBusy===key ? "적용 중…" : selected ? `✓ ${label}` : label}
-          </button>;
-        })}
       </div>
       <div className="absolute right-6 top-5 z-30">
         <button type="button" onClick={() => navigate("/archive")} className="tap flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3 text-[10px] text-sub backdrop-blur"><Archive size={13} /> 보관함</button>

@@ -135,6 +135,15 @@ class SimulateRequest(CompareRequest):
         "profile.value_weights 가 없을 때 이걸 qmode value_ranking.axis_weights 로 변환해 사용.")
 
 
+class ChoiceClassifyPairRequest(BaseModel):
+    """A/B 자유문장을 하나의 정본 kind·domain·event 계약으로 정규화한다."""
+
+    choice_a: str = Field(..., min_length=1, max_length=500)
+    choice_b: str = Field(..., min_length=1, max_length=500)
+    choice_a_domain_hints: list[str] = Field(default_factory=list)
+    choice_b_domain_hints: list[str] = Field(default_factory=list)
+
+
 class NeighborCase(BaseModel):
     """KNN 으로 찾은 유사 사례 1건."""
 

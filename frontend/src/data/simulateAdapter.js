@@ -55,7 +55,10 @@ function buildSide(scenario, choice, detail, profile, evidence, domainCov, domai
   // 자유입력 원문 대신 백엔드가 정규화한 유형을 사용한다. "개발자로 이직" 같은
   // 문구도 kind="이직"이면 개인모델 결과를 버리지 않아야 한다.
   const kind = scenario?.kind || raw.kind || choice;
-  const { rows: trajectory, isBaseline } = pickTrajectory(raw, choice);
+  // scenario_trajectories 키는 사용자가 쓴 원문이 아니라 백엔드 정규화 유형
+  // (유지·이직 등)이다. "현재 진로 유지" 같은 문장으로 조회하면 항상 공통
+  // 기준선으로 떨어져 A/B 격차와 상세 인사이트가 사라진다.
+  const { rows: trajectory, isBaseline } = pickTrajectory(raw, kind);
   const wellbeing = raw.wellbeing_trajectory || [];
 
   // 이직은 개인단위 모델, 창업은 artifact가 배포된 경우 개인단위 자영 이탈모델을 쓴다.
@@ -95,7 +98,13 @@ function buildSide(scenario, choice, detail, profile, evidence, domainCov, domai
     // true = 이 갈래 전용 궤적이 아니라 '비슷한 사람들'의 공통 기준선
     trajectory_is_baseline: isBaseline,
     wellbeing_trajectory: wellbeing,
-    satisfaction_facets: raw.satisfaction_facets || {},
+    wellbeing_branch: raw.wellbeing_branch || {},
+    satisfaction_summary: scenario?.satisfaction_summary || null,
+    satisfaction_facets: scenario?.satisfaction_facets || [],
+    growth_potential: scenario?.growth_potential || [],
+    choice_context: normalizeLifeIndicators(scenario?.choice_context || []),
+    matched_on: raw.matched_on || [],
+    regret_summary: scenario?.regret_summary || null,
     action_cards: ACTION_CARDS,
     narrative: "",
 
