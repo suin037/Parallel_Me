@@ -48,9 +48,12 @@ export default function Layout() {
   const isPersonas = pathname === "/personas";
   const isSimulationFlow = pathname === "/simulate";
   const useFullDesktop = isDesktopWorkspace || isOnboarding || isPersonas || pathname === "/simulate";
-  const [guideOpen, setGuideOpen] = useState(() => {
-    try { return storage.getItem("pm.guide.seen.v1") !== "1"; } catch { return true; }
-  });
+  // 소개 모달도 스스로 뜨지 않는다.
+  //
+  // 예전에는 '아직 안 본 사람'이면 첫 화면에서 저절로 떴다. 그래서 계정을 만들고
+  // 들어오자마자, 심지어 온보딩 중에도 설명 창이 화면을 덮었다.
+  // 여는 곳은 두 군데뿐이다 — 랜딩 오른쪽 위 '사용 방법', 설정의 '안내 받기'.
+  const [guideOpen, setGuideOpen] = useState(false);
   const closeGuide = () => {
     try { storage.setItem("pm.guide.seen.v1", "1"); } catch { /* 저장 불가 환경 */ }
     setGuideOpen(false);

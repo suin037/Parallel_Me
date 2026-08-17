@@ -19,6 +19,7 @@ import PetMascot from "../components/PetMascot.jsx";
 import PetShop from "../components/PetShop.jsx";
 import { Bell, ChevronRight, ClipboardCheck, Compass, LockKeyhole, Palette, Smartphone, UserRound, LogOut } from "lucide-react";
 import { toChoiceDomains } from "../data/choices.js";
+import { logoutAccount } from "../data/personaSlots.js";
 import { openGuide } from "../data/tour.js";
 import { adviceOn, setAdvice } from "../data/guideAdvice.js";
 import { TOONHEAD_CREDIT } from "../data/avatarOptions.js";
@@ -219,8 +220,9 @@ export default function Settings() {
     setProfile((p) => ({ ...p, psych_answers: { ...(p.psych_answers || {}), [qid]: v } }));
   }
   function resetToStart() {
-    resetSession();      // 결과·선택지·담아둔 자료까지 비운다 — 안 비우면 다음 사람 화면에 남는다
-    setOnboarded(false); // 랜딩으로 되돌림 (데모: 세션 한정)
+    resetSession();       // 화면에 떠 있는 결과·선택지·담아둔 자료
+    logoutAccount();      // 저장된 기록까지 — 안 지우면 새 계정에 앞사람 1년치가 남는다
+    setOnboarded(false);  // 랜딩으로 되돌림
     navigate("/");
   }
 

@@ -44,6 +44,7 @@ export const PROFILE_KEYS = [
   "pm.speech.v1",
   "pm.contribConsent.v1",
   "pm.anonId.v1",
+  "pm_diary_v5",        // 일기 원문(DiaryContext) — 이게 빠져 있어 인물을 바꿔도 남았다
 ];
 
 // 직접 만든 계정(체험용 페르소나가 아닌 '나')의 슬롯 id.
@@ -170,6 +171,43 @@ export function clearSlot(id) {
     restoreLive({});
     st.active = null;
   }
+  return writeSlots(st);
+}
+
+/**
+ * 로그아웃 — 지금 기록을 슬롯에 **보관하고** 화면만 비운다.
+ *
+ * 예전에는 화면 상태(ResultContext)만 비웠다. 저장소는 그대로여서 로그아웃한 뒤
+ * '나만의 계정 만들기'로 들어가면 앞사람이 고른 1년치가 그대로 보였다.
+ *
+ * 그렇다고 지워 버리면 내 기록이 사라진다. 로그인이 없는 데모라 '같은 사람'인지
+ * 알 수는 없지만, 적어도 기록은 남겨 두고 랜딩에서 다시 들어올 수 있게 한다.
+ */
+export function logoutAccount() {
+  saveActiveSlot(new Date().toISOString());   // 지금 기록을 내 슬롯에 담아두고
+  restoreLive({});                            // 살아 있는 키는 비운다
+  const st = readSlots();
+  st.active = null;
+  return writeSlots(st);
+}
+
+/** 보관해 둔 내 기록이 있는가 — 랜딩의 '이어서 하기'를 띄울지 정한다. */
+export function hasMyRecords() {
+  const snap = readSlots().slots[MY_SLOT];
+  return Boolean(snap && Object.keys(snap).length);
+}
+
+/**
+ * 새 계정으로 시작 — 보관해 둔 내 기록까지 버리고 빈 상태로 연다.
+ *
+ * '나만의 계정 만들기'는 지금까지 activateSlot(MY_SLOT) 이었다. 그건 **복구**라서
+ * 새로 만든다면서 앞사람 기록을 그대로 들고 들어왔다.
+ */
+export function startFreshMySlot() {
+  const st = readSlots();
+  delete st.slots[MY_SLOT];
+  st.active = MY_SLOT;
+  restoreLive({});
   return writeSlots(st);
 }
 

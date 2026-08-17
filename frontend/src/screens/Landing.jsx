@@ -1,20 +1,34 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui.jsx";
 import { startMyAccount } from "../data/personaSession.js";
+import { hasMyRecords, startFreshMySlot } from "../data/personaSlots.js";
 import { useResult } from "../data/ResultContext.jsx";
 
 export default function Landing() {
   const navigate = useNavigate();
   const { reloadProfile } = useResult();
+  // 보관된 기록이 있는지는 화면을 그릴 때 한 번만 본다(랜딩에서는 바뀌지 않는다).
+  const [mine] = useState(hasMyRecords);
 
   // 내 계정으로 가기 전에 슬롯을 먼저 비운다 — 순서가 바뀌면(온보딩 뒤에 부르면)
   // activateSlot 의 restoreLive({}) 가 방금 입력한 pm.profile.v1 을 지운다.
   // 전체 새로고침 대신 reloadProfile() 로 이전 프로필 잔상을 지운다 — iframe·사파리에서는
   // 저장소가 메모리라(safeStorage) 새로고침하면 세션이 통째로 날아간다.
+  // 새로 만들기 — 보관해 둔 기록까지 비우고 빈 상태로 시작한다.
+  // (예전에는 슬롯을 '복구'해서, 새 계정인데 앞사람 1년치가 그대로 따라왔다.)
   function makeMyAccount() {
-    startMyAccount();
+    startFreshMySlot();
     reloadProfile();
     navigate("/onboarding");
+  }
+
+  // 로그아웃하며 보관해 둔 기록으로 돌아간다. 로그인이 없어 '같은 사람'인지는
+  // 확인할 수 없다 — 이 기기에 남아 있는 마지막 계정이라는 뜻이다.
+  function continueMyAccount() {
+    startMyAccount();
+    reloadProfile();
+    navigate("/my");
   }
 
   return (
@@ -55,6 +69,17 @@ export default function Landing() {
             나만의 계정 만들기
           </Button>
         </div>
+        {/* 로그아웃하며 보관해 둔 기록이 있을 때만 — 로그인이 없어서 '이 기기에
+            남아 있는 마지막 계정'이라는 뜻이고, 문구도 그렇게 적는다. */}
+        {mine && (
+          <button
+            type="button"
+            onClick={continueMyAccount}
+            className="tap mt-3 self-start text-[12px] text-white/70 underline underline-offset-4 hover:text-white lg:mt-4"
+          >
+            이 기기에 남아 있는 내 기록으로 이어서 하기
+          </button>
+        )}
       </div>
     </div>
   );

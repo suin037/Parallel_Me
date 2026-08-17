@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { startTour } from "../data/tour.js";
 import { useResult } from "../data/ResultContext.jsx";
 import { Eyebrow, Button } from "../components/ui.jsx";
 import AvatarBuilder from "../components/AvatarBuilder.jsx";
@@ -54,6 +55,11 @@ export default function Onboarding() {
   //   (두 미래 비교는 기록 없이도 되지만, 맞춤 해석이 약해지는 걸 여기서 알린다.)
   const [starterOpen, setStarterOpen] = useState(false);
   const [starterBusy, setStarterBusy] = useState(false);
+  // 화면 안내를 받을지 — 여기서 한 번만 묻는다.
+  //
+  // 켠 사람에게만, 그것도 '1년치로 시작 / 그냥 시작'을 고른 **뒤에** 시작한다.
+  // 시작 방식을 고르기 전에 설명을 시작하면 아직 없는 화면을 설명하게 된다.
+  const [wantGuide, setWantGuide] = useState(false);
 
   function finish() {
     if (!profile.sex) return;
@@ -62,9 +68,10 @@ export default function Onboarding() {
 
   function enterApp() {
     setOnboarded(true); // 이후 홈 탭은 '나의 우주' 허브로 진입
-    // 안내는 여기서 띄우지 않는다. 들어가자마자 설명이 시작되면 화면을 볼 틈이
-    // 없다 — 필요한 사람이 설정 → 알림 · 가이드에서 직접 연다.
     navigate("/my");
+    // 안내는 고른 사람에게만. 안 고르면 설정 → 알림 · 가이드에서 언제든 열 수 있다.
+    // (startTour 는 잠시 뒤에 신호를 보내므로 화면이 바뀐 다음에 시작된다.)
+    if (wantGuide) startTour();
   }
 
   async function startWithSample() {
@@ -355,7 +362,24 @@ export default function Onboarding() {
         </div>
 
         {visibleThrough >= steps.length - 1 && (
-          <Button disabled={!profile.sex} className="mb-2 mt-8 lg:ml-auto lg:max-w-[320px]" onClick={finish}>저장하고 시작하기</Button>
+          <>
+          {/* 안내는 여기서 한 번만 묻는다. 기본은 꺼둠 — 켜지 않으면 조용히 시작한다. */}
+          <label className="mt-8 flex cursor-pointer items-start gap-3 rounded-[18px] border border-white/[.08] bg-white/[.025] p-4 lg:ml-auto lg:max-w-[320px]">
+            <input
+              type="checkbox"
+              checked={wantGuide}
+              onChange={(event) => setWantGuide(event.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[#8B6CCF]"
+            />
+            <span className="min-w-0">
+              <span className="block text-[13px] font-semibold text-ink">화면 안내 받기</span>
+              <span className="mt-1 block text-[11px] leading-relaxed text-mut">
+                시작하고 나면 마스코트가 화면을 하나씩 짚으며 알려드려요. 나중에 설정에서도 받을 수 있어요.
+              </span>
+            </span>
+          </label>
+          <Button disabled={!profile.sex} className="mb-2 mt-4 lg:ml-auto lg:max-w-[320px]" onClick={finish}>저장하고 시작하기</Button>
+          </>
         )}
       </main>
       <StarterDataDialog

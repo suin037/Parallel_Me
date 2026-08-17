@@ -62,6 +62,13 @@ export default function Tour() {
   // 조명이 직전 프레임에 보였는지. 안 보이다 나타나는 순간에는 자리를 '이동'시키면
   // 안 된다 — 보이지 않는 곳에서 새 자리로 미끄러져 오는 게 눈에 띄기 때문이다.
   const wasVisibleRef = useRef(false);
+  // 단계가 바뀐 직후 잠깐만 '미끄러지는' 구간을 둔다.
+  //
+  // 조명·말풍선 자리는 매 프레임 다시 재는 값이다. 거기에 트랜지션을 걸어두면
+  // 값이 바뀔 때마다 보간이 처음부터 다시 시작돼, 화면이 떠오르는 동안(animate-fade
+  // .35s) 계속 되감기며 뚝뚝 끊겨 보인다. 그래서 자리 이동은 단계가 바뀔 때만
+  // 애니메이션하고, 그 뒤 추적은 즉시 반영한다(1:1로 따라붙어 오히려 매끄럽다).
+  const [sliding, setSliding] = useState(false);
   // 자동 재생 — 영상 녹화용. 기본은 꺼둔다(혼자 읽는 사람에게는 재촉이 된다).
   const [auto, setAuto] = useState(false);
   // 코스 — 전체(20컷)가 기본이고, 급할 때 쓰는 짧은 코스가 하나 더 있다.
@@ -72,7 +79,11 @@ export default function Tour() {
     [mode],
   );
 
-  const clearTimers = () => { timers.current.forEach(clearInterval); timers.current = []; };
+  const clearTimers = () => {
+    // interval 과 timeout 이 섞여 있다 — id 체계가 같아 둘 다 지운다.
+    timers.current.forEach((id) => { clearInterval(id); clearTimeout(id); });
+    timers.current = [];
+  };
 
   // 스스로 시작하지 않는다 — 설정에서 '안내 받기'를 누른 그 순간에만 열린다.
   //
@@ -155,11 +166,13 @@ export default function Tour() {
       const el = findVisible(step.id);
       if (el) {
         clearInterval(find);
-        // 스크롤은 즉시. 부드럽게 굴리면 구멍이 스크롤을 300ms 뒤에서 쫓아가
-        // 출렁인다. 어차피 화면은 덮여 있어 스크롤 자체는 보이지 않고,
-        // 눈에 보이는 움직임은 구멍이 새 자리로 미끄러지는 것뿐이다.
-        el.scrollIntoView({ block: "center" });
-        setReadyId(stepKey);
+        // 스크롤은 즉시. 부드럽게 굴리면 구멍이 스크롤을 뒤에서 쫓아가 출렁인다.
+        el.scrollIntoView({ block: "center", behavior: "instant" });
+        // 화면이 떠오르는 동안(animate-fade .35s — opacity + translateY 8px) 대상이
+        // 계속 움직인다. 그때 조명을 켜면 움직이는 걸 쫓느라 뚝뚝 끊겨 보인다.
+        // 다 뜨고 자리가 굳은 뒤에 켠다.
+        const settle = setTimeout(() => setReadyId(stepKey), 380);
+        timers.current.push(settle);
         return;
       }
       waited += 120;
@@ -171,7 +184,7 @@ export default function Tour() {
       }
     }, 120);
     timers.current.push(find);
-    return () => clearInterval(find);
+    return () => { clearInterval(find); clearTimers(); };
   }, [stepKey, pathname, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 대상 위치 추적 — 스크롤·리사이즈에도 구멍이 따라간다.
@@ -227,6 +240,12 @@ export default function Tour() {
 
   // 조명이 보였는지 기록해 둔다 — 다음 렌더에서 '방금 나타났는지'를 알기 위해.
   useEffect(() => { wasVisibleRef.current = Boolean(box); });
+
+  useEffect(() => {
+    setSliding(true);
+    const timer = setTimeout(() => setSliding(false), 400);
+    return () => clearTimeout(timer);
+  }, [stepKey]);
 
   // 말풍선 높이를 따라간다 — 줄 수가 달라 높이가 매번 다르다.
   //
@@ -361,7 +380,9 @@ export default function Tour() {
           opacity: hole ? 1 : 0,
           // 나타나는 순간에는 자리를 옮기지 않고 밝기만 올린다. 같은 화면에서
           // 자리만 바뀔 때는 그대로 미끄러진다.
-          transitionProperty: justAppeared ? "opacity" : "top, left, width, height, opacity",
+          transitionProperty: justAppeared || !sliding
+            ? "opacity"
+            : "top, left, width, height, opacity",
         }}
       />
 
@@ -402,7 +423,13 @@ export default function Tour() {
       <div
         ref={tipRef}
         className="absolute flex max-h-[calc(100dvh-32px)] w-[min(420px,calc(100vw-32px))] flex-col overflow-hidden rounded-[20px] border bg-[#111A2C] shadow-[0_24px_70px_rgba(0,0,0,.62)] transition-all duration-[360ms] ease-out"
-        style={{ ...tipStyle, borderColor: `${tint}66`, ...(tipMaxH ? { maxHeight: tipMaxH } : {}) }}
+        style={{
+          ...tipStyle,
+          borderColor: `${tint}66`,
+          ...(tipMaxH ? { maxHeight: tipMaxH } : {}),
+          // 단계가 바뀔 때만 미끄러지고, 추적 중에는 곧바로 따라붙는다.
+          transitionProperty: sliding ? "top, left, border-color" : "border-color",
+        }}
       >
         {/* 전체 진행 막대 — 44단계짜리라 지금 어디쯤인지 눈으로도 보이게 */}
         <div className="h-[3px] w-full bg-white/[.06]">
