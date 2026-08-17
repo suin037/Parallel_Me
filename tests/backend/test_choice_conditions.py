@@ -90,6 +90,36 @@ def test_읽을_수_없으면_None_이지_0이_아니다(text):
 
 
 # ── 묶음 파싱 ────────────────────────────────────────────────────────────
+def test_프론트가_보내는_중첩_모양을_읽는다():
+    """InputScreen.updateContext 가 실제로 보내는 shape.
+
+    처음엔 최상위 키만 읽어서 조건이 하나도 반영되지 않았다. 배포본에서
+    '310→280' 을 적어도 1년차가 그대로 308.4 였던 원인이다.
+    """
+    cond = parse_conditions(context={
+        "event": "career.occupation_change",
+        "event_label": "직업 이동",
+        "domain": "career",
+        "answers": {"time_horizon": "2개월 안", "income_change": "30만원 감소 (310→280)"},
+    })
+    assert cond.income["value"] == 280
+    assert cond.horizon_months == 2
+
+
+def test_answers_가_비어_있으면_조건이_없는_것이다():
+    """event 같은 메타만 온 경우 — 답변을 지어내면 안 된다."""
+    cond = parse_conditions(context={
+        "event": "career.occupation_change", "domain": "career", "answers": {},
+    })
+    assert not cond.has_any()
+
+
+def test_평평한_모양도_계속_지원한다():
+    """다른 호출부·테스트가 쓰던 모양을 깨지 않는다."""
+    cond = parse_conditions(context={"income_change": "40만원 증가"})
+    assert cond.income["value"] == 40
+
+
 def test_context_가_detail_보다_우선한다():
     cond = parse_conditions(
         detail="40만원 증가",

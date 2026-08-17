@@ -197,11 +197,29 @@ def _first(ctx: dict, keys: tuple[str, ...]) -> str | None:
     return None
 
 
+def _answers(context: dict | None) -> dict:
+    """`choice_*_context` 에서 실제 답변 dict 를 꺼낸다.
+
+    프론트(`InputScreen.updateContext`)가 보내는 모양은 평평하지 않다.
+        {"event": ..., "event_label": ..., "domain": ..., "answers": {...}}
+    처음엔 최상위만 읽어서 아무것도 못 찾았다. 둘 다 받아 준다 —
+    `answers` 가 있으면 그쪽이 정본이고, 없으면 최상위를 답변으로 본다.
+    """
+    if not isinstance(context, dict):
+        return {}
+    inner = context.get("answers")
+    if isinstance(inner, dict) and inner:
+        return inner
+    # 'event' 같은 메타 키만 있는 경우는 답변이 없는 것이다.
+    return {k: v for k, v in context.items()
+            if k not in ("event", "event_label", "domain", "answers")}
+
+
 def parse_conditions(detail: str | None = None,
                      context: dict | None = None) -> ChoiceConditions:
     """구조화 답변(context) 우선, 없으면 자유 텍스트(detail) 에서 읽는다."""
     out = ChoiceConditions()
-    ctx = context if isinstance(context, dict) else {}
+    ctx = _answers(context)
 
     if ctx:
         out.source = "context"
