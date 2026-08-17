@@ -7,7 +7,7 @@ import { announceSurface } from "../data/guideAdvice.js";
 import { domainScore, domainMentions, relationMix, metricOf, skillMix, MIN_FOR_SCORE } from "../data/domainScore.js";
 import { PLANETS } from "../data/result.js";
 import { adaptiveGroups, hasRecord, loadUniverse, scenariosByPlanet, starGroupsOf, todayKey } from "../data/myUniverse.js";
-import { domainAnalysis, domainMonths, domainReport, detectRelationSubtype } from "../data/diarySignals.js";
+import { domainAnalysis, domainMonths, detectRelationSubtype } from "../data/diarySignals.js";
 import { futureMaterials, getCachedFuture, writeFuture, getCachedOpportunities, scanOpportunities } from "../data/futureApi.js";
 import { expeditionsFor, startExpedition } from "../data/expeditions.js";
 import { shapeOf, shapeLineFor, DOMAIN_THEME, MIN_RECORDS_TO_NAME, HONESTY_NOTE } from "../data/constellationRules.js";
@@ -33,13 +33,6 @@ const TONE_PATH = "#A99CF0";   // 아직 안 가본 길 — 밝은 라벤더
 const TONE_FUTURE = "#7C86CC"; // 이 영역의 N년 뒤 — 가라앉은 남보라
 const TONE_NOTE = "#C9BCF6";   // 두 카드 안의 '다시 해보세요' 같은 안내
 
-const DESCRIPTIONS = {
-  career: "나의 진로와 커리어에 대한 고민, 선택, 방향성을 기록해요.",
-  growth: "배움과 성취, 새로운 가능성을 향한 과정을 기록해요.",
-  life: "일상에서 느낀 평온과 만족, 삶의 균형을 기록해요.",
-  relation: "가족과 친구, 동료와 나눈 관계의 순간을 기록해요.",
-  health: "몸과 마음의 변화, 회복과 돌봄의 기록을 모아요.",
-};
 const KEYWORDS = {
   career: ["진로 고민", "진로 탐색", "목표 설정", "취업 준비", "방향성"],
   growth: ["배움", "자기 확신", "도전", "성취"], life: ["일상", "평온", "균형", "만족"],
@@ -237,127 +230,42 @@ function Shell({ children, onClose, wide = false }) {
 }
 function Close({ onClick }) { return <button type="button" onClick={onClick} className="tap flex h-9 w-9 items-center justify-center rounded-full text-sub"><X size={18} /></button>; }
 
-// 그 행성(영역)으로 분류된 일기의 분석 — 기록 수·기분 흐름·자주 남긴 감정·월별 추이와
-// 실제로 그날 쓴 문장. 시나리오(미래)와 기록(과거)이 한 행성에서 만나게 하는 부분이다.
 // 별자리·홈 캘린더와 같은 램프. 여기서 다시 정의하면 같은 5점이 화면마다 다른 색이 된다.
 const MOOD_COLORS = MOOD_RAMP;
 
-// 연속 기분 흐름 그래프 — 기록 순서대로 이어지는 SVG polyline (이미지 아님, 데이터로 그림).
-function Sparkline({ series = [], trend }) {
-  if (series.length < 2) return null; // 점 하나짜리 선은 흐름이 아니다
-  const W = 260, H = 40, PAD = 4;
-  const xs = (i) => PAD + (i * (W - 2 * PAD)) / (series.length - 1);
-  const ys = (v) => H - PAD - ((v + 1) / 2) * (H - 2 * PAD);
-  const pts = series.map((p, i) => `${xs(i).toFixed(1)},${ys(p.v).toFixed(1)}`).join(" ");
-  const col = trend == null ? "#8B6CCF" : trend > 0.1 ? "#5DCAA5" : trend < -0.1 ? "#F0736F" : "#8B6CCF";
-  return (
-    <div className="mt-2.5">
-      <div className="mb-1 text-[8.5px] text-mut">기분 흐름 (기록 순서대로 이어짐)</div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 44 }}>
-        <line x1={PAD} y1={H / 2} x2={W - PAD} y2={H / 2} stroke="#28324D" strokeWidth="0.5" strokeDasharray="2 3" />
-        <polyline points={pts} fill="none" stroke={col} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
-        {series.map((p, i) => <circle key={i} cx={xs(i)} cy={ys(p.v)} r="1.6" fill={col} />)}
-      </svg>
-    </div>
-  );
-}
-function DomainRecords({ planet, state, entries, recent }) {
-  // 1년치가 들어오면 이 셋은 렌더마다 수백 개 기록을 다시 훑는다 — 상태가 바뀔 때만 돌린다.
-  const a = useMemo(() => domainAnalysis(planet.key, state), [planet.key, state]);
-  const months = useMemo(() => domainMonths(planet.key, state).slice(0, 6).reverse(), [planet.key, state]);
+// 월별 기록량 — 이 영역을 **언제** 많이 썼는지.
+//
+// 원래는 DomainRecords 라는 큰 패널의 한 조각이었다. 그 패널의 나머지(요약 문장·
+// 기분 흐름선·대표 기록·감정 칩)는 PlanetModal 이 TrendChart·InsightCard 로 이미
+// 같은 질문에 답하고 있어서 통째로 걷어냈는데, 이 막대만은 대체물이 없었다 —
+// TrendChart 는 '기록 순서대로 어떻게 흘렀나'를 그리지 계절·시기를 말하지 않는다.
+// 둘은 다른 질문이라 이 조각만 살려 행성 패널로 옮긴다.
+function MonthlyBars({ planetKey, state }) {
+  // 1년치가 들어오면 렌더마다 수백 개 기록을 다시 훑는다 — 상태가 바뀔 때만 돌린다.
+  const months = useMemo(
+    () => domainMonths(planetKey, state).slice(0, 6).reverse(), [planetKey, state]);
   const maxN = useMemo(() => Math.max(1, ...months.map((m) => m.analysis.n || 0)), [months]);
-
-  if (!a?.ok) {
-    return (
-      <div className="mt-4 rounded-[18px] border border-white/[.07] bg-black/20 p-4">
-        <p className="text-[11px] font-bold">이 영역의 기록</p>
-        <p className="mt-2 text-[10px] leading-relaxed text-mut">{domainReport(a, planet.label)}</p>
-      </div>
-    );
-  }
+  if (months.length < 2) return null;   // 한 달치로는 '추이'가 아니다
 
   return (
     <div className="mt-4 rounded-[18px] border border-white/[.07] bg-black/20 p-4">
-      <div className="flex items-center justify-between">
-        <p className="text-[11px] font-bold">이 영역의 기록</p>
-        <span className="text-[10px] text-[#A88BE8]">{a.n}개 · 평균 {a.moodAvg}</span>
+      <p className="text-[11px] font-bold">언제 많이 기록했나</p>
+      <div className="mt-2.5 flex items-end gap-1.5">
+        {months.map((m) => {
+          const n = m.analysis.n || 0;
+          const mood = m.analysis.moodAvg;
+          const col = mood ? MOOD_COLORS[Math.max(0, Math.min(4, Math.round(mood) - 1))] : "#39435F";
+          return (
+            <div key={m.month} className="flex flex-1 flex-col items-center gap-1">
+              <div className="flex h-[38px] w-full items-end">
+                <div className="w-full rounded-t-[3px]" style={{ height: `${Math.max(8, (n / maxN) * 100)}%`, background: col, opacity: 0.8 }} />
+              </div>
+              <span className="text-[8px] text-mut">{Number(m.month.split("-")[1])}월</span>
+            </div>
+          );
+        })}
       </div>
-
-      <p className="mt-2 text-[10.5px] leading-relaxed text-sub">{domainReport(a, planet.label)}</p>
-
-      {/* 기분 흐름 — 결과 화면에 있던 그래프를 이리로 옮겼다. 월별 막대는 '언제 많이 썼나'를,
-          이 선은 '기록 순서대로 어떻게 흘렀나'를 보여준다. 둘은 다른 질문에 답한다. */}
-      <Sparkline series={a.series} trend={a.trend} />
-      {/* 월별 기록량 — 이 영역을 언제 많이 썼는지 */}
-      {months.length > 1 && (
-        <div className="mt-3">
-          <div className="flex items-end gap-1.5">
-            {months.map((m) => {
-              const n = m.analysis.n || 0;
-              const mood = m.analysis.moodAvg;
-              const col = mood ? MOOD_COLORS[Math.max(0, Math.min(4, Math.round(mood) - 1))] : "#39435F";
-              return (
-                <div key={m.month} className="flex flex-1 flex-col items-center gap-1">
-                  <div className="flex h-[38px] w-full items-end">
-                    <div className="w-full rounded-t-[3px]" style={{ height: `${Math.max(8, (n / maxN) * 100)}%`, background: col, opacity: 0.8 }} />
-                  </div>
-                  <span className="text-[8px] text-mut">{Number(m.month.split("-")[1])}월</span>
-                </div>
-              );
-            })}
-          </div>
-          <p className="mt-1 text-[8.5px] text-mut">높이 = 기록 수 · 색 = 그달 평균 기분</p>
-        </div>
-      )}
-
-      {a.topEmotions?.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {a.topEmotions.map((e) => (
-            <span key={e} className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] text-sub">{e}</span>
-          ))}
-        </div>
-      )}
-
-      {/* 대표 기록 — 숫자보다 그날 문장이 이 영역을 기억나게 한다.
-          기분이 고른 구간에선 '가장 좋았던 날'이 부정적 문장으로 뽑히기도 해서,
-          실제 기분값으로 표현을 가른다(4점 이상일 때만 '좋았던 날'). */}
-      <div className="mt-3 space-y-1.5">
-        {a.best?.text && (
-          <div className="rounded-lg bg-[#5DCAA5]/[.08] px-2.5 py-1.5">
-            <p className="text-[8.5px] text-[#5DCAA5]">
-              {a.best.mood >= 4 ? "가장 좋았던 날" : "그중 나았던 날"} · {dateLabel(a.best.date)}
-            </p>
-            <p className="mt-0.5 text-[10px] leading-relaxed text-sub">“{a.best.text}”</p>
-          </div>
-        )}
-        {a.worst?.text && a.worst.date !== a.best?.date && (
-          <div className="rounded-lg bg-[#F0736F]/[.08] px-2.5 py-1.5">
-            <p className="text-[8.5px] text-[#F0736F]">
-              {a.worst.mood <= 2 ? "가장 힘들었던 날" : "그중 무거웠던 날"} · {dateLabel(a.worst.date)}
-            </p>
-            <p className="mt-0.5 text-[10px] leading-relaxed text-sub">“{a.worst.text}”</p>
-          </div>
-        )}
-      </div>
-
-      {/* 최근 기록 몇 개 */}
-      {recent?.length > 0 && (
-        <div className="mt-3 border-t border-white/[.06] pt-2.5">
-          <p className="text-[9.5px] text-mut">최근 기록</p>
-          <div className="mt-1.5 space-y-1">
-            {recent.map((e, i) => (
-              <p key={i} className="truncate text-[10px] text-sub">
-                <span className="mr-1.5 text-mut">{dateLabel(e.date)}</span>
-                {e.text || e.note || "(체크인만 남긴 날)"}
-              </p>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <p className="mt-3 text-[8.5px] leading-relaxed text-mut">
-        이 영역으로 분류된 기록만 모아 정리한 것이며, 성격 진단이나 예측이 아닙니다.
-      </p>
+      <p className="mt-1.5 text-[8.5px] text-mut">높이 = 기록 수 · 색 = 그달 평균 기분</p>
     </div>
   );
 }
@@ -1064,6 +972,9 @@ function PlanetModal({ planet, state, profile, onClose, onSimulate, onPickOpport
         ) : (
           <MentionChart mentions={mentions} accent={accent} label={planet.label} />
         )}
+        {/* 위 그래프가 '어떻게 흘렀나'라면 이건 '언제 많이 썼나'다. 둘은 다른 질문이라
+            점수 영역·비점수 영역 어느 쪽에서든 같이 둔다. */}
+        <MonthlyBars planetKey={planet.key} state={state} />
         <p className="mt-3 text-[9px] font-semibold text-mut">영향 요인</p>
         <div className="mt-2 flex flex-wrap gap-2">{factors.map((factor)=><span key={factor} className="rounded-full border px-3 py-1.5 text-[10px] text-sub" style={{borderColor:`${accent}40`,background:`${accent}10`}}>{factor}</span>)}</div>
 
@@ -1116,68 +1027,10 @@ function PlanetModal({ planet, state, profile, onClose, onSimulate, onPickOpport
       </details>
     </div>
   </aside>;
-  /* Legacy modal layout retained below for reference only.
-  return <Shell onClose={onClose} wide><div className="grid gap-6 md:grid-cols-[230px_1fr]">
-    <div><div className="flex items-center gap-4"><PlanetOrb planet={planet} /><div><h2 className="text-[22px] font-bold">{planet.label}</h2><p className="mt-1 text-[11px] leading-relaxed text-sub">{DESCRIPTIONS[planet.key]}</p></div></div>
-      <div className="mt-5 grid grid-cols-3 gap-2">{[["이번 주 별자리",groups.length],["기록한 주",groups.length],["누적 기록",entries.length]].map(([l,v])=><Mini key={l} label={l} value={v}/>)}</div>
-      <button onClick={onWeek} className="tap mt-5 w-full rounded-xl bg-[#8B6CCF] text-[12px] font-bold">이번 주 별자리 보기</button>
-      <button onClick={onAdd} className="tap mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 text-[12px] text-sub"><Plus size={14}/>기록 추가</button>
-    </div>
-    <div className="border-white/10 md:border-l md:pl-6"><div className="flex items-start justify-between"><div><p className="text-[11px] font-semibold text-sub">주요 키워드</p><div className="mt-2 flex flex-wrap gap-1.5">{KEYWORDS[planet.key].map(k=><span key={k} className="rounded-full bg-white/[.05] px-2.5 py-1 text-[9px] text-sub">{k}</span>)}</div></div><Close onClick={onClose}/></div>
-      <p className="mb-2 mt-6 text-[11px] font-semibold text-sub">최근 기록</p><div className="divide-y divide-white/[.06] rounded-xl bg-black/10 px-3">{recent.length ? recent.map(e=><div key={e.date} className="flex justify-between gap-4 py-3 text-[11px]"><span className="truncate text-sub">{e.text || e.note || "기록한 하루"}</span><span className="text-mut">{dateLabel(e.date)}</span></div>) : <p className="py-5 text-[11px] text-mut">아직 기록이 없어요.</p>}</div>
-      <button onClick={onArchive} className="tap mt-3 text-[11px] text-cyan">전체 아카이브 보기 <ChevronRight size={13} className="inline"/></button></div>
-  </div></Shell>; */
 }
 
-function FutureScenarioPanel({ planet, future, onClose, onCompare }) {
-  const scenario = future.scenario || future;
-  const [horizon,setHorizon] = useState(future.selectedPoint?.horizon || "현재");
-  useEffect(()=>setHorizon(future.selectedPoint?.horizon || "현재"),[future]);
-  const branches = scenario.br?.filter(Boolean) || [];
-  const horizonCopy = {
-    "현재":"선택을 앞둔 지금의 조건과 출발점을 보여줍니다.",
-    "3개월":"초기 적응과 비용, 가장 먼저 체감할 변화를 살펴봅니다.",
-    "1년":"생활 패턴과 만족도, 성장 방향이 자리 잡는 시점입니다.",
-    "3년":"선택이 장기적인 경로와 기회에 만든 차이를 확인합니다.",
-  };
-  return <aside className={`absolute inset-y-5 right-5 z-[60] ${PANEL_W} overflow-y-auto rounded-[24px] border border-white/10 bg-[#09111F]/95 p-5 shadow-[0_30px_90px_rgba(0,0,0,.62)] backdrop-blur-xl`}>
-    <div className="flex items-start justify-between"><div><p className="text-[9px] tracking-[.15em] text-[#A88BE8]">FUTURE CONSTELLATION</p><h2 className="mt-1 text-[20px] font-bold">{scenario.title || `${planet?.label || "미래"} 시나리오`}</h2><p className="mt-1 text-[10px] text-mut">{planet?.label} · {scenario.date || "저장된 미래"}</p></div><Close onClick={onClose}/></div>
-    <div className="mt-5"><p className="text-[10px] font-semibold text-sub">미래 시점</p><div className="mt-2 grid grid-cols-4 gap-1.5">{["현재","3개월","1년","3년"].map((item)=><button key={item} onClick={()=>setHorizon(item)} className={`tap rounded-xl border py-2 text-[10px] font-semibold ${horizon===item?"border-[#8B6CCF] bg-[#8B6CCF]/20 text-[#CDBDF3]":"border-white/[.07] text-mut"}`}>{item}</button>)}</div></div>
-    <div className="mt-4 rounded-[18px] border border-[#8B6CCF]/25 bg-[#8B6CCF]/[.07] p-4"><p className="text-[10px] font-bold text-[#BBA4ED]">{horizon}의 나</p><p className="mt-2 text-[12px] leading-relaxed text-sub">{horizonCopy[horizon]}</p>{branches.length?<div className="mt-3 space-y-2">{branches.map((text,i)=><div key={i} className="rounded-xl bg-black/20 p-3 text-[10px] leading-relaxed text-sub"><b className="mr-2 text-[#A88BE8]">미래 {String.fromCharCode(65+i)}</b>{text}</div>)}</div>:<p className="mt-3 text-[10px] text-mut">세부 예측 결과가 아직 저장되지 않았습니다. 다시 시뮬레이션하면 이 시점의 변화가 채워집니다.</p>}</div>
-    <div className="mt-4 grid grid-cols-3 gap-2"><Mini label="시나리오" value={branches.length || 1}/><Mini label="시간축" value="4"/><Mini label="근거" value={branches.length?"연결":"대기"}/></div>
-    <button onClick={onCompare} className="tap mt-4 w-full rounded-xl bg-[#8B6CCF] text-[12px] font-bold">다른 미래와 비교하기</button>
-    <p className="mt-3 text-[9px] leading-relaxed text-mut">예측은 확정된 미래가 아니라 현재 입력과 관측 근거를 바탕으로 한 탐색 결과입니다.</p>
-  </aside>;
-}
 
-function WeekModal({ planet, group, picked, onPick, onClose, onReport }) {
-  if (!group) return null;
-  return <aside className={`absolute inset-y-5 right-5 z-[60] ${PANEL_W} overflow-y-auto rounded-[24px] border border-white/10 bg-[#09111F]/95 p-5 shadow-[0_30px_90px_rgba(0,0,0,.62)] backdrop-blur-xl`}>
-    <div className="flex items-start justify-between"><div><p className="text-[9px] tracking-[.15em] text-[#A88BE8]">ORBITING CONSTELLATION</p><h2 className="mt-1 text-[20px] font-bold">{planet?.label || "나의 우주"} · 별자리</h2><p className="mt-1 text-[11px] text-mut">{dateLabel(group.weekStart)} — {dateLabel(group.weekEnd)}</p></div><Close onClick={onClose}/></div>
-    <div className="mt-4 rounded-[20px] border border-white/[.07] bg-[#070D19] p-3"><Constellation size={250} stars={group.stars} todayDate={todayKey()} selectedDate={picked?.date} onSelect={(star)=>!star.future&&onPick(star)}/></div>
-    <p className="mt-2 text-[9px] leading-relaxed text-mut">별을 선택하면 해당 날짜의 기록이 아래에 열립니다.</p>
-    {picked ? <RecordPreview record={picked}/> : <div className="mt-4 rounded-xl border border-white/[.06] bg-black/15 p-4 text-[11px] leading-relaxed text-mut">별자리의 별을 선택하면 그날 작성한 일기가 표시됩니다.</div>}
-  </aside>;
-}
-
-function ReportModal({ planet, group, onClose }) {
-  const stars=group.stars.filter(s=>!s.empty), moods=stars.map(s=>s.mood||3), avg=moods.length?(moods.reduce((a,b)=>a+b,0)/moods.length).toFixed(1):"—";
-  return <Shell onClose={onClose} wide><div className="flex items-start justify-between"><div><h2 className="text-[20px] font-bold">{planet?.label || "전체"} · {dateLabel(group.weekStart)} - {dateLabel(group.weekEnd)} 주간 리포트</h2><p className="mt-1 text-[11px] text-mut">이번 주 기록을 한눈에 돌아봅니다.</p></div><Close onClick={onClose}/></div>
-    <div className="mt-5 grid gap-3 md:grid-cols-4"><ReportCard title="체크인 현황" value={`${group.filled}/7`} text="이번 주 체크인"/><ReportCard title="감정 흐름" value={avg} text="평균 기분"/><ReportCard title="반복 키워드" value={KEYWORDS[planet?.key||"career"][0]} text="가장 자주 나타남"/><ReportCard title="이번 주 한줄 요약" value="기록이 방향을 만들고 있어요" text="작은 변화를 이어가세요"/></div>
-  </Shell>;
-}
-
-function ArchiveModal({ state, onClose, onPlanet, onRecord }) {
-  const recent=(state.checkins||[]).filter(e=>!e.empty).slice(-5).reverse();
-  return <Shell onClose={onClose} wide><div className="flex items-start justify-between"><div><h2 className="text-[20px] font-bold">기록 아카이브</h2><p className="mt-1 text-[11px] text-mut">행성별 기록과 별자리를 찾아보세요.</p></div><Close onClick={onClose}/></div><div className="mt-5 grid gap-6 md:grid-cols-2"><div className="divide-y divide-white/[.07]">{PLANETS.map(p=>{const entries=planetEntries(state,p.key);return <button key={p.key} onClick={()=>onPlanet(p)} className="tap flex w-full items-center gap-4 py-3 text-left"><PlanetOrb planet={p} small/><div className="min-w-0 flex-1"><div className="text-[12px] font-bold">{p.label}</div><p className="truncate text-[10px] text-mut">{entries.at(-1)?.text||DESCRIPTIONS[p.key]}</p></div><span className="text-[11px] text-sub">{entries.length}개 기록</span><ChevronRight size={15}/></button>})}</div>
-    <div className="border-white/10 md:border-l md:pl-5"><p className="mb-2 text-[11px] font-semibold text-sub">최근 기록</p><div className="divide-y divide-white/[.07]">{recent.map(e=><button key={e.date} onClick={()=>onRecord(e)} className="tap flex w-full items-center justify-between gap-3 py-3 text-left"><div className="min-w-0"><div className="text-[11px] font-semibold">{dateLabel(e.date)}</div><p className="mt-1 truncate text-[10px] text-mut">{e.text||e.note||"기록한 하루"}</p></div><ChevronRight size={14}/></button>)}</div></div></div>
-  </Shell>;
-}
-
-function RecordModal({ record, onClose, onRelated }) { return <Shell onClose={onClose}><div className="flex items-start justify-between"><div><p className="text-[10px] text-mut">기록 상세</p><h2 className="mt-1 text-[19px] font-bold">{dateLabel(record.date)}</h2></div><Close onClick={onClose}/></div><RecordPreview record={record}/><button onClick={onRelated} className="tap mt-4 text-[11px] text-cyan">관련 별자리 보기 <ChevronRight size={13} className="inline"/></button></Shell>; }
-function RecordPreview({ record }) { return <div className="mt-4 rounded-xl border border-white/[.07] bg-black/10 p-4"><div className="grid grid-cols-3 gap-3 text-[10px]"><Mini label="기분" value={record.mood?`${record.mood}/5`:"—"}/><Mini label="에너지" value={record.energy?`${record.energy}/5`:"—"}/><Mini label="키워드" value={record.emotion||"기록"}/></div><p className="mt-4 text-[12px] leading-relaxed text-sub">{record.text||record.note||"이날의 기록이 아직 짧아요."}</p></div>; }
 function Mini({label,value}) { return <div className="rounded-xl bg-white/[.035] px-2 py-3 text-center"><div className="text-[15px] font-bold text-ink">{value}</div><div className="mt-1 text-[9px] text-mut">{label}</div></div>; }
-function ReportCard({title,value,text}) { return <div className="min-h-[145px] rounded-[18px] border border-white/[.07] bg-black/10 p-4"><div className="text-[10px] font-semibold text-sub">{title}</div><div className="mt-5 text-[21px] font-bold text-cyan">{value}</div><p className="mt-2 text-[10px] leading-relaxed text-mut">{text}</p></div>; }
 function PlanetOrb({planet,small=false}) {
   return <span className={`relative block shrink-0 overflow-hidden rounded-full border border-white/15 bg-black ${small?"h-10 w-10":"h-16 w-16"}`}>
     <img src={PLANET_TEXTURES[planet.key]} alt="" className="h-full w-full object-cover" />

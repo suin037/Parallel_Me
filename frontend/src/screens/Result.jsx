@@ -16,6 +16,7 @@ import ActionView from "../components/result/ActionView.jsx";
 import AvatarComparison from "../components/result/AvatarComparison.jsx";
 import DiarySignalCard from "../components/result/DiarySignalCard.jsx";
 import KowepsEvidenceCard from "../components/result/KowepsEvidenceCard.jsx";
+import TrajectoryView from "../components/result/TrajectoryView.jsx";
 import RelationshipEffectCard from "../components/result/RelationshipEffectCard.jsx";
 import KowepsTrajectoryView from "../components/result/KowepsEvidenceView.jsx";
 import JobAnalysisView from "../components/result/JobAnalysisView.jsx";
@@ -55,6 +56,12 @@ export default function Result() {
   const hasRelationshipEffects = [a, b].some(
     (side) => side.relationship_effects || side.relationship_effects_reason);
   const hasNumericComparison = hasComparableNumbers(a, b);
+  // 종단 궤적 — 각 갈래의 실제 소득 분포(p25~p75 밴드)와 만족도 추이.
+  // '집단 관측' 탭에 두는 이유: 이건 모델이 뽑은 예측치가 아니라 패널에서 관찰된
+  // 분포라, 예측 수치를 모아 둔 '수치 비교' 옆에 놓으면 성격이 뒤섞인다.
+  // DetailedInsights 가 p25·p75 를 '중간 50% 범위' 한 줄로 이미 쓰지만 띠를 그리진
+  // 않는다 — 폭이 얼마나 겹치는지는 숫자 하나로는 안 보인다.
+  const hasTrajectory = [a, b].some((side) => (side.trajectory || []).length > 0);
 
   const tabs = [
     ...(hasNumericComparison
@@ -67,10 +74,11 @@ export default function Result() {
       <DiarySignalCard />
       {softPlanet && <SoftCompareView a={a} b={b} planet={softPlanet} planetLabel={DOMAIN_LABEL[softPlanet] || ""} />}
     </> },
-    ...(hasKowepsObservation || hasRelationshipEffects
+    ...(hasKowepsObservation || hasRelationshipEffects || hasTrajectory
       ? [{ key: "observation", label: "집단 관측", View: (p) => <>
           {hasRelationshipEffects && <RelationshipEffectCard a={a} b={b} />}
           {hasKowepsObservation && <KowepsEvidenceCard {...p} />}
+          {hasTrajectory && <TrajectoryView a={a} b={b} />}
         </> }]
       : []),
     // 입력에서 공고를 분석했을 때만 — 예측 수치 옆에서 그 공고를 다시 확인한다.
