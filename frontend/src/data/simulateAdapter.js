@@ -54,6 +54,38 @@ function pickTrajectory(raw, choice) {
 const maxYear = (rows, fallback) =>
   Array.isArray(rows) && rows.length ? Math.max(...rows.map((p) => p.year ?? 0)) : fallback;
 
+// 백엔드가 사용자 조건(입력한 월소득 수준)을 반영한 값은 `scenario.income` 에만 담긴다.
+// 그런데 화면의 소득은 다섯 군데가 `trajectory` 를 직접 읽는다 — 비교표·평행뷰·
+// 궤적그래프·상세인사이트·요약. 그래서 응답에는 280만원이 들어 있는데 화면에는
+// 308만원(모델 원값)이 그대로 떴다.
+//
+// 컴포넌트를 다섯 개 고치는 대신 궤적을 한 번 맞춘다. 배율은 **백엔드 결과에서
+// 그대로 끌어온다** — 같은 공식을 프론트에 다시 적으면 두 곳이 조용히 어긋난다.
+//   배율 = income_series 의 첫 연차 값 ÷ trajectory 의 같은 연차 원값
+function anchorFactor(trajectory, incomeSeries) {
+  if (!Array.isArray(incomeSeries) || !Array.isArray(trajectory)) return 1;
+  const shown = incomeSeries.find((p) => p?.available !== false && Number.isFinite(Number(p?.value)));
+  if (!shown) return 1;
+  const rawPoint = trajectory.find((p) => Number(p?.year) === Number(shown.year));
+  const base = Number(rawPoint?.income_p50);
+  if (!Number.isFinite(base) || base <= 0) return 1;
+  const factor = Number(shown.value) / base;
+  // 부동소수 오차로 매번 새 배열을 만들지 않도록 1에 가까우면 그대로 둔다.
+  return Math.abs(factor - 1) < 1e-6 ? 1 : factor;
+}
+
+function scaleTrajectory(rows, factor) {
+  if (factor === 1) return rows;
+  return rows.map((p) => (Number(p?.year) <= 0 ? p : {
+    // 0년차는 '지금의 나' 다. 조건은 앞으로의 이야기라 현재 소득을 바꾸면 안 된다
+    // (SummaryView 가 이 값을 '현재 월소득'으로 쓰고, 증감률도 여기를 기준 삼는다).
+    ...p,
+    income_p25: Number.isFinite(Number(p.income_p25)) ? Math.round(Number(p.income_p25) * factor * 10) / 10 : p.income_p25,
+    income_p50: Number.isFinite(Number(p.income_p50)) ? Math.round(Number(p.income_p50) * factor * 10) / 10 : p.income_p50,
+    income_p75: Number.isFinite(Number(p.income_p75)) ? Math.round(Number(p.income_p75) * factor * 10) / 10 : p.income_p75,
+  }));
+}
+
 function buildSide(scenario, choice, detail, profile, evidence, domainCov, domainStats, validatedPrediction, indicatorEvidence, kowepsEvidence, side) {
   const raw = scenario?.raw || {};
   // 자유입력 원문 대신 백엔드가 정규화한 유형을 사용한다. "개발자로 이직" 같은
@@ -62,7 +94,9 @@ function buildSide(scenario, choice, detail, profile, evidence, domainCov, domai
   // scenario_trajectories 키는 사용자가 쓴 원문이 아니라 백엔드 정규화 유형
   // (유지·이직 등)이다. "현재 진로 유지" 같은 문장으로 조회하면 항상 공통
   // 기준선으로 떨어져 A/B 격차와 상세 인사이트가 사라진다.
-  const { rows: trajectory, isBaseline } = pickTrajectory(raw, kind);
+  const { rows: rawTrajectory, isBaseline } = pickTrajectory(raw, kind);
+  // 사용자 조건이 반영된 수준으로 궤적을 맞춘다(조건이 없으면 배율 1 → 원본 그대로).
+  const trajectory = scaleTrajectory(rawTrajectory, anchorFactor(rawTrajectory, scenario?.income));
   const wellbeing = raw.wellbeing_trajectory || [];
 
   // 이직은 개인단위 모델, 창업은 artifact가 배포된 경우 개인단위 자영 이탈모델을 쓴다.
