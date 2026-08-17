@@ -146,6 +146,15 @@ export default function ResultQuickStats({ a, b, futureYears = 3 }) {
 
   if (!rows.length) return null;
 
+  // 해외 선택 중 소득만 '입력값'으로 살아난 쪽(린의 런던 오퍼가 그렇다).
+  const abroadInput = ["A", "B"]
+    .map((side) => {
+      const target = side === "A" ? a : b;
+      return target?.out_of_scope?.income_from_input
+        ? { side, label: labelOf(target.choice) } : null;
+    })
+    .find(Boolean);
+
   return (
     <section className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0B1220]/85" aria-labelledby="quick-stats-title">
       <div className="flex flex-wrap items-end justify-between gap-2 border-b border-white/10 px-4 py-3">
@@ -162,6 +171,20 @@ export default function ResultQuickStats({ a, b, futureYears = 3 }) {
       {comparableRows.length > 0 && <div className="divide-y divide-white/[.07]">
         {comparableRows.map((row) => <StatRow key={row.key} row={row} futureYears={futureYears} />)}
       </div>}
+      {/* 오해가 생기는 자리는 아래 해설 카드가 아니라 **막대 바로 밑**이다.
+          해외 오퍼를 세전 환산으로 넣으면 막대가 국내 쪽을 크게 앞지르는데,
+          런던 월세·세율이 빠져 있어 실수령은 뒤집힐 수 있다. 큰 막대를
+          작은 회색 글씨로 이길 수 없으므로 여기서 한 번 더 말한다. */}
+      {abroadInput && (
+        <div className="border-t border-[#F5C86B]/25 bg-[#F5C86B]/[.07] px-4 py-2.5">
+          <p className="text-[9.5px] leading-4 text-[#F5C86B]">
+            <b className="font-bold">{abroadInput.side} {abroadInput.label}</b>의 소득은
+            {" "}<b className="font-bold">해외 오퍼를 세전 환율로 환산한 값</b>입니다 —
+            {" "}현지 <b className="font-bold">월세·세금이 빠져 있어</b> 실제 손에 쥐는 돈은
+            {" "}이 막대보다 훨씬 적을 수 있습니다. 두 막대를 그대로 비교하지 마세요.
+          </p>
+        </div>
+      )}
       {oneSidedRows.length > 0 && (
         <div className="border-t border-white/[.07] px-4 py-3.5">
           <div className="mb-2.5">
