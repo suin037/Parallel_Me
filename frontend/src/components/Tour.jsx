@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // (useRef 는 말풍선 높이 측정에도 쓴다)
 import { useLocation, useNavigate } from "react-router-dom";
+import { Pause, Play } from "lucide-react";
 import Mascot from "./Mascot.jsx";
 import { MASCOTS } from "../data/result.js";
 import {
-  TOUR_STEPS, TOUR_CHAPTERS, CLIP_STEPS, CLIP_TOTAL_MS,
+  TOUR_STEPS, TOUR_CHAPTERS,
   canRunTourAt, clearWantTour, markTourSeen, stepDuration, wantsTour,
 } from "../data/tour.js";
 
@@ -16,9 +17,8 @@ import {
 // 구멍은 큰 box-shadow 로 낸다(캔버스·클립패스 없이 됨): 작은 사각형에 화면보다 큰
 // 그림자를 주면 그 사각형만 빼고 전부 어두워진다.
 //
-// 자동 재생 — 이 안내가 소개 영상의 대본이기 때문에 있다. 40단계가 넘는 걸 손으로
-// 넘기면서 찍으면 클릭할 때마다 화면이 흔들리고, 넘기는 손이 화면에 남는다.
-// 켜두면 글 양에 맞춘 시간만큼 머물다 스스로 넘어간다(stepDuration).
+// 넘기는 건 손이 기본이다. 말풍선 머리의 '자동' 을 켜면 그때부터 글 양에 맞춘
+// 시간만큼 머물다 스스로 넘어간다(stepDuration). 켜고 끄는 건 언제든 된다.
 //
 // 키보드도 받는다 — → · Space 다음, ← 이전, Esc 끝내기. 녹화 중에 마우스를
 // 화면 위로 가져가지 않아도 되게.
@@ -59,26 +59,15 @@ export default function Tour() {
   const timers = useRef([]);
   // 자동 재생 — 영상 녹화용. 기본은 꺼둔다(혼자 읽는 사람에게는 재촉이 된다).
   const [auto, setAuto] = useState(false);
-  // 코스 — 전체(실사용 안내 20컷) / 핵심만 / 40초(소개 영상).
-  //
-  // 기본은 전체다. 안내를 켜는 사람은 기능을 알고 싶은 것이지 광고를 보려는 게 아니다.
-  // 코스를 바꾸는 버튼은 화면에 두지 않는다 — 영상에 그대로 찍히기 때문이다.
-  // 대신 키보드로 바꾼다: F 전체 · C 핵심만 · V 40초(켜는 순간 자동 재생).
+  // 코스 — 전체(20컷)가 기본이고, 급할 때 쓰는 짧은 코스가 하나 더 있다.
+  // 고르는 버튼은 두지 않는다(대부분은 고를 일이 아니다). 키보드로만 — F 전체 · C 핵심만.
   const [mode, setMode] = useState("full");
-  const steps = useMemo(() => {
-    if (mode === "clip") return CLIP_STEPS;
-    if (mode === "core") return TOUR_STEPS.filter((item) => item.core);
-    return TOUR_STEPS;
-  }, [mode]);
+  const steps = useMemo(
+    () => (mode === "core" ? TOUR_STEPS.filter((item) => item.core) : TOUR_STEPS),
+    [mode],
+  );
 
   const clearTimers = () => { timers.current.forEach(clearInterval); timers.current = []; };
-
-  // 안내를 켜면 3초 뒤에 스스로 굴러간다 — 40초 코스는 손으로 넘기라고 만든 게 아니다.
-  useEffect(() => {
-    if (!open || mode !== "clip") return undefined;
-    const timer = setTimeout(() => setAuto(true), 3000);
-    return () => clearTimeout(timer);
-  }, [open, mode]);
 
   // 스스로 시작하지 않는다 — 사용자가 안내를 고른 표시가 있을 때만 열린다.
   //
@@ -213,16 +202,9 @@ export default function Tour() {
   // (화면 전환을 기다리는 동안까지 세면 긴 설명이 반쯤 읽힌 채로 넘어간다.)
   useEffect(() => {
     if (!auto || !step || readyId !== stepKey) return undefined;
-    // 40초 코스는 장면마다 시간을 다르게 준다 — 차별점에 오래 머물고
-    // 익숙한 화면은 스치듯 지나가야 광고가 된다(step.ms).
-    const timer = setTimeout(
-      next,
-      mode === "clip"
-        ? step.ms || Math.round(CLIP_TOTAL_MS / steps.length)
-        : stepDuration(step),
-    );
+    const timer = setTimeout(next, stepDuration(step));
     return () => clearTimeout(timer);
-  }, [auto, readyId, stepKey, step, next, mode, steps.length]);
+  }, [auto, readyId, stepKey, step, next]);
 
   // 키보드 — 녹화 중에 마우스를 화면 위에 올리지 않아도 되게.
   useEffect(() => {
@@ -234,13 +216,11 @@ export default function Tour() {
         event.preventDefault(); prev();
       } else if (event.key === "Escape") {
         event.preventDefault(); finish();
-      } else if (["f", "c", "v"].includes(event.key.toLowerCase())) {
-        // 숨은 전환 — 화면에 버튼을 두면 녹화에 찍힌다.
+      } else if (["f", "c"].includes(event.key.toLowerCase())) {
+        // 숨은 전환 — 버튼으로 둘 만큼 자주 쓰는 기능이 아니다(F 전체 · C 핵심만).
         event.preventDefault();
-        const want = { f: "full", c: "core", v: "clip" }[event.key.toLowerCase()];
-        setMode(want);
+        setMode(event.key.toLowerCase() === "c" ? "core" : "full");
         setAt(0);
-        setAuto(want === "clip");
       }
     };
     window.addEventListener("keydown", onKey);
@@ -421,13 +401,25 @@ export default function Tour() {
             <p className="text-[9px] font-bold tracking-[.14em]" style={{ color: tint }}>
               {who.tag}
             </p>
-            {/* 챕터 이름이 있어야 영상에서 장이 바뀌는 게 보인다 */}
+            {/* 챕터 이름 — 번호만으로는 지금 어느 장인지 알 수 없다 */}
             <p className="truncate text-[10px] text-mut">
-              {mode === "clip"
-                ? step.chapter
-                : `${chapterAt > 0 ? `${chapterAt}. ` : ""}${step.chapter} · ${at + 1} / ${steps.length}`}
+              {chapterAt > 0 ? `${chapterAt}. ` : ""}{step.chapter} · {at + 1} / {steps.length}
             </p>
           </div>
+          {/* 자동 재생 — 손으로 넘기는 게 기본이고, 이건 켜고 싶을 때만 켠다. */}
+          <button
+            onClick={() => setAuto((value) => !value)}
+            aria-pressed={auto}
+            aria-label={auto ? "자동 넘김 멈추기" : "자동으로 넘기기"}
+            title={auto ? "자동 넘김 멈추기" : "자동으로 넘기기"}
+            className="tap flex h-8 shrink-0 items-center gap-1 rounded-full border px-2 text-[9.5px] font-bold"
+            style={auto
+              ? { borderColor: `${tint}88`, background: `${tint}22`, color: tint }
+              : { borderColor: "rgba(255,255,255,.12)", color: "#71809A" }}
+          >
+            {auto ? <Pause size={11} /> : <Play size={11} />}
+            자동
+          </button>
         </div>
 
         {/* 내용은 단계마다 새로 올라온다 — 글자가 툭 갈리지 않게.
@@ -447,9 +439,6 @@ export default function Tour() {
           )}
         </div>
 
-        {/* 40초 코스에서는 버튼 줄을 감춘다 — 광고 화면에 조작 UI 가 찍히면 안 된다.
-            그때도 배경 아무 데나 누르면 다음, Esc 로 끝낼 수 있다. */}
-        {mode !== "clip" && (
         <div className="mt-3 flex items-center gap-2 px-4 pb-3.5">
           <button onClick={finish} className="tap text-[11px] text-mut">건너뛰기</button>
           <div className="flex-1" />
@@ -466,7 +455,6 @@ export default function Tour() {
             {at + 1 < steps.length ? "다음" : "시작하기"}
           </button>
         </div>
-        )}
       </div>
     </div>
   );

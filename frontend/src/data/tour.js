@@ -5,12 +5,10 @@
 // 그 화면을 맡은 마스코트가 무엇을 하는 곳인지 말한다. 다음을 누르면 그 기능이
 // 있는 화면으로 실제로 데려간다 — 설명만 듣는 것과 한 번 가 보는 것은 다르다.
 //
-// 이 안내는 **소개 영상의 대본**이기도 하다. 그래서 지금 앱에 있는 기능을 하나도
-// 빼지 않고 순서대로 짚는다. 자동 재생을 켜고 화면 녹화를 걸면, 손을 대지 않아도
-// 우주 → 일기 → 시뮬레이션 → 결과 → 보관함 → 기업분석 → 설정까지 한 번에 돈다.
+// 넘기는 건 손이 기본이고, 말풍선의 '자동' 을 켜면 스스로 넘어간다.
 //
-// 챕터(chapter)로 묶는다 — 40단계가 넘어가면 "3 / 44" 만으로는 지금 어디쯤인지
-// 알 수 없다. 말풍선 머리에 챕터 이름을 띄워 영상에서도 장이 바뀌는 게 보이게 한다.
+// 챕터(chapter)로 묶는다 — "3 / 20" 만으로는 지금 어디쯤인지 알 수 없다.
+// 말풍선 머리에 챕터 이름을 띄운다.
 //
 // 누가 말하는가 — result.js 의 MASCOTS 역할 그대로다.
 //   · 코스모(행성 탐험가) 데이터와 결과를 분석한다 → 나의 우주 · 행성 · 결과 · 기업분석
@@ -273,88 +271,6 @@ export const TOUR_STEPS = [
     ],
   },
 ];
-
-export const CLIP_STEPS = [
-  {
-    // 앱을 여는 순서 그대로 — 나의 우주에서 시작한다.
-    // 전체 화면(full)이라 조명으로 잘리지 않고, 말풍선만 왼쪽 아래에 앉는다.
-    id: "universe-map", full: true, route: "/my", act: "close-panels",
-    mascot: "cosmo", chapter: "PARALLEL ME", ms: 2600,
-    title: "남긴 하루가 별이 됩니다",
-    body: "삶의 영역마다 행성으로 모이고, 쌓일수록 나를 설명해요.",
-  },
-  {
-    // 일기는 한 컷 — 챗봇과 30초 체크인이 한 화면에 다 보이게.
-    // 두 방식은 갈라서 말한다. 대화는 30초에 안 끝난다.
-    id: "diary-guides", full: true, route: "/home", mascot: "lumi", chapter: "PARALLEL ME", ms: 2600,
-    title: "대화로 풀거나, 30초로 끝내거나",
-    body: "마스코트가 묻는 말에 답해도 되고, 바쁜 날엔 기분·에너지만 골라도 하루가 남아요.",
-  },
-  {
-    // 여기서 갈림길로 넘어간다 — 광고의 훅.
-    id: "simulate-start", route: "/input", mascot: "nova", chapter: "PARALLEL ME", ms: 3400,
-    title: "그리고 갈림길 앞에서",
-    body: "이직할까, 남을까 — 혼자 재지 마세요.",
-  },
-  {
-    id: "clip-input", shot: "/tour/sim-choices.png", mascot: "nova", chapter: "PARALLEL ME", ms: 3600,
-    title: "두 갈래를 적기만 하면",
-    body: "나와 조건이 비슷한 사람들의 데이터가 붙습니다.",
-  },
-  {
-    id: "clip-core", shot: "/tour/result-core.png", mascot: "cosmo", chapter: "PARALLEL ME", ms: 3400,
-    title: "3년 뒤, 두 개의 내가 나옵니다",
-    body: "어디서 갈리는지부터 말해줘요.",
-  },
-  {
-    // 여기부터가 이 서비스에만 있는 장면들 — 시간을 조금씩 더 준다.
-    id: "clip-story", shots: ["/tour/result-story-a.png", "/tour/result-story-b.png"],
-    mascot: "cosmo", chapter: "PARALLEL ME", ms: 3800,
-    title: "두 미래를 나란히 놓고",
-    body: "얻게 되는 것과 감수할 것을 같은 무게로 적어요.",
-  },
-  {
-    id: "clip-trajectory", shot: "/tour/result-trajectory.png", mascot: "cosmo", chapter: "PARALLEL ME", ms: 2000,
-    title: "한 시점이 아니라 흐름으로",
-    body: "3년엔 앞서다 10년엔 뒤집히기도 해요.",
-  },
-  {
-    id: "clip-stats", shot: "/tour/result-stats.png", mascot: "cosmo", chapter: "PARALLEL ME", ms: 2600,
-    title: "숫자는 지어내지 않습니다",
-    body: "관측된 값만 놓고, 없는 건 없다고 말해요.",
-  },
-  {
-    id: "clip-insights", shot: "/tour/result-insights.png", mascot: "cosmo", chapter: "PARALLEL ME", ms: 2600,
-    title: "표본이 얇아지는 것까지",
-    body: "300명으로 시작해 8년 차엔 23명 — 그 숫자의 무게를 같이 보여줘요.",
-  },
-  {
-    id: "clip-record", shot: "/tour/result-record.png", mascot: "lumi", chapter: "PARALLEL ME", ms: 1800,
-    title: "그리고 내 기록이 근거로",
-    body: "최근 28일 동안 이직 고민이 며칠이었는지까지 읽어요.",
-  },
-  {
-    // 조명을 쓰지 않는다(full) — 보관함은 들어오면서 카드가 살짝 움직이는데,
-    // 조명이 그걸 매 프레임 따라가면 화면이 흔들려 보인다.
-    id: "archive-list", full: true, route: "/archive", mascot: "lumi", chapter: "PARALLEL ME", ms: 2800,
-    title: "고른 뒤가 더 중요해요",
-    body: "마음이 기운 쪽을 정하면, 그 선택을 확인할 실행 항목이 만들어져요.",
-  },
-  {
-    // 선택 이후를 무엇으로 이어가는지 — 여기서 끝내면 '그래서 뭘 하지?'가 남는다.
-    id: "reminder-bell", route: "/my", mascot: "lumi", chapter: "PARALLEL ME", ms: 2900,
-    title: "매일 하나씩, 그리고 회고",
-    body: "오늘 할 일로 알려주고, 며칠 뒤엔 돌아볼 때가 됐다고 알려줘요.",
-    lines: ["그 회고가 다음 비교에서 나를 설명하는 재료가 됩니다."],
-  },
-  {
-    id: "universe-map", full: true, route: "/my", mascot: "cosmo", chapter: "PARALLEL ME", ms: 2600,
-    title: "Parallel Me",
-    body: "선택을 대신하지 않고, 비출 뿐입니다.",
-  },
-];
-
-export const CLIP_TOTAL_MS = 36000;
 
 /** 챕터 순서 — 말풍선에 "3장 중 …" 대신 이름을 띄우는 데 쓴다. */
 export const TOUR_CHAPTERS = TOUR_STEPS.reduce(
