@@ -143,14 +143,21 @@ def _coverage_from_routes(routed: dict) -> dict:
 
 
 def _validated_prediction(kind: str, profile: dict) -> dict:
-    """호환용 관측 경로가 없어도 핵심 L1~L5 비교를 실패시키지 않는다."""
+    """호환용 관측 경로가 없어도 핵심 L1~L5 비교를 실패시키지 않는다.
+
+    ⚠ 이 except 는 **최후의 그물**이지 정상 경로가 아니다. 여기까지 오면 하위
+    구성요소 중 무엇이 살아 있었는지와 무관하게 전부 버려진다. 실제로 궤적 데이터
+    한 개가 없다는 이유로 재정 영향(파일이 있는데도)까지 사라져서, 배포본 7명
+    전원이 unavailable 이었다. 하위 모듈은 스스로 `.exists()` 로 막고 그 부분만
+    unavailable 로 돌려줘야 한다.
+    """
     try:
         return prediction_for_choice(kind, profile)
     except (ImportError, FileNotFoundError, OSError, ValueError) as exc:
-        log.warning("검증 관측경로 생략(%s): %s", kind, exc)
+        log.warning("검증 관측경로 생략(%s): %s: %s", kind, type(exc).__name__, exc)
         return {
             "status": "unavailable",
-            "reason": f"선택 보조 관측경로를 불러오지 못했습니다({type(exc).__name__})",
+            "reason": f"선택 보조 관측경로를 불러오지 못했습니다({type(exc).__name__}: {exc})",
         }
 
 
