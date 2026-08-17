@@ -266,3 +266,30 @@ def test_관측범위_밖이면_값을_비우고_이유를_남긴다():
                              compare._OUT_OF_SCOPE_NOTE)
     assert all(not p.available for p in blanked)
     assert all("국내 패널" in p.note for p in blanked)
+
+
+# ── 범위 밖이어도 '입력한 소득' 은 살린다 ────────────────────────────────
+def test_해외_선택도_입력한_오퍼_금액은_쓴다():
+    """린의 B('런던에 남아 현지 취업') — £2,400 오퍼를 원화로 적으면 그 값을 쓴다.
+
+    모델이 낸 값이 아니라 본인이 손에 쥔 오퍼라, '우리 패널에 없다'는 이유로
+    지울 근거가 없다. 통째로 비우면 A/B 비교가 반쪽이 되어 체험이 안 된다.
+    """
+    cond = parse_conditions(context={"answers": {
+        "income_change": "£2,400 오퍼 · 월 90만 → 504만 (환율 2,100원)"}})
+    assert cond.income["mode"] == "absolute"
+    assert income_anchor(cond, 90, "유지") == 504
+
+
+def test_해외_선택은_여전히_범위_밖으로_잡힌다():
+    """앵커가 있어도 '범위 밖' 판정 자체는 바뀌지 않는다 —
+    만족도·이탈확률은 계속 비워야 하기 때문이다."""
+    assert compare._is_out_of_scope_region("런던에 남아 현지 취업을 한다") is True
+
+
+def test_해외인데_금액을_안_적으면_그대로_비운다():
+    """추정 금지 — 외화 표기만으로는 원화 수준을 알 수 없다."""
+    cond = parse_conditions(context={"answers": {
+        "income_change": "현지 오퍼 기준 월 £2,400"}})
+    assert cond.income is None
+    assert income_anchor(cond, 90, "유지") is None

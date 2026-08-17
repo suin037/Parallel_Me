@@ -114,7 +114,10 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
   const scopeSides = ["A", "B"]
     .map((side) => {
       const target = side === "A" ? a : b;
-      return target?.out_of_scope ? { side, label: labelOf(target?.choice) } : null;
+      return target?.out_of_scope
+        ? { side, label: labelOf(target?.choice),
+            incomeFromInput: Boolean(target.out_of_scope.income_from_input) }
+        : null;
     })
     .filter(Boolean);
   const conditions = conditionRows(a, b);
@@ -140,7 +143,11 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
 
       {scopeSides.length > 0 && (
         <div className="border-white/[.07] px-4 py-3.5 [&:not(:last-child)]:border-b">
-          <h3 className="text-[11px] font-semibold text-[#F5C86B]">이 선택은 우리 데이터로 답할 수 없습니다</h3>
+          <h3 className="text-[11px] font-semibold text-[#F5C86B]">
+            {scopeSides.every((item) => item.incomeFromInput)
+              ? "해외 선택은 일부만 답할 수 있습니다"
+              : "이 선택은 우리 데이터로 답할 수 없습니다"}
+          </h3>
           <ul className="mt-1.5 grid gap-1.5">
             {scopeSides.map((item) => (
               <li key={item.side} className="flex items-baseline gap-1.5">
@@ -150,10 +157,23 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
             ))}
           </ul>
           <p className="mt-1.5 text-[9px] leading-4 text-mut">
-            우리가 쓰는 패널(KLIPS·GOMS·YP·KOWEPS)은 <b className="font-semibold text-sub">전부 국내 자료</b>입니다.
-            해외에서 일하는 경로는 학습 데이터에 없어서 소득·만족도·이탈확률을 낼 근거가 없습니다.
-            <b className="font-semibold text-sub"> 국내 궤적을 대신 그리지 않고 비워 둡니다.</b>
-            {" "}그쪽 이야기는 아래 서사로만 읽어 주세요.
+            우리가 쓰는 패널(KLIPS·GOMS·YP·KOWEPS)은 <b className="font-semibold text-sub">전부 국내 자료</b>라
+            해외에서 일하는 경로를 잰 기록이 없습니다.
+            {scopeSides.every((item) => item.incomeFromInput) ? (
+              <>
+                {" "}그래서 <b className="font-semibold text-sub">소득은 적어주신 오퍼 금액</b>을 그대로 쓰고
+                (모델이 낸 값이 아닙니다), 연차별 증가율만 국내 궤적을 빌린 근사입니다.
+                <b className="font-semibold text-sub"> 만족도와 이탈확률은 비워 둡니다</b> — 그건 적을 수 있는 값이
+                아니라 모델만 낼 수 있는데, 그 데이터가 없습니다.
+                {" "}환산액은 <b className="font-semibold text-sub">세전 기준이라 현지 월세·세율이 빠져 있습니다.</b>
+              </>
+            ) : (
+              <>
+                {" "}소득·만족도·이탈확률을 낼 근거가 없어
+                <b className="font-semibold text-sub"> 국내 궤적을 대신 그리지 않고 비워 둡니다.</b>
+                {" "}그쪽 이야기는 아래 서사로만 읽어 주세요.
+              </>
+            )}
           </p>
         </div>
       )}

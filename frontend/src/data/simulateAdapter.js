@@ -102,7 +102,12 @@ function buildSide(scenario, choice, detail, profile, evidence, domainCov, domai
   // 궤적 211만원이 그대로 떴다 — '지금 대비 소득 증감'만 '—' 로 비어서 한쪽은
   // 막히고 한쪽은 안 막힌 상태였다. 근거가 없으면 어느 경로로도 보이면 안 된다.
   const outOfScope = Boolean(scenario?.out_of_scope);
-  const trajectory = outOfScope
+  // 범위 밖이어도 소득이 **입력값에서 온 것**이면 궤적을 살린다. 사용자가 적은
+  // 수준은 모델 산출이 아니라서 '데이터가 없다'는 이유로 지울 근거가 없다.
+  // 만족도는 다르다 — 적을 수 있는 값이 아니라 모델만 낼 수 있고, 그 모델에
+  // 해당 데이터가 없다. 그건 계속 비운다.
+  const incomeFromInput = Boolean(scenario?.out_of_scope?.income_from_input);
+  const trajectory = (outOfScope && !incomeFromInput)
     ? []
     : scaleTrajectory(rawTrajectory, anchorFactor(rawTrajectory, scenario?.income));
   const wellbeing = outOfScope ? [] : (raw.wellbeing_trajectory || []);

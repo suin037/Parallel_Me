@@ -224,7 +224,8 @@ def _regret_summary(pr: PredictResponse, kind: str) -> dict | None:
 
 
 # ---------------------------------------------------------------- 주인공: 소득
-def _income(income_path: list, kind: str, anchor: float | None = None) -> list[IndicatorPoint]:
+def _income(income_path: list, kind: str, anchor: float | None = None,
+            approx_note: str | None = None) -> list[IndicatorPoint]:
     """소득 궤적 → 화면용 포인트. `anchor` 가 있으면 사용자가 말한 수준에 맞춘다.
 
     앵커 적용 방식 — **수준만 옮기고 기울기는 모델을 따른다.**
@@ -249,6 +250,8 @@ def _income(income_path: list, kind: str, anchor: float | None = None) -> list[I
         if base and base > 0:
             factor = float(anchor) / base
             src += f" · 입력 조건({anchor:g}만원)에 수준 맞춤 — 증가율은 모델 궤적"
+            if approx_note:
+                src += f" · {approx_note}"
 
     out = []
     for y in SNAPSHOTS:
@@ -424,14 +427,25 @@ def _scenario_view(profile_dict: dict, choice: str,
     anchor = income_anchor(cond, base_income, kind)
     gap = gap_months(cond, kind)
 
-    income_points = _income(income_path, kind, anchor=anchor)
+    _approx = ("해외 선택 — 수준은 입력값이고 연차별 증가율은 국내 궤적을 빌린 근사"
+               if _is_out_of_scope_region(choice, detail) and anchor is not None else None)
+    income_points = _income(income_path, kind, anchor=anchor, approx_note=_approx)
     cumulative = _income_cumulative(income_points, base_income, gap,
                                     cond.startup_cost_manwon)
 
     # 해외 선택지는 국내 패널로 답할 수 없다. 분류기가 '유지' 로 잘못 본 뒤에도
     # 숫자는 나오기 때문에, 여기서 한 번 더 막는다.
     out_of_scope = _is_out_of_scope_region(choice, detail)
-    if out_of_scope:
+    # 범위 밖이어도 **사용자가 직접 적은 소득 수준은 살린다.**
+    #
+    #   그 값은 모델이 낸 게 아니라 입력이다. "우리 패널에 없다"는 이유로 지울
+    #   근거가 없고, 지우면 A/B 비교가 반쪽이 되어 체험 자체가 안 된다.
+    #   대신 증가율은 국내 궤적을 빌려 쓰는 근사라 출처에 그렇게 적는다.
+    #
+    #   반면 만족도·이탈확률은 사용자가 적을 수 있는 값이 아니다 — 오직 모델만
+    #   낼 수 있고 그 모델에 해당 데이터가 없다. 그건 계속 비운다.
+    income_from_input = out_of_scope and anchor is not None
+    if out_of_scope and not income_from_input:
         income_points = _blank(income_points, _OUT_OF_SCOPE_NOTE)
         cumulative = _blank(cumulative, _OUT_OF_SCOPE_NOTE)
 
@@ -485,10 +499,12 @@ def _scenario_view(profile_dict: dict, choice: str,
                 else _regret(pr, kind)),
         regret_summary=(None if out_of_scope else _regret_summary(pr, kind)),
         growth_potential=(_blank(_growth_potential(income_path, income_points),
-                                 _OUT_OF_SCOPE_NOTE) if out_of_scope
+                                 _OUT_OF_SCOPE_NOTE)
+                          if (out_of_scope and not income_from_input)
                           else _growth_potential(income_path, income_points)),
         applied_conditions=applied,
-        out_of_scope=({"reason": _OUT_OF_SCOPE_NOTE} if out_of_scope else None),
+        out_of_scope=({"reason": _OUT_OF_SCOPE_NOTE,
+                       "income_from_input": income_from_input} if out_of_scope else None),
         health_context=[li for li in pr.life_indicators if li.dimension in HEALTH_DIMS],
         choice_context=_choice_context(pr, kind),
         confidence=confidence,
