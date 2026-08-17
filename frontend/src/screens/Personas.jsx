@@ -27,7 +27,8 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Lock, Sparkles, UserPlus } from "lucide-react";
 import { personaCards, personaTags } from "../data/personas/index.js";
-import { enterPersona, startMyAccount } from "../data/personaSession.js";
+import { enterPersona } from "../data/personaSession.js";
+import { startFreshMySlot } from "../data/personaSlots.js";
 import { useResult } from "../data/ResultContext.jsx";
 import { avatarDataUri } from "../lib/renderAvatar.js";
 import { AVATAR_BG } from "../components/Avatar.jsx";
@@ -185,8 +186,14 @@ export default function Personas() {
   }
 
   function makeMine() {
+    // 랜딩의 '나만의 계정 만들기' 와 같은 뜻이어야 한다 — 빈 상태로 시작.
+    //
+    // 여기만 startMyAccount()(= activateSlot) 로 남아 있었다. 그건 **복구**라서
+    // 체험하기 화면을 거쳐 계정을 만들면 보관해 둔 앞사람 기록이 그대로 따라왔다.
+    // Landing 은 startFreshMySlot() 으로 고쳐졌는데 이 경로가 빠져 있었다.
+    //
     // 슬롯을 먼저 비운 뒤 온보딩으로 — 순서가 바뀌면 방금 입력한 프로필이 지워진다.
-    startMyAccount();
+    startFreshMySlot();
     resetSession();      // 체험하던 인물의 결과가 내 계정 화면에 남지 않게
     reloadProfile();     // 비워진 저장소를 읽어 기본 프로필로 되돌린다
     navigate("/onboarding");
