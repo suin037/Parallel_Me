@@ -59,6 +59,40 @@ function horizonGaps(a, b, futureYears) {
   }).filter(Boolean);
 }
 
+// 인과(L3)가 붙는 선택 유형. '유지'는 기준선 그 자체라 붙지 않는다.
+const CAUSAL_KINDS = new Set(["이직", "창업", "휴식"]);
+
+// 한쪽만 인과 경로면 두 소득을 그냥 빼서 읽으면 안 된다. 백엔드 note 가 이미
+// 그렇게 말하고 있는데 화면이 그 문장을 한 번도 보여주지 않아, 관람객은 나란한
+// 두 막대를 그대로 비교했다. 7명 페르소나 전원이 이 구조였다.
+function asymmetry(a, b) {
+  const causalA = CAUSAL_KINDS.has(a?.kind);
+  const causalB = CAUSAL_KINDS.has(b?.kind);
+  if (causalA === causalB) return null;
+  const baseline = causalA ? b : a;
+  return { baselineLabel: labelOf(baseline?.choice), baselineSide: causalA ? "B" : "A" };
+}
+
+// 사용자가 적은 조건이 수치에 들어갔는지 — 들어갔으면 '모델 예측이 아님'을,
+// 못 읽었으면 '반영 안 됨'을 밝힌다. 둘 다 말하지 않으면 조건 입력칸이 장식이 된다.
+function conditionRows(a, b) {
+  return ["A", "B"].map((side) => {
+    const target = side === "A" ? a : b;
+    const applied = target?.applied_conditions;
+    if (!applied) return null;
+    const bits = [];
+    if (applied.income_anchor != null) bits.push(`월소득 ${applied.income_anchor.toLocaleString()}만원`);
+    if (applied.gap_months) bits.push(`무소득 ${applied.gap_months}개월`);
+    if (applied.startup_cost_manwon) bits.push(`초기비용 ${applied.startup_cost_manwon.toLocaleString()}만원`);
+    return { side, label: labelOf(target?.choice), bits, ignored: applied.ignored || null };
+  }).filter(Boolean);
+}
+
+function cumulativeAt(side, futureYears) {
+  const point = closestPoint(side?.income_cumulative, futureYears);
+  return point?.value == null ? null : { value: Number(point.value), year: Number(point.year) };
+}
+
 export default function ResultDataNotes({ a, b, futureYears = 3 }) {
   // 소득 궤적은 **선택이 아니라 프로필**로 계산된다. 그래서 관계·건강처럼 소득과
   // 상관없는 질문에도 값이 채워져 온다 — '연인과 대화하기 vs 거리 두기'에 소득
@@ -75,10 +109,19 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
   // 그래서 화면만 보면 반년을 쉬었는데 1년차 소득이 남는 쪽보다 높게 보인다.
   // 숫자를 고치는 건 재학습이 필요한 일이라, 무엇이 빠졌는지를 밝힌다.
   const breakSide = [a, b].find((side) => side?.kind === "휴식");
+  const conditions = conditionRows(a, b);
+  const asym = asymmetry(a, b);
+  const cumulative = { A: cumulativeAt(a, futureYears), B: cumulativeAt(b, futureYears) };
+  // 공백·초기비용이 반영된 쪽이 있을 때만 누적 소득을 꺼낸다. 아무 조건도 없으면
+  // 월소득을 12배 한 것과 다르지 않아 새 정보가 없다.
+  const hasGap = [a, b].some((side) => side?.applied_conditions?.gap_months
+    || side?.applied_conditions?.startup_cost_manwon);
+  const showCumulative = hasGap && cumulative.A && cumulative.B;
 
   // 그릴 게 하나도 없으면 카드 자체를 내보내지 않는다. 여기에 렌더하지 않는
   // 값(건강 실측 등)을 조건에 남겨두면 제목만 있는 빈 카드가 뜬다.
-  if (!hasGrowth && !gaps.length && !breakSide) return null;
+  if (!hasGrowth && !gaps.length && !breakSide && !conditions.length
+      && !asym && !showCumulative) return null;
 
   return (
     <section className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0B1220]/85" aria-labelledby="data-notes-title">
@@ -86,6 +129,72 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
         <h2 id="data-notes-title" className="text-[13px] font-bold text-ink">숫자를 읽는 배경</h2>
         <p className="mt-0.5 text-[9px] text-mut">위 비교표의 수치가 어떤 조건에서 나온 값인지 함께 봅니다.</p>
       </div>
+
+      {asym && (
+        <div className="border-white/[.07] px-4 py-3.5 [&:not(:last-child)]:border-b">
+          <h3 className="text-[11px] font-semibold text-sub">두 소득을 그냥 빼서 읽으면 안 됩니다</h3>
+          <p className="mt-0.5 text-[9px] leading-4 text-mut">
+            <b className="font-semibold" style={{ color: COLORS[asym.baselineSide] }}>{asym.baselineSide}</b>
+            {" "}<b className="font-semibold text-sub">{asym.baselineLabel}</b>는 <b className="font-semibold text-sub">기준선 그 자체</b>라
+            선택의 인과효과가 적용되지 않습니다. 반대쪽만 인과 반영 경로입니다.
+            <b className="font-semibold text-sub"> 한쪽은 '선택이 만든 변화', 다른 쪽은 '가만히 있었을 때의 관측값'</b>이라
+            같은 자로 잰 두 값이 아닙니다.
+          </p>
+        </div>
+      )}
+
+      {conditions.length > 0 && (
+        <div className="border-white/[.07] px-4 py-3.5 [&:not(:last-child)]:border-b">
+          <h3 className="text-[11px] font-semibold text-sub">적어주신 조건이 수치에 반영된 방식</h3>
+          <ul className="mt-2 grid gap-1.5">
+            {conditions.map((row) => (
+              <li key={row.side} className="rounded-lg bg-white/[.03] px-2.5 py-2">
+                <div className="flex items-center gap-1.5">
+                  <b className="text-[9px] font-black" style={{ color: COLORS[row.side] }}>{row.side}</b>
+                  <span className="truncate text-[9.5px] text-mut">{row.label}</span>
+                </div>
+                {row.ignored ? (
+                  <p className="mt-1 text-[9px] leading-4 text-[#F5C86B]">
+                    적어주신 조건을 수치로 읽지 못해 <b className="font-semibold">반영하지 않았습니다</b>. 임의로 추정하지 않습니다.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[9px] leading-4 text-mut">
+                    <b className="font-semibold text-sub">{row.bits.join(" · ")}</b>
+                    {" "}— 이 값은 <b className="font-semibold text-sub">모델 예측이 아니라 입력</b>입니다.
+                    연차별 증가율만 모델 궤적을 따릅니다.
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {showCumulative && (
+        <div className="border-white/[.07] px-4 py-3.5 [&:not(:last-child)]:border-b">
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="text-[11px] font-semibold text-sub">{futureYears}년 동안 손에 쥐는 돈</h3>
+            <span className="text-[8.5px] text-mut">공백·초기비용 반영</span>
+          </div>
+          <p className="mt-0.5 text-[9px] leading-4 text-mut">
+            위 월소득 줄에는 <b className="font-semibold text-sub">쉬는 기간과 초기 자금이 들어 있지 않습니다.</b>
+            {" "}같은 궤적을 {futureYears}년간 더하고 그 둘을 반영하면 이렇게 바뀝니다.
+          </p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {["A", "B"].map((side) => (
+              <article key={side} className="rounded-xl border border-white/[.07] bg-white/[.025] px-3 py-2.5">
+                <div className="flex items-center gap-1.5">
+                  <b className="text-[9px] font-black" style={{ color: COLORS[side] }}>{side}</b>
+                  <span className="truncate text-[9.5px] text-mut">{labelOf((side === "A" ? a : b)?.choice)}</span>
+                </div>
+                <strong className="mt-1 block text-[15px] tabular-nums text-ink">
+                  {Math.round(cumulative[side].value).toLocaleString()}만원
+                </strong>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
 
       {breakSide && (
         <div className="border-white/[.07] px-4 py-3.5 [&:not(:last-child)]:border-b">

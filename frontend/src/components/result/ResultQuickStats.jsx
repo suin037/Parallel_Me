@@ -38,7 +38,12 @@ function metricValue(side, kind, futureYears) {
   if (kind.startsWith("score:")) {
     const key = kind.slice(6);
     const raw = side.indicator_scores?.[key];
-    if (raw == null) return null;
+    // 잴 재료가 없던 지표는 값이 아니라 '측정 안 됨' 으로 돌려준다. 그냥 비우면
+    // 화면에서 "—" 가 되어, 못 잰 것과 값이 낮은 것이 같아 보인다.
+    if (raw == null) {
+      return (side.indicator_unmeasured || []).includes(key)
+        ? { unmeasured: true } : null;
+    }
     const value = Number(raw) * 100;
     return Number.isFinite(value) ? { value, unit: "점", percentile: true } : null;
   }
@@ -47,6 +52,7 @@ function metricValue(side, kind, futureYears) {
 
 function formatMetric(metric) {
   if (!metric) return "—";
+  if (metric.unmeasured) return "측정 안 됨";
   const rounded = Math.abs(metric.value) >= 100
     ? Math.round(metric.value)
     : Math.round(metric.value * 10) / 10;
@@ -55,6 +61,9 @@ function formatMetric(metric) {
 }
 
 function comparisonMeta(left, right) {
+  // 한쪽이라도 못 잰 지표면 격차를 계산하지 않는다 — 중립 자리채우기와 실측을
+  // 빼면 없는 차이가 생긴다.
+  if (left?.unmeasured || right?.unmeasured) return null;
   if (!left || !right || left.unit !== right.unit) return null;
   const delta = right.value - left.value;
   const precision = Math.max(Math.abs(delta), Math.abs(left.value), Math.abs(right.value)) >= 100 ? 0 : 1;

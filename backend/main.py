@@ -679,11 +679,20 @@ def simulate(req: SimulateRequest) -> dict:
             value_weights = axis_weights(req.value_ranking)
         except Exception:
             value_weights = None
+    # ⚠ 개인화(초점·강조)에도 **측정된 지표만** 넘긴다.
+    #   예전엔 여기만 raw(ind_a/ind_b)를 받아서, 근거가 없어 0.5 로 채운 자리채우기가
+    #   emphasis 비교와 서사 초점을 좌우했다. 성민(창업)이 그 사례다 —
+    #   B('현재 직장을 유지한다')는 삶의질을 잴 재료가 아예 없어 unmeasured 였는데,
+    #   0.5 가 A 의 실측 0.314 와 나란히 비교돼 "창업하면 삶의질이 크게 떨어진다"
+    #   로 읽혔다. 측정 안 된 값과 측정된 값을 견주면 안 된다.
+    #   (표시용 ind_a/ind_b 는 3개를 그대로 두고, unmeasured 로 화면이 판단한다.)
+    measured_a = _measured(ind_a, det_a, req.indicator_scores)
+    measured_b = _measured(ind_b, det_b, req.indicator_scores)
     pz = personalize.build_personalization(
         value_weights=value_weights,
         diary_weights=req.diary_axis_weights,
         n_answers=req.diary_n_answers,
-        indicator_scores_a=ind_a, indicator_scores_b=ind_b,
+        indicator_scores_a=measured_a, indicator_scores_b=measured_b,
         disposition_block=req.disposition_block or "",
         mbti=req.profile.mbti,
     )
@@ -695,11 +704,9 @@ def simulate(req: SimulateRequest) -> dict:
     #    ⚠ 초점은 '가장 낮은 지표' 로 정해지므로, 근거가 없어 중립값(0.5)만 채워진
     #    지표가 섞이면 자리채우기가 카드 선택을 좌우한다 → 측정된 지표만 넘긴다.
     #    (표시용 ind_a/ind_b 는 3개를 그대로 유지한다.)
-    psych_a = get_psych_evidence(_measured(ind_a, det_a, req.indicator_scores),
-                                 emotions=req.emotions,
+    psych_a = get_psych_evidence(measured_a, emotions=req.emotions,
                                  decision_type=req.choice_a, focus_override=focus_a)
-    psych_b = get_psych_evidence(_measured(ind_b, det_b, req.indicator_scores),
-                                 emotions=req.emotions,
+    psych_b = get_psych_evidence(measured_b, emotions=req.emotions,
                                  decision_type=req.choice_b, focus_override=focus_b)
 
     # 3) 통계 근거(숫자 근거) — 선택지별

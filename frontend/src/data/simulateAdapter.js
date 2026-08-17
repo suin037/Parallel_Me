@@ -110,6 +110,11 @@ function buildSide(scenario, choice, detail, profile, evidence, domainCov, domai
     // 쪽만 써서 그 문자열이 통째로 유실됐는데, 거기 "명목 — 물가상승분 포함" 경고가
     // 들어 있다. 10년 뒤 소득을 명목으로 보여주면서 그 말을 빼면 실제보다 좋아 보인다.
     income_series: scenario?.income || [],
+    // 공백 기간·초기비용이 반영된 누적 소득. 월소득 줄에는 안 들어 있다 —
+    // "반년 쉬는데 1년차 월급이 남는 쪽보다 높다" 가 여기서 뒤집힌다.
+    income_cumulative: scenario?.income_cumulative || [],
+    // 사용자가 적은 조건 중 실제로 수치에 들어간 것. null 이면 반영된 게 없다.
+    applied_conditions: scenario?.applied_conditions || null,
     // KNHANES·KWCS 실측(스트레스인지율·우울장애유병률 등). 선택별로 갈리는 값이
     // 아니라 '같은 조건 집단은 지금 이렇다'는 배경 수치다.
     health_context: scenario?.health_context || [],
@@ -192,6 +197,12 @@ export function mapSimulateToPair(sim, { choiceA, choiceB, detailA = "", detailB
   };
   a.indicator_scores = measuredScores("A");
   b.indicator_scores = measuredScores("B");
+  // 왜 지웠는지도 함께 넘긴다. 값만 빼면 화면에는 그냥 "—" 로 떠서, 측정을 못 한
+  // 것인지 값이 0 인지 구분이 안 된다. 성민(창업)의 B 가 정확히 그 경우였다 —
+  // 백엔드는 unmeasured 로 "못 쟀다" 고 말하는데 응답의 indicators 에는 중립값
+  // 0.5 가 들어 있어, 실측 0.314 와 나란히 놓이면 큰 격차처럼 보였다.
+  a.indicator_unmeasured = sim.indicator_detail?.A?.unmeasured || [];
+  b.indicator_unmeasured = sim.indicator_detail?.B?.unmeasured || [];
   // 장기 가치는 별도 미래점수가 아니라 어떤 결과를 먼저 읽을지 정하는 개인화 축이다.
   // /compare 미리보기에는 없고 /simulate 최종 응답부터 적용된다.
   a.personalization = sim.personalization || null;
