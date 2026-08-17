@@ -17,7 +17,7 @@ export default function FutureYearPicker({
 
   return (
     <div className={className}>
-      <div className="flex w-full items-start justify-between gap-2 sm:w-auto sm:justify-end" role="radiogroup" aria-label={ariaLabel}>
+      <div data-tour="future-years" className="flex w-full items-start justify-between gap-2 sm:w-auto sm:justify-end" role="radiogroup" aria-label={ariaLabel}>
         {label && <span className="mt-1.5 shrink-0 text-[9px] font-semibold text-mut">{label}</span>}
         <div className="flex flex-wrap items-center justify-end gap-1 rounded-2xl border border-white/10 bg-black/20 p-1">
           {visible.map((y) => {

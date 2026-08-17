@@ -187,6 +187,21 @@ def _tracks_for(artist_id, artist_name, want_new=True, genres=None):
     return out
 
 
+# 기분 방향별 기본 씨앗 — 마지막 자리.
+#
+# LLM 이 씨앗도 fallback 도 못 주는 날이 있다. 일기에 음악 이야기가 없으면 대부분
+# 그렇고, 그러면 후보가 0이 되어 기능 전체가 "지금은 어울리는 곡을 찾지 못했어요"로
+# 끝났다 — 음악을 안 적는 사람에게는 이 기능이 아예 없는 것과 같았다.
+#
+# 여기 이름은 Deezer 로 실재 확인을 한 번 더 거친다(_candidates 의 _artist_id).
+# 없는 이름은 조용히 버려지므로, 지어낸 아티스트가 화면에 오를 수는 없다.
+_DEFAULT_SEEDS = {
+    "stay": ["아이유", "검정치마", "이하이"],
+    "lift": ["잔나비", "혁오", "볼빨간사춘기"],
+    "energize": ["세븐틴", "이무진", "다비치"],
+}
+
+
 def _candidates(seeds, fallback, limit_artists=4):
     """씨앗 아티스트 → 비슷한 아티스트 → 후보곡.
 
@@ -268,6 +283,11 @@ def tracks(records, speech="polite", limit=3):
 
     # 2단계 — 실재하는 후보를 모은다.
     pool, seed_genres = _candidates(artists, fallback)
+    seed_from = "diary" if artists else "model"
+    if not pool:
+        # 씨앗이 하나도 안 잡힌 날 — 기분 방향으로 기본 씨앗을 세워 다시 찾는다.
+        pool, seed_genres = _candidates([], _DEFAULT_SEEDS.get(shift) or _DEFAULT_SEEDS["stay"])
+        seed_from = "mood"
     if not pool:
         return {"ok": False, "reason": "지금은 어울리는 곡을 찾지 못했어요. 며칠 뒤 다시 볼게요."}
     pool.sort(key=_recency_score, reverse=True)
@@ -299,6 +319,9 @@ def tracks(records, speech="polite", limit=3):
             break
     if not items:      # 고르기가 실패해도 실재하는 후보는 있다 — 최신순 앞에서 채운다
         items = [{**t, "why": ""} for t in pool[:limit]]
+    # seedFrom — 이 곡들이 어디서 왔는지. 화면이 "내가 적은 곡의 결"이라고 말해도
+    # 되는 날인지 아닌지를 프론트가 알아야 한다(mood 면 일기와 무관한 추천이다).
     return {"ok": True, "items": items, "shift": shift, "genres": seed_genres,
-            "seeds": artists, "moodNow": seed.get("moodNow") or "",
+            "seeds": artists, "seedFrom": seed_from,
+            "moodNow": seed.get("moodNow") or "",
             "seedWhy": str(seed.get("why") or "").strip()}

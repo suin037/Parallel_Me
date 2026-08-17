@@ -10,8 +10,15 @@ import HomeCalendar from "./HomeCalendar.jsx";
 import { loadActiveGoal, saveActionResponse } from "../data/actionBridge.js";
 import { logExperiment } from "../data/myUniverse.js";
 
+// 마스코트는 result.js MASCOTS 의 역할 분담을 따른다 — ChatDiary 의 AREAS · 설정 화면 ·
+// 가이드 조언(guideAdvice.js)과 같은 배정이어야 한다.
+//   · 루미(별빛 가이드)   기록을 돌본다 → 오늘의 일상 · 몸과 마음
+//   · 코스모(행성 탐험가) 데이터와 선택을 분석한다 → 고민과 선택
+//   · 노바(유성 가이드)   기회와 변화를 전한다 → 시뮬레이션(여기엔 나오지 않는다)
+// 예전엔 '오늘의 일상'만 노바였다. 카드에는 노바가 서 있는데 대화를 열면 루미가
+// 답하고, 안내에서는 또 노바라고 말해 셋이 서로 다른 소리를 했다.
 const GUIDES = [
-  { key: "daily", mascot: "nova", name: "노바", topic: "오늘의 일상", color: "#FF9EC0", prompt: "오늘 있었던 일, 나와 같이 돌아볼래요?" },
+  { key: "daily", mascot: "lumi", name: "루미", topic: "오늘의 일상", color: "#FFD97A", prompt: "오늘 있었던 일, 나와 같이 돌아볼래요?" },
   { key: "disposition", mascot: "cosmo", name: "코스모", topic: "고민과 선택", color: "#8B6CCF", prompt: "고민 중인 갈림길, 같이 비춰볼까요?" },
   { key: "health", mascot: "lumi", name: "루미", topic: "몸과 마음", color: "#FFD97A", prompt: "몸과 마음의 신호를 천천히 살펴봐요." },
 ];
@@ -109,6 +116,7 @@ export default function DiaryToday() {
       </div>
 
       <textarea
+        data-tour="diary-line"
         value={text}
         onChange={(e) => setText(e.target.value)}
         maxLength={80}
@@ -134,6 +142,7 @@ export default function DiaryToday() {
 
       <button
         type="button"
+        data-tour="diary-checkin"
         onClick={() => setCheckinOpen(true)}
         className={`tap mt-4 w-full rounded-2xl py-3 text-[13px] font-bold ${
           checkinDone
@@ -145,6 +154,7 @@ export default function DiaryToday() {
       </button>
 
       <button
+        data-tour="diary-save"
         disabled={!checkinDone}
         onClick={save}
         className={`tap mt-3 w-full rounded-2xl py-2.5 text-[13px] font-bold transition-colors ${
@@ -395,7 +405,7 @@ function GuideCarousel({ onOpen }) {
   }
 
   return (
-    <div className="mb-5 border-b border-line pb-5">
+    <div data-tour="diary-guides" className="mb-5 border-b border-line pb-5">
       <button
         type="button"
         onClick={() => onOpen(guide)}
@@ -491,7 +501,7 @@ function WeekStrip({ entries }) {
   const moodEmoji = ["", "😞", "😕", "😐", "🙂", "😄"];
 
   return (
-    <div className="mb-5 border-b border-line pb-4">
+    <div data-tour="diary-week" className="mb-5 border-b border-line pb-4">
       <div className="mb-2 flex items-center justify-between"><span className="text-[11px] font-semibold text-sub">최근 7일</span><button type="button" onClick={()=>setCalendarOpen(true)} className="tap rounded-full border border-white/10 px-3 py-1.5 text-[10px] text-[#BBA4ED]">전체 캘린더 보기</button></div>
       <div className="grid grid-cols-7 gap-1">
         {days.map(({ date, key, entry }, index) => {

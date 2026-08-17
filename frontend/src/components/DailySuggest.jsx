@@ -68,7 +68,7 @@ export default function DailySuggest() {
   if (!data.ok) return null;
 
   return (
-    <div className="mt-4 rounded-[18px] border border-line bg-[#141b2e] p-4">
+    <div data-tour="daily-suggest" className="mt-4 rounded-[18px] border border-line bg-[#141b2e] p-4">
       <div className="mb-2 flex items-center gap-1.5">
         <Sparkles size={14} className="text-[#EDA100]" />
         <span className="text-[12.5px] font-semibold text-ink">오늘 이런 건 어때요</span>
@@ -116,9 +116,13 @@ export default function DailySuggest() {
               <span className="text-[9px] text-[#8FB4F0]">{SHIFT_LABEL[tracks.shift] || ""}</span>
             )}
           </div>
-          {tracks.genres?.length > 0 && (
+          {/* 일기에 음악 이야기가 없으면 기분 방향으로 고른다(seedFrom==="mood").
+              그때도 "내가 적은 곡의 결"이라고 하면 거짓말이 된다. */}
+          {tracks.seedFrom === "mood" ? (
+            <p className="mb-1 text-[9.5px] text-mut">일기에 음악 이야기가 없어 지금 기분에 맞춰 골랐어요</p>
+          ) : tracks.genres?.length > 0 ? (
             <p className="mb-1 text-[9.5px] text-mut">내가 적은 곡의 결 · {tracks.genres.join(", ")}</p>
-          )}
+          ) : null}
           {tracks.seedWhy && (
             <p className="mb-1.5 text-[9.5px] leading-relaxed text-mut">{tracks.seedWhy}</p>
           )}

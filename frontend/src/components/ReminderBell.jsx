@@ -52,6 +52,7 @@ export default function ReminderBell() {
     <>
       <button
         onClick={() => setOpen(true)}
+        data-tour="reminder-bell"
         aria-label={`알람${count ? ` ${count}개` : ""}`}
         className="tap relative flex h-10 w-10 items-center justify-center rounded-full text-mut transition-colors hover:bg-white/[.05]"
       >

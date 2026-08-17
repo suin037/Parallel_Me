@@ -102,13 +102,38 @@ export default function MyUniverseV2() {
 
   function openPlanet(key) { setPlanet(PLANETS.find((item) => item.key === key)); setCluster(null); }
 
+  // 사용 안내(Tour)가 이 화면의 창을 직접 열고 닫는다.
+  //
+  // "행성을 누르면 열려요" 라고 말만 하고 지나가면, 정작 그 안에 무엇이 있는지는
+  // 닫힌 화면 위에서 설명하게 된다 — 안내 영상에서는 그게 제일 안 와닿는 장면이다.
+  // 그래서 안내가 실제로 열어 놓고 그 위에서 짚는다(tour.js 의 act 필드).
+  //
+  // 어느 행성을 여는가 — 기록이 가장 많은 것. 빈 행성을 열면 설명할 숫자가 없다.
+  useEffect(() => {
+    const onAct = (event) => {
+      const act = event.detail;
+      if (act === "open-planet") {
+        const best = [...PLANETS].sort(
+          (left, right) => planetEntries(state, right.key).length - planetEntries(state, left.key).length,
+        )[0];
+        setCluster(null);
+        setPlanet(best || PLANETS[0]);
+      } else if (act === "close-panels") {
+        setPlanet(null);
+        setCluster(null);
+      }
+    };
+    window.addEventListener("pm:tour-act", onAct);
+    return () => window.removeEventListener("pm:tour-act", onAct);
+  }, [state]);
+
   return (
     <div className="relative h-full min-h-[620px] overflow-hidden bg-[#030712] lg:min-h-[calc(100dvh-76px)]">
       <div className="pointer-events-none absolute left-8 top-6 z-20">
         <h1 className="text-[25px] font-bold tracking-[-.03em]">나의 우주</h1>
         <p className="mt-1 text-[11px] text-sub">당신의 기록이 별이 되고, 별들이 연결되어 우주가 됩니다.</p>
       </div>
-      <div className="absolute right-6 top-5 z-30">
+      <div data-tour="universe-archive" className="absolute right-6 top-5 z-30">
         <button type="button" onClick={() => navigate("/archive")} className="tap flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3 text-[10px] text-sub backdrop-blur"><Archive size={13} /> 보관함</button>
       </div>
       {/* 패널이 열리면 지도를 왼쪽 절반으로 민다 — 패널 폭(50vw)과 같은 값이라야
@@ -959,7 +984,7 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
 
   // PC 에서는 화면을 반으로 나눈다 — 왼쪽 지도, 오른쪽 이 창.
   // (아래 지도 쪽 여백도 같은 폭으로 밀어야 실제로 반반이 된다.)
-  return <aside className="absolute inset-y-2 right-2 z-40 w-[min(430px,calc(100%-16px))] overflow-y-auto rounded-[26px] border border-white/10 bg-[#070E1B]/95 shadow-[0_30px_100px_rgba(0,0,0,.72)] backdrop-blur-2xl lg:inset-y-4 lg:right-4 lg:w-[calc(50vw-1.5rem)] xl:w-[calc(50vw-1.5rem)]">
+  return <aside data-tour="planet-panel" className="absolute inset-y-2 right-2 z-40 w-[min(430px,calc(100%-16px))] overflow-y-auto rounded-[26px] border border-white/10 bg-[#070E1B]/95 shadow-[0_30px_100px_rgba(0,0,0,.72)] backdrop-blur-2xl lg:inset-y-4 lg:right-4 lg:w-[calc(50vw-1.5rem)] xl:w-[calc(50vw-1.5rem)]">
     <div className="p-5 lg:p-6">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4"><PlanetOrb planet={planet} /><div><p className="text-[9px] font-semibold tracking-[.2em]" style={{color:accent}}>FUTURE PLANET</p>
@@ -1020,7 +1045,7 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
       ) : null}
       <p className="mt-3 text-[10px] leading-relaxed text-mut">{flow}</p>
 
-      <section className="mt-6 border-t border-white/[.08] pt-5">
+      <section data-tour="planet-trend" className="mt-6 border-t border-white/[.08] pt-5">
         {/* 점수를 안 내는 영역에 기분 그래프를 그리면, 점수는 안 매긴다면서
             그래프로는 매기는 셈이 된다. 거기는 '얼마나 자주 떠올랐나'를 센다. */}
         {metric.kind === "score" ? (
@@ -1046,7 +1071,7 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
         </div>
       </section>
 
-      <section className="relative mt-6 overflow-hidden rounded-[20px] border p-5" style={{borderColor:`${accent}70`,background:`linear-gradient(135deg,${accent}1F,rgba(11,17,31,.72))`,boxShadow:`0 0 32px ${accent}12`}}>
+      <section data-tour="planet-future" className="relative mt-6 overflow-hidden rounded-[20px] border p-5" style={{borderColor:`${accent}70`,background:`linear-gradient(135deg,${accent}1F,rgba(11,17,31,.72))`,boxShadow:`0 0 32px ${accent}12`}}>
         <span className="pointer-events-none absolute -left-10 -top-16 h-36 w-36 rounded-full blur-2xl" style={{background:`${accent}25`}}/>
         <div className="relative"><h3 className="text-[14px] font-bold">{josa(planet.label, "을", "를")} 높이면 어떤 미래가 펼쳐질까요?</h3>
           <button onClick={onSimulate} className="tap mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[13px] font-bold text-white shadow-lg" style={{background:`linear-gradient(100deg,${accent},#E84E68)`}}>{planet.label} 미래 보기 <ChevronRight size={16}/></button>

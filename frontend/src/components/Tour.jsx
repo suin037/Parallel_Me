@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // (useRef 는 말풍선 높이 측정에도 쓴다)
 import { useLocation, useNavigate } from "react-router-dom";
 import Mascot from "./Mascot.jsx";
 import { MASCOTS } from "../data/result.js";
-import { TOUR_STEPS, canRunTourAt, clearWantTour, markTourSeen, wantsTour } from "../data/tour.js";
+import {
+  TOUR_STEPS, TOUR_CHAPTERS, CLIP_STEPS, CLIP_TOTAL_MS,
+  canRunTourAt, clearWantTour, markTourSeen, stepDuration, wantsTour,
+} from "../data/tour.js";
 
 // ─────────────────────────────────────────────────────────────
 // 첫 사용 안내 — 화면을 어둡게 덮고 그 버튼만 뚫어 보여주고, 다음 화면으로 데려간다.
@@ -12,6 +15,18 @@ import { TOUR_STEPS, canRunTourAt, clearWantTour, markTourSeen, wantsTour } from
 //
 // 구멍은 큰 box-shadow 로 낸다(캔버스·클립패스 없이 됨): 작은 사각형에 화면보다 큰
 // 그림자를 주면 그 사각형만 빼고 전부 어두워진다.
+//
+// 자동 재생 — 이 안내가 소개 영상의 대본이기 때문에 있다. 40단계가 넘는 걸 손으로
+// 넘기면서 찍으면 클릭할 때마다 화면이 흔들리고, 넘기는 손이 화면에 남는다.
+// 켜두면 글 양에 맞춘 시간만큼 머물다 스스로 넘어간다(stepDuration).
+//
+// 키보드도 받는다 — → · Space 다음, ← 이전, Esc 끝내기. 녹화 중에 마우스를
+// 화면 위로 가져가지 않아도 되게.
+//
+// 캡쳐 단계(step.shot) — 시뮬레이션과 결과는 화면을 짚는 대신 미리 찍어 둔 그림을
+// 띄우고 그 위에 설명한다. 실제로 돌리면 비교 API 를 태우게 되는데, 안내를 한 번
+// 볼 때마다 그걸 부를 이유가 없다(느리고, 결과도 그때그때 달라 영상이 매번 달라진다).
+// 그림이 없으면 조용히 다음으로 넘어간다 — 깨진 이미지가 그대로 녹화되지 않게.
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -29,20 +44,41 @@ function findVisible(id) {
 
 export default function Tour() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const [open, setOpen] = useState(false);
   const [at, setAt] = useState(0);
   const [box, setBox] = useState(null);
-  // 대상을 찾은 단계의 id. boolean 이면 안 된다 — 5·6단계처럼 **같은 화면에서 단계만
-  // 바뀔 때** true→true 라 값이 안 변하고, 위치 재측정 effect 가 다시 돌지 않는다.
+  // 대상을 찾은 단계의 id. boleean 이면 안 된다 — 같은 화면에서 단계만 바뀔 때
+  // true→true 라 값이 안 변하고, 위치 재측정 effect 가 다시 돌지 않는다.
   // 그러면 설명은 새 단계인데 조명은 이전 자리에 남는다.
+  // (같은 id 를 연달아 짚는 단계도 있어서 id 만으로는 부족하다 — 단계 번호를 붙인다.)
   const [readyId, setReadyId] = useState(null);
   // 말풍선 실제 높이. 상수로 가정하면 줄 수가 많은 단계에서 화면 밖으로 밀린다.
   const tipRef = useRef(null);
   const [tipH, setTipH] = useState(220);
   const timers = useRef([]);
+  // 자동 재생 — 영상 녹화용. 기본은 꺼둔다(혼자 읽는 사람에게는 재촉이 된다).
+  const [auto, setAuto] = useState(false);
+  // 코스 — 전체(실사용 안내 20컷) / 핵심만 / 40초(소개 영상).
+  //
+  // 기본은 전체다. 안내를 켜는 사람은 기능을 알고 싶은 것이지 광고를 보려는 게 아니다.
+  // 코스를 바꾸는 버튼은 화면에 두지 않는다 — 영상에 그대로 찍히기 때문이다.
+  // 대신 키보드로 바꾼다: F 전체 · C 핵심만 · V 40초(켜는 순간 자동 재생).
+  const [mode, setMode] = useState("full");
+  const steps = useMemo(() => {
+    if (mode === "clip") return CLIP_STEPS;
+    if (mode === "core") return TOUR_STEPS.filter((item) => item.core);
+    return TOUR_STEPS;
+  }, [mode]);
 
   const clearTimers = () => { timers.current.forEach(clearInterval); timers.current = []; };
+
+  // 안내를 켜면 3초 뒤에 스스로 굴러간다 — 40초 코스는 손으로 넘기라고 만든 게 아니다.
+  useEffect(() => {
+    if (!open || mode !== "clip") return undefined;
+    const timer = setTimeout(() => setAuto(true), 3000);
+    return () => clearTimeout(timer);
+  }, [open, mode]);
 
   // 스스로 시작하지 않는다 — 사용자가 안내를 고른 표시가 있을 때만 열린다.
   //
@@ -65,15 +101,67 @@ export default function Tour() {
     setOpen(true);
   }, [pathname, open]);
 
-  const step = open ? TOUR_STEPS[at] : null;
+  const rawStep = open ? steps[at] : null;
+  // 짧은 코스에서는 short 가 있으면 그걸 쓴다.
+  //
+  // 원칙 — 상세 설명은 **처음 보면 이해가 안 되는 것**에만 붙인다.
+  // 일기·보관함·탭바처럼 보면 아는 화면은 짧은 코스에서 한 줄로 스치고,
+  // 행성 해석 · 표본 감소 · 두 집단의 출발점처럼 설명이 있어야 읽히는 것은
+  // 짧은 코스에서도 그대로 둔다.
+  const step = rawStep && mode !== "full" && rawStep.short
+    ? { ...rawStep, ...rawStep.short }
+    : rawStep;
+  const stepKey = step ? `${at}:${step.id}` : null;
+  // 캡쳐는 한 장(shot) 또는 나란히 두 장(shots) — A/B 시나리오처럼 견줘 봐야 하는 화면.
+  const shotList = step?.shots?.length ? step.shots : step?.shot ? [step.shot] : [];
+  const isShot = shotList.length > 0;
+  // full: 이 화면은 통째로 보여준다 — 조명으로 잘라내지 않고, 덮지도 않는다.
+  // (나의 우주처럼 화면 전체가 그림인 곳은 반쪽만 밝히면 뭘 보여주는지 알 수 없다.)
+  const isFull = Boolean(step?.full);
+
+  const finish = useCallback(() => {
+    // 안내가 열어 둔 창은 안내가 닫고 나간다 — 끝냈는데 행성 창이 열린 채로 남으면
+    // 사용자가 연 것도 아닌 화면을 자기가 닫아야 한다.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("pm:tour-act", { detail: "close-panels" }));
+    }
+    markTourSeen();
+    clearWantTour();      // 다시 고르기 전엔 열리지 않는다
+    clearTimers();
+    setOpen(false);
+    setAuto(false);
+    setBox(null);
+  }, []);
+
+  const next = useCallback(() => {
+    setAt((current) => {
+      if (current + 1 < steps.length) return current + 1;
+      finish();
+      return current;
+    });
+  }, [finish, steps.length]);
+
+  const prev = useCallback(() => setAt((current) => Math.max(0, current - 1)), []);
 
   // 단계가 바뀌면 그 화면으로 데려간 뒤, 대상이 나타날 때까지 기다린다.
+  //
+  // route 에 쿼리가 붙을 수 있다("/settings?section=security"). pathname 만 견주면
+  // 설정 안에서 칸이 바뀌는 단계들이 영원히 "아직 도착 안 함"으로 남아 멈춘다.
   useEffect(() => {
-    if (!step) return;
+    if (!step) return undefined;
     // 여기서 box 를 지우지 않는다. 지우면 구멍이 사라져 화면이 한 번 새까매졌다가
     // 새 자리에 툭 나타난다. 이전 구멍을 그대로 두면 새 위치로 **미끄러져 이동**한다.
     setReadyId(null);
-    if (step.route && step.route !== pathname) { navigate(step.route); return; }
+    const here = `${pathname}${search || ""}`;
+    if (step.route && step.route !== here) { navigate(step.route); return undefined; }
+
+    // 그 화면에 무엇을 열어 두고 설명할지 — 화면 쪽이 pm:tour-act 를 듣고 연다.
+    // (예: 행성 창을 실제로 열어 놓고 그 안을 짚는다. 닫힌 화면 위에서 "누르면
+    //  열려요" 라고만 말하면 정작 그 안에 뭐가 있는지는 못 보여준다.)
+    if (step.act) window.dispatchEvent(new CustomEvent("pm:tour-act", { detail: step.act }));
+
+    // 캡쳐 단계와 전체 화면 단계는 짚을 대상이 없다 — 화면(또는 그림) 자체가 대상이다.
+    if (isShot || isFull) { setBox(null); setReadyId(stepKey); return undefined; }
 
     let waited = 0;
     const find = setInterval(() => {
@@ -84,7 +172,7 @@ export default function Tour() {
         // 출렁인다. 어차피 화면은 덮여 있어 스크롤 자체는 보이지 않고,
         // 눈에 보이는 움직임은 구멍이 새 자리로 미끄러지는 것뿐이다.
         el.scrollIntoView({ block: "center" });
-        setReadyId(step.id);
+        setReadyId(stepKey);
         return;
       }
       waited += 120;
@@ -92,17 +180,16 @@ export default function Tour() {
       // 1.5초면 화면 전환이 끝나고도 남으니, 그때까지 없으면 조용히 넘긴다.
       if (waited > 1500) {
         clearInterval(find);
-        setAt((i) => (i + 1 < TOUR_STEPS.length ? i + 1 : i));
-        if (at + 1 >= TOUR_STEPS.length) finish();
+        next();
       }
     }, 120);
     timers.current.push(find);
     return () => clearInterval(find);
-  }, [step, pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stepKey, pathname, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 대상 위치 추적 — 스크롤·리사이즈에도 구멍이 따라간다.
   useEffect(() => {
-    if (!step || readyId !== step.id) return;
+    if (!step || isShot || isFull || readyId !== stepKey) return undefined;
     // 매 프레임 다시 잰다. 200ms 간격으로 재면 scrollIntoView 가 부드럽게 움직이는
     // 동안 구멍이 계단처럼 끊겨 따라간다. 값이 그대로면 상태를 안 바꿔 헛렌더를 막는다.
     let raf = 0;
@@ -110,67 +197,166 @@ export default function Tour() {
       const el = findVisible(step.id);
       if (el) {
         const r = el.getBoundingClientRect();
-        setBox((prev) =>
-          prev && prev.top === r.top && prev.left === r.left
-            && prev.width === r.width && prev.height === r.height
-            ? prev
+        setBox((prev0) =>
+          prev0 && prev0.top === r.top && prev0.left === r.left
+            && prev0.width === r.width && prev0.height === r.height
+            ? prev0
             : { top: r.top, left: r.left, width: r.width, height: r.height });
       }
       raf = requestAnimationFrame(measure);
     };
     raf = requestAnimationFrame(measure);
     return () => cancelAnimationFrame(raf);
-  }, [readyId, step]);
+  }, [readyId, stepKey, step, isShot, isFull]);
 
-  // 단계가 바뀌면 말풍선 높이를 다시 잰다 — 줄 수가 달라 높이가 매번 다르다.
+  // 자동 재생 — 대상을 찾아 조명이 앉은 뒤부터 시간을 센다.
+  // (화면 전환을 기다리는 동안까지 세면 긴 설명이 반쯤 읽힌 채로 넘어간다.)
+  useEffect(() => {
+    if (!auto || !step || readyId !== stepKey) return undefined;
+    // 40초 코스는 장면마다 시간을 다르게 준다 — 차별점에 오래 머물고
+    // 익숙한 화면은 스치듯 지나가야 광고가 된다(step.ms).
+    const timer = setTimeout(
+      next,
+      mode === "clip"
+        ? step.ms || Math.round(CLIP_TOTAL_MS / steps.length)
+        : stepDuration(step),
+    );
+    return () => clearTimeout(timer);
+  }, [auto, readyId, stepKey, step, next, mode, steps.length]);
+
+  // 키보드 — 녹화 중에 마우스를 화면 위에 올리지 않아도 되게.
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (event) => {
+      if (event.key === "ArrowRight" || event.key === " " || event.key === "Enter") {
+        event.preventDefault(); next();
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault(); prev();
+      } else if (event.key === "Escape") {
+        event.preventDefault(); finish();
+      } else if (["f", "c", "v"].includes(event.key.toLowerCase())) {
+        // 숨은 전환 — 화면에 버튼을 두면 녹화에 찍힌다.
+        event.preventDefault();
+        const want = { f: "full", c: "core", v: "clip" }[event.key.toLowerCase()];
+        setMode(want);
+        setAt(0);
+        setAuto(want === "clip");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, next, prev, finish]);
+
+  // 말풍선 높이를 따라간다 — 줄 수가 달라 높이가 매번 다르다.
+  //
+  // 렌더 직후에 한 번만 재면 안 된다. 말풍선에 transition 이 걸려 있어서 그때 재면
+  // **애니메이션 중간 높이**가 잡히고, 그 뒤로는 다시 렌더되지 않아 그 값이 그대로
+  // 남는다. 캡쳐 단계에서 그림이 말풍선 위로 겹쳐 내려오던 게 이 때문이었다.
+  useEffect(() => {
+    const el = tipRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(() => {
+      const h = el.getBoundingClientRect().height;
+      setTipH((current) => (h && Math.abs(h - current) > 2 ? h : current));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [open]);
+
+  // 렌더 직후에도 한 번 잰다 — ResizeObserver 가 없는 환경(구형 사파리)과,
+  // 관찰이 시작되기 전 첫 프레임을 메운다.
   useEffect(() => {
     if (!tipRef.current) return;
     const h = tipRef.current.getBoundingClientRect().height;
     if (h && Math.abs(h - tipH) > 2) setTipH(h);
   });
 
-  function finish() {
-    markTourSeen();
-    clearWantTour();      // 다시 고르기 전엔 열리지 않는다
-    clearTimers();
-    setOpen(false);
-    setBox(null);
-  }
-  const next = () => (at + 1 < TOUR_STEPS.length ? setAt(at + 1) : finish());
-
   if (!open || !step) return null;
 
   const pad = 8;
-  const hole = box && {
+  const who = MASCOTS[step.mascot] || MASCOTS.lumi;
+  const tint = who.color;
+  const W = 420, GAP = 14, M = 16;
+  const TIP_H = tipH;
+
+  // ── 말풍선 자리 ────────────────────────────────────────────
+  // 규칙은 하나다: **말풍선은 밝은 칸 밖에 둔다.**
+  // 겹쳐 놓으면 조명 안의 화면과 설명 글자가 포개져 둘 다 못 읽는다.
+  //
+  // 아래 → 위 → 오른쪽 → 왼쪽 순으로 들어갈 자리를 찾는다. 네 곳 다 안 되면
+  // ('나의 우주'처럼 대상이 화면을 거의 다 덮을 때) 조명 쪽을 줄여 자리를 만든다 —
+  // 지도는 조금 덜 보여도 되지만 설명이 겹치면 화면 전체가 어지러워진다.
+  const vw = typeof window !== "undefined" ? window.innerWidth : 0;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 0;
+  let hole = box && {
     top: box.top - pad, left: box.left - pad,
     width: box.width + pad * 2, height: box.height + pad * 2,
   };
-  // 말풍선 자리 — 대상 아래에, 아래가 좁으면 위에.
-  //
-  // 둘 다 안 되는 경우가 있다: '나의 우주'처럼 대상이 화면을 거의 다 덮으면
-  // 아래도 위도 자리가 없다. 그때 위쪽 계산을 그대로 쓰면 말풍선이 화면 밖으로
-  // 밀려나 아예 안 보인다. 그래서 마지막엔 무조건 화면 안으로 가둔다.
-  const who = MASCOTS[step.mascot] || MASCOTS.lumi;
-  const tint = who.color;
-  const W = 340, GAP = 14, M = 16;
-  const TIP_H = tipH;
-  let tipStyle = { top: "50%", left: "50%", transform: "translate(-50%,-50%)" };
-  if (hole) {
-    const under = hole.top + hole.height + GAP;
-    const over = hole.top - GAP - TIP_H;
-    const top = under + TIP_H <= window.innerHeight - M ? under
-      : over >= M ? over
-      : window.innerHeight - TIP_H - M;   // 둘 다 안 들어가면 화면 아래쪽에 띄운다
+  const clampLeft = (value) => Math.max(M, Math.min(vw - W - M, value));
+  const clampTop = (value) => Math.max(M, Math.min(vh - TIP_H - M, value));
+  // 자리는 **항상 top/left 숫자**로만 잡는다.
+  // bottom 이나 transform 을 섞어 쓰면, 단계가 바뀌며 지정 속성이 달라지는 순간
+  // 브라우저가 보간할 값을 잃어 말풍선이 튄다(정확히 그 증상이었다).
+  let tipStyle = { top: Math.round((vh - TIP_H) / 2), left: Math.round((vw - W) / 2) };
+  // 조명에 자리를 양보해야 할 때만 말풍선 키를 묶는다(아래 마지막 분기).
+  let tipMaxH = null;
+
+  if (isFull) {
+    // 전체 화면 단계 — 화면을 그대로 두고 말풍선만 왼쪽 아래 구석에 놓는다.
+    tipMaxH = Math.round(vh * 0.42);
+    tipStyle = { top: Math.max(M, vh - Math.min(TIP_H, tipMaxH) - M), left: M };
+  } else if (isShot) {
+    // 캡쳐 단계 — 그림은 위, 말풍선은 아래 가운데. 자리가 겹치지 않게 고정해 둔다.
+    //
+    // 말풍선 키를 화면의 34%로 묶는다. 이 단계는 **그림이 본론**인데, 줄이 많은
+    // 설명이 그대로 자라면 그림이 손바닥만 해진다(탭 화면이 156px 까지 줄었다).
+    // 넘치는 줄은 말풍선 안에서 스크롤된다.
+    tipMaxH = Math.round(vh * 0.34);
     tipStyle = {
-      top: Math.max(M, top),
-      left: Math.max(M, Math.min(window.innerWidth - W - M, hole.left)),
+      top: Math.max(M, vh - Math.min(TIP_H, tipMaxH) - M),
+      left: Math.round((vw - W) / 2),
     };
+  } else if (hole) {
+    const below = vh - (hole.top + hole.height) - GAP - M;
+    const above = hole.top - GAP - M;
+    const right = vw - (hole.left + hole.width) - GAP - M;
+    const left = hole.left - GAP - M;
+    const middle = clampTop(hole.top + hole.height / 2 - TIP_H / 2);
+
+    if (below >= TIP_H) {
+      tipStyle = { top: hole.top + hole.height + GAP, left: clampLeft(hole.left) };
+    } else if (above >= TIP_H) {
+      tipStyle = { top: hole.top - GAP - TIP_H, left: clampLeft(hole.left) };
+    } else if (right >= W) {
+      tipStyle = { top: middle, left: hole.left + hole.width + GAP };
+    } else if (left >= W) {
+      tipStyle = { top: middle, left: hole.left - GAP - W };
+    } else {
+      // 어디에도 안 들어간다 → 조명 아래쪽을 잘라 말풍선 자리를 낸다.
+      //
+      // 이때 말풍선 키를 화면의 42%로 묶는다. 안 묶으면 줄 많은 단계에서 말풍선이
+      // 화면의 절반을 먹어 조명이 손바닥만 해진다(우주 지도가 그랬다).
+      // 넘치는 줄은 말풍선 안에서 스크롤된다.
+      tipMaxH = Math.round(vh * 0.42);
+      const tip = Math.min(TIP_H, tipMaxH);
+      const height = Math.max(160, vh - tip - GAP - M * 2 - hole.top);
+      hole = { ...hole, height: Math.min(hole.height, height) };
+      tipStyle = { top: Math.max(M, hole.top + hole.height + GAP), left: clampLeft(hole.left) };
+    }
   }
+
+  const chapterAt = TOUR_CHAPTERS.indexOf(step.chapter) + 1;
 
   return (
     <div className="fixed inset-0 z-[200]" role="dialog" aria-label="사용 안내">
-      {/* 대상을 아직 못 찾았으면 화면만 덮어 둔다(빈 구멍이 번쩍이지 않게) */}
-      {!hole && <div className="absolute inset-0 bg-[#02050C]/82" />}
+      {/* 덮개 —
+          · 전체 화면 단계: 아무것도 덮지 않는다. 화면 자체를 보여주는 단계다.
+          · 캡쳐 단계: 불투명하게 덮는다. 반투명이면 뒤 화면 글자가 그림 위로 비쳐
+            두 화면이 겹쳐 읽힌다.
+          · 그 밖: 대상을 찾기 전까지만 덮어 둔다(빈 구멍이 번쩍이지 않게). */}
+      {!isFull && !hole && (
+        <div className={`absolute inset-0 ${isShot ? "bg-[#02050C]" : "bg-[#02050C]/82"}`} />
+      )}
       {hole && (
         <div
           className="pointer-events-none absolute rounded-[14px] transition-all duration-[360ms] ease-out"
@@ -185,31 +371,74 @@ export default function Tour() {
       {/* 배경 아무 데나 눌러도 다음으로 */}
       <button onClick={next} className="absolute inset-0 h-full w-full cursor-default" aria-label="다음" />
 
+      {/* 캡쳐 단계 — 미리 찍어 둔 화면을 띄우고 그 위에 설명한다.
+          그림이 아직 없으면(파일 미배치·경로 오타) 조용히 다음으로 넘긴다. */}
+      {isShot && (
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-center px-4 pt-4"
+          style={{ bottom: tipH + M * 2 }}
+        >
+          {/* 높이를 확실히 잡아 줘야 한다 — figure 높이가 auto 면 img 의 max-h-full(퍼센트)이
+              무시돼 그림이 원본 크기로 늘어나 말풍선을 덮는다. h-full + flex-1 + min-h-0 조합.
+              두 장이면 나란히 놓는다 — A/B 시나리오처럼 견줘 봐야 읽히는 화면이 있다. */}
+          <figure className="flex h-full min-h-0 w-full flex-col items-center justify-center">
+            <div className={`flex min-h-0 w-full flex-1 items-center justify-center ${shotList.length > 1 ? "gap-3" : ""}`}>
+              {shotList.map((src) => (
+                <img
+                  key={src}
+                  src={src}
+                  alt={step.shotAlt || step.title}
+                  onError={next}
+                  className="h-full min-h-0 w-auto max-w-full rounded-[18px] border border-white/15 object-contain shadow-[0_28px_80px_rgba(0,0,0,.7)]"
+                  style={shotList.length > 1 ? { maxWidth: `calc(50% - 0.375rem)` } : undefined}
+                />
+              ))}
+            </div>
+            {step.shotCaption && (
+              <figcaption className="mt-2 shrink-0 text-[10px] text-mut">{step.shotCaption}</figcaption>
+            )}
+          </figure>
+        </div>
+      )}
+
       {/* 해설 말풍선 — 그 화면을 맡은 마스코트가 말한다 */}
       <div
         ref={tipRef}
-        className="absolute flex max-h-[calc(100dvh-32px)] w-[min(340px,calc(100vw-32px))] flex-col overflow-hidden rounded-[20px] border bg-[#111A2C] shadow-[0_24px_70px_rgba(0,0,0,.62)] transition-all duration-[360ms] ease-out"
-        style={{ ...tipStyle, borderColor: `${tint}66` }}
+        className="absolute flex max-h-[calc(100dvh-32px)] w-[min(420px,calc(100vw-32px))] flex-col overflow-hidden rounded-[20px] border bg-[#111A2C] shadow-[0_24px_70px_rgba(0,0,0,.62)] transition-all duration-[360ms] ease-out"
+        style={{ ...tipStyle, borderColor: `${tint}66`, ...(tipMaxH ? { maxHeight: tipMaxH } : {}) }}
       >
+        {/* 전체 진행 막대 — 44단계짜리라 지금 어디쯤인지 눈으로도 보이게 */}
+        <div className="h-[3px] w-full bg-white/[.06]">
+          <div
+            className="h-full transition-[width] duration-500 ease-out"
+            style={{ width: `${((at + 1) / steps.length) * 100}%`, background: tint }}
+          />
+        </div>
+
         <div className="flex items-center gap-2.5 px-4 pb-2.5 pt-3">
-          <Mascot which={who.key} size={38} />
+          <Mascot which={who.key} size={46} />
           <div className="min-w-0 flex-1">
             <p className="text-[9px] font-bold tracking-[.14em]" style={{ color: tint }}>
               {who.tag}
             </p>
-            <p className="text-[10px] text-mut">{at + 1} / {TOUR_STEPS.length}</p>
+            {/* 챕터 이름이 있어야 영상에서 장이 바뀌는 게 보인다 */}
+            <p className="truncate text-[10px] text-mut">
+              {mode === "clip"
+                ? step.chapter
+                : `${chapterAt > 0 ? `${chapterAt}. ` : ""}${step.chapter} · ${at + 1} / ${steps.length}`}
+            </p>
           </div>
         </div>
 
         {/* 내용은 단계마다 새로 올라온다 — 글자가 툭 갈리지 않게.
             줄이 많으면 여기서만 스크롤한다(말풍선이 화면 밖으로 나가지 않게). */}
         <div key={at} className="animate-fade min-h-0 flex-1 overflow-y-auto px-4">
-          <h3 className="text-[14.5px] font-bold leading-snug text-ink">{step.title}</h3>
-          <p className="mt-1.5 text-[11.5px] leading-relaxed text-sub">{step.body}</p>
+          <h3 className="text-[17px] font-bold leading-snug text-ink">{step.title}</h3>
+          <p className="mt-2 text-[13.5px] leading-relaxed text-sub">{step.body}</p>
           {step.lines?.length > 0 && (
             <ul className="mt-2.5 space-y-1.5 border-t border-white/[.07] pt-2.5">
               {step.lines.map((line, i) => (
-                <li key={i} className="flex gap-2 text-[11px] leading-relaxed text-sub">
+                <li key={i} className="flex gap-2 text-[12.5px] leading-relaxed text-sub">
                   <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full" style={{ background: tint }} />
                   <span>{line}</span>
                 </li>
@@ -218,11 +447,14 @@ export default function Tour() {
           )}
         </div>
 
+        {/* 40초 코스에서는 버튼 줄을 감춘다 — 광고 화면에 조작 UI 가 찍히면 안 된다.
+            그때도 배경 아무 데나 누르면 다음, Esc 로 끝낼 수 있다. */}
+        {mode !== "clip" && (
         <div className="mt-3 flex items-center gap-2 px-4 pb-3.5">
           <button onClick={finish} className="tap text-[11px] text-mut">건너뛰기</button>
           <div className="flex-1" />
           {at > 0 && (
-            <button onClick={() => setAt(at - 1)} className="tap rounded-lg border border-white/[.12] px-3 py-1.5 text-[11px] text-sub">
+            <button onClick={prev} className="tap rounded-lg border border-white/[.12] px-3 py-1.5 text-[11px] text-sub">
               이전
             </button>
           )}
@@ -231,9 +463,10 @@ export default function Tour() {
             className="tap rounded-lg px-3.5 py-1.5 text-[11px] font-bold text-white"
             style={{ background: tint, color: "#12101B" }}
           >
-            {at + 1 < TOUR_STEPS.length ? "다음" : "시작하기"}
+            {at + 1 < steps.length ? "다음" : "시작하기"}
           </button>
         </div>
+        )}
       </div>
     </div>
   );
