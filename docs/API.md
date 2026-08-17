@@ -4,7 +4,7 @@
 **사이트(입력·화면)와 일기 모듈이 이 문서만 보고 붙일 수 있도록** 입력/출력/선택지별 동작을 정리했습니다.
 
 레이어 구성:
-- **L1** 룰베이스 생활지표(경제·삶의질·건강·창업·진학) · **L2** KNN 유사사례(GOMS+청년 YP) · **L3** EconML 인과효과 · **L4** lifelines 생존 · **L5** 종단 궤적(10년 소득 경로 + 청년 만족도 궤적 + 선택지 평행우주)
+- **L1** 룰베이스 생활지표(경제·삶의질·건강·창업·진학) · **L2** KNN 유사사례(GOMS+청년 YP) · **L3** EconML 인과효과 · **L4** lifelines 생존 · **L5** 종단 궤적(최대 15년 소득 경로 + 청년 만족도 궤적 + 선택지 평행우주)
 - 서버: FastAPI. 로컬 실행 시 기본 `http://localhost:8000`, 자동 문서 `http://localhost:8000/docs`
 - 프론트 CORS 허용: `http://localhost:5173`
 
@@ -57,7 +57,7 @@
 | `neighbor_changed_ratio` | float \| **null** | 유사집단 중 실제 이직 비율. 이직만 |
 | `risk_timeline` | `{연차: 확률}` | 이직=이직확률(L4) / 창업=폐업확률 / 진학=`{}` |
 | `life_indicators` | `LifeIndicator[]` | Layer1 생활지표 패널 — **선택지 무관 항상 제공** |
-| `trajectory` | `TrajectoryPoint[]` | **L5 종단 소득 궤적** — 비슷한 사람들의 향후 N년(≈10년, KLIPS) 소득·이직 실제 분포 |
+| `trajectory` | `TrajectoryPoint[]` | **L5 종단 소득 궤적** — 비슷한 사람들의 향후 N년(최대 15년, KLIPS 12~27차) 소득·이직 실제 분포. 연차마다 `sample_n` 이 붙고, 표본이 `min_n`(15) 미달인 연차는 아예 만들지 않는다 |
 | `wellbeing_trajectory` | `WellbeingPoint[]` | **만족도 궤적** — 종합 만족도(1~5)의 시간 변화(청년·YP, ≈4년). 소득 궤적과 짝지어 해석. **청년 범위 밖이면 `[]`** |
 | `scenario_trajectories` | `{시나리오: TrajectoryPoint[]}` | **선택지 평행우주** — `{"유지":…, "이직":…}`. **이직 choice에서만** |
 | `narrative` | string | 설명 문장 (**3번 팀원 RAG가 생성**. 미설정 시 `""`) |
@@ -157,7 +157,8 @@
 형태 예시 파일: `docs/compare_example.json` (숫자는 placeholder, 필드 구조는 실제와 동일).
 
 > **시점은 데이터가 지지하는 데까지만.** 우리 패널은 방대하지 않아 만족도(YP)는 약 4년, 소득(KLIPS)·후회도
-> 관측범위까지만 값이 있고 나머지 시점은 `available:false`. "10년 그리드를 강제로 채우지 않는다"가 원칙입니다.
+> 관측범위까지만 값이 있고 나머지 시점은 `available:false`. "그리드를 강제로 채우지 않는다"가 원칙입니다.
+> `effect_extrapolated:true` 인 연차는 값은 있으나 L3 효과가 관측 밖(프로파일 1~5년)이라 마지막 관측값을 이어 붙인 것입니다.
 
 ### 입력 — `POST /compare`
 ```json

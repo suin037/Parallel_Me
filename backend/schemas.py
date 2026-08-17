@@ -80,8 +80,13 @@ class CompareRequest(BaseModel):
 
     profile: Profile
     future_years: int = Field(
-        3, ge=1, le=10,
-        description="결과 서사와 이미지가 초점을 맞출 미래 시점(1/3/5/10년)",
+        3, ge=1, le=15,
+        description=(
+            "결과 서사와 이미지가 초점을 맞출 미래 시점(1~15년). "
+            "모델 계층에는 도달하지 않는다 — 궤적은 horizon 이 따로 만들고, 이 값은 "
+            "서사·이미지 프롬프트와 '화면이 어느 연차 점을 강조할지'에만 쓰인다. "
+            "상한 15 는 KLIPS 12~27차(16웨이브)로 한 사람을 최대 15년 추적할 수 있어서다."
+        ),
     )
     choice_a: str = Field(..., description="선택지 A (예: 이직)")
     choice_b: str = Field(..., description="선택지 B (예: 대학원 진학)")

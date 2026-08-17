@@ -5,7 +5,7 @@ import { FUTURE_YEAR_OPTIONS } from "../data/futureYears.js";
 // 보였다. 자주 쓰는 값(1·3·5·10)만 기본 노출하고 나머지는 "더보기"로 펼친다.
 // 지금 선택된 값이 기본 세트에 없어도(예: 확장해서 7년을 골랐다가 접은 경우)
 // 사라지지 않도록 항상 표시 목록에 끼워 넣는다.
-const QUICK_YEARS = [1, 3, 5, 10];
+const QUICK_YEARS = [1, 3, 5, 10, 15];
 
 export default function FutureYearPicker({
   years, onChange, label, note, ariaLabel = "미래 비교 시점", titleFor, className = "",
