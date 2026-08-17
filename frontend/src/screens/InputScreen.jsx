@@ -7,6 +7,8 @@ import { detectEmotions } from "../data/DiaryContext.jsx";
 import { domainRumination } from "../data/diarySignals.js";
 import { loadUniverse } from "../data/myUniverse.js";
 import { questionsForChoice } from "../data/scenarioIntake.js";
+import { currentSlot } from "../data/personaSession.js";
+import { personaCompare } from "../data/personas/index.js";
 import { classifyChoicePair } from "../api.js";
 import { Caption } from "../components/ui.jsx";
 import JobPostingInput from "../components/JobPostingInput.jsx";
@@ -76,6 +78,12 @@ export default function InputScreen() {
   const [rumination, setRumination] = useState(() => domainRumination({ windowDays: 28, threshold: 4 }));
   const [conversationFutures, setConversationFutures] = useState(latestConversationFutures);
   const [classifying, setClassifying] = useState(false);
+  // 체험 중인 인물이 있으면 그 사람이 고민하던 두 갈래를 추천한다.
+  // 마운트 때 한 번만 읽는다 — 슬롯은 이 화면에 있는 동안 바뀌지 않는다.
+  const [persona] = useState(() => {
+    const slot = currentSlot();
+    return slot.kind === "persona" ? personaCompare(slot.id) : null;
+  });
 
   // "이직하기 vs 지금처럼 유지"처럼 B가 맥락 의존 표현이면 단독 키워드가 없어도
   // A와 같은 비교 영역으로 읽는다. A/B 어느 쪽에 먼저 적어도 동일하게 동작한다.
@@ -96,6 +104,18 @@ export default function InputScreen() {
     window.addEventListener("pm:universe", refresh);
     return () => window.removeEventListener("pm:universe", refresh);
   }, []);
+
+  // 그 인물의 1년 기록은 이 두 갈림길로 수렴하도록 쓰였다. 기록과 비교 대상이
+  // 어긋나면 결과 서사가 딴 얘기를 하므로, 기본값부터 다시 치게 두지 않는다.
+  function applyPersonaCompare() {
+    if (!persona) return;
+    const next = { a: persona.a, b: persona.b };
+    setScenarioTexts(next);
+    setChoices(next);
+    setScenarioDomains({ a: detectPrimaryLifeDomain(persona.a), b: detectPrimaryLifeDomain(persona.b) });
+    setDomainAuto({ a: true, b: true });
+    setFocused("a");
+  }
 
   function applySuggestedCompare() {
     if (!rumination.compare) return;
@@ -197,6 +217,48 @@ export default function InputScreen() {
       [field]: { event: intake.event, event_label: intake.eventLabel, domain: intake.domain, answers: { ...(prev[field]?.answers || {}), [key]: value } },
     }));
   }
+
+  // 체험 중인 인물의 조건을 **실제 답변으로 미리 채운다.**
+  //
+  // 예전엔 hints 를 placeholder 로만 보여줬다. 그래서 관람객이 그 칸을 직접
+  // 건드리지 않으면 answers 가 빈 채로 전송돼, 인물이 들고 있던 조건
+  // (도현의 '반년 무소득', 성민의 창업비 1.2억)이 수치에 하나도 반영되지
+  // 않았다. 배포본 7명 전원이 그 상태였다.
+  //
+  // 지금 감지된 영역이 실제로 묻는 질문만 채운다 — hints 에 남는 키는 화면에
+  // 뜨지도 않으므로 채워봐야 사용자가 고칠 수 없다. 이미 값이 있으면 덮지
+  // 않는다(사용자가 고친 값이 우선).
+  useEffect(() => {
+    if (!persona?.hints) return;
+    [["A", intakeA], ["B", intakeB]].forEach(([side, intake]) => {
+      const field = side.toLowerCase();
+      const hints = persona.hints[field];
+      if (!hints || !intake.questions.length) return;
+      setScenarioContexts((prev) => {
+        const answers = prev[field]?.answers || {};
+        const next = { ...answers };
+        let changed = false;
+        intake.questions.forEach((question) => {
+          const hint = hints[question.key];
+          if (hint && !String(answers[question.key] || "").trim()) {
+            next[question.key] = String(hint);
+            changed = true;
+          }
+        });
+        if (!changed) return prev;
+        return {
+          ...prev,
+          [field]: {
+            event: prev[field]?.event ?? intake.event,
+            event_label: prev[field]?.event_label ?? intake.eventLabel,
+            domain: prev[field]?.domain ?? intake.domain,
+            answers: next,
+          },
+        };
+      });
+    });
+    // intake 는 선택 문구·영역에서 파생되므로 그 두 가지가 바뀔 때만 다시 채운다.
+  }, [persona, intakeA.domain, intakeB.domain, intakeA.event, intakeB.event, setScenarioContexts]);
 
   async function startComparison() {
     const fallback = (choice) => {
@@ -302,6 +364,23 @@ export default function InputScreen() {
           <span className="absolute bottom-[15%] left-[28%] h-1 w-1 rounded-full bg-[#F5C86B] shadow-[0_0_10px_2px_#F5C86B]" />
         </div>
       </section>
+      {/* 체험 중인 인물의 갈림길. 아직 아무것도 안 적었을 때만 권한다 —
+          이미 쓰고 있는 문장을 덮어쓰면 안 된다. */}
+      {persona && !typed && (
+        <button type="button" onClick={applyPersonaCompare} className="tap mt-3 flex w-full items-center gap-3 rounded-[18px] border border-violet-400/40 bg-[#1D1730] px-4 py-3.5 text-left transition-colors hover:bg-[#16264a] lg:mt-5 lg:max-w-[720px] lg:px-5 lg:py-4">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-violet-300">
+            <GitCompareArrows size={18} strokeWidth={2} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] font-semibold text-violet-200">
+              {persona.name} 님이 1년 동안 고민해 온 두 갈래예요
+            </span>
+            <span className="block text-[11px] text-sub">
+              {persona.a} vs {persona.b} · 누르면 선택지가 채워져요
+            </span>
+          </span>
+        </button>
+      )}
       {conversationFutures && (
         <button type="button" onClick={applyConversationFutures} className="tap mt-3 flex w-full items-center gap-3 rounded-[18px] border border-violet-400/40 bg-[#1D1730] px-4 py-3.5 text-left transition-colors hover:bg-[#16264a] lg:max-w-[720px]">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-violet-300">
@@ -337,7 +416,7 @@ export default function InputScreen() {
         <ChoicePanel
           inputId="choice-a-input"
           side="A" text={textA} domains={scenarioDomains.a} domainAuto={domainAuto.a}
-          intake={intakeA} context={scenarioContexts.a}
+          intake={intakeA} context={scenarioContexts.a} hints={persona?.hints?.a}
           active={focused === "a"} suggestions={suggestComparePrompts({ side: "a", recentDomains: rumination.domains, valueRanking: profile.value_ranking, otherText: textB })}
           suggestionLabel="이런 식으로 시작할 수 있어요"
           onFocus={() => setFocused("a")} onText={(value) => onText("A", value)}
@@ -355,7 +434,7 @@ export default function InputScreen() {
         <ChoicePanel
           inputId="choice-b-input"
           side="B" text={textB} domains={scenarioDomains.b} domainAuto={domainAuto.b}
-          intake={intakeB} context={scenarioContexts.b}
+          intake={intakeB} context={scenarioContexts.b} hints={persona?.hints?.b}
           active={focused === "b"} suggestions={suggestComparePrompts({ side: "b", recentDomains: rumination.domains, valueRanking: profile.value_ranking, otherText: textA })}
           suggestionLabel={textA.trim() ? "A와 비교할 수 있는 다른 길이에요" : "이런 식으로 시작할 수 있어요"}
           onFocus={() => setFocused("b")} onText={(value) => onText("B", value)}
@@ -504,12 +583,16 @@ function CompactFuturePicker({ futureYears, setFutureYears }) {
   );
 }
 
-function ChoiceConditions({ side, intake, context, onChange }) {
+function ChoiceConditions({ side, intake, context, hints, onChange }) {
   const color = side === "A" ? "#9B72F2" : "#F39A4A";
   const answers = context?.answers || {};
   const completed = intake.questions.filter((question) => String(answers[question.key] || "").trim());
   const hasAnswers = completed.length > 0;
-  const [open, setOpen] = useState(() => hasAnswers);
+  // 체험 중인 인물이 있으면 그 사람의 조건을 권한다. 감지된 영역의 질문만 뜨므로
+  // hints 에 남는 키가 있어도 여기서 자연히 걸러진다.
+  const offered = intake.questions.filter((q) => hints?.[q.key] && !String(answers[q.key] || "").trim());
+  // 권할 게 있으면 처음부터 펼친다 — 접혀 있으면 아무도 못 본다.
+  const [open, setOpen] = useState(() => hasAnswers || offered.length > 0);
 
   if (!intake.questions.length) return null;
 
@@ -531,7 +614,13 @@ function ChoiceConditions({ side, intake, context, onChange }) {
             </span>
             {hasAnswers ? `조건 ${completed.length}개 입력됨` : "조건 더 알려주기"}
           </span>
-          {!hasAnswers && <span className="mt-1 block truncate text-[9px] text-mut">금액·기간·상황 등 · 입력하지 않아도 비교할 수 있어요</span>}
+          {!hasAnswers && (
+            <span className="mt-1 block truncate text-[9px] text-mut">
+              {offered.length
+                ? `이 인물의 조건 ${offered.length}개를 추천해요 · 눌러서 채울 수 있어요`
+                : "금액·기간·상황 등 · 입력하지 않아도 비교할 수 있어요"}
+            </span>
+          )}
           {hasAnswers && !open && (
             <span className="mt-1 block truncate text-[9px] text-mut">
               {completed.map((question) => `${question.label} ${answers[question.key]}`).join(" · ")}
@@ -544,12 +633,26 @@ function ChoiceConditions({ side, intake, context, onChange }) {
       </button>
       {open && (
         <div className="grid gap-3 border-t border-white/[.07] px-3.5 pb-3.5 pt-3 sm:grid-cols-2">
-          {intake.questions.map((question) => (
-            <label key={question.key} className="block">
-              <span className="mb-1 block text-[10px] text-sub">{question.label}</span>
-              <input value={answers[question.key] || ""} onChange={(event) => onChange(question.key, event.target.value)} placeholder={question.placeholder} className="w-full rounded-lg border border-white/15 bg-[#101A31] px-3 py-2.5 text-[11px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-mut focus:border-violet-400" />
-            </label>
-          ))}
+          {intake.questions.map((question) => {
+            const hint = hints?.[question.key];
+            const empty = !String(answers[question.key] || "").trim();
+            return (
+              <label key={question.key} className="block">
+                <span className="mb-1 block text-[10px] text-sub">{question.label}</span>
+                <input value={answers[question.key] || ""} onChange={(event) => onChange(question.key, event.target.value)} placeholder={question.placeholder} className="w-full rounded-lg border border-white/15 bg-[#101A31] px-3 py-2.5 text-[11px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-mut focus:border-violet-400" />
+                {hint && empty && (
+                  <button
+                    type="button"
+                    onClick={(event) => { event.stopPropagation(); onChange(question.key, hint); }}
+                    className="tap mt-1.5 max-w-full truncate rounded-full border px-2.5 py-1 text-[9.5px] font-semibold"
+                    style={{ color, borderColor: `${color}55`, background: `${color}14` }}
+                  >
+                    {hint}
+                  </button>
+                )}
+              </label>
+            );
+          })}
         </div>
       )}
     </div>
@@ -596,7 +699,7 @@ function JobField({ label, children }) {
   );
 }
 
-function ChoicePanel({ inputId, side, text, domains, domainAuto, intake, context, active, suggestions, suggestionLabel, onFocus, onText, onSuggestion, onDomain, onRedetect, onConditionChange }) {
+function ChoicePanel({ inputId, side, text, domains, domainAuto, intake, context, hints, active, suggestions, suggestionLabel, onFocus, onText, onSuggestion, onDomain, onRedetect, onConditionChange }) {
   const [editingDomains, setEditingDomains] = useState(false);
   const isA = side === "A";
   const accentText = isA ? "text-[#8B6CCF]" : "text-[#FFB85C]";
@@ -648,7 +751,7 @@ function ChoicePanel({ inputId, side, text, domains, domainAuto, intake, context
       )}
 
       {text.trim() && (
-        <ChoiceConditions side={side} intake={intake} context={context} onChange={onConditionChange} />
+        <ChoiceConditions side={side} intake={intake} context={context} hints={hints} onChange={onConditionChange} />
       )}
     </section>
   );

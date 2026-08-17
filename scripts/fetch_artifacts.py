@@ -83,6 +83,11 @@ FILES: list[tuple[str, bool, str]] = [
 DATA_FILES: list[tuple[str, bool, str]] = [
     ("data/raw/klips/klips_base.pkl",      True,  "L5 소득 궤적 (trajectory.py)"),
     ("data/clean/yp_clean.csv",            True,  "청년 만족도 궤적 (YP 패널)"),
+    # 2KB 짜리지만 없으면 소득이 **명목으로 표시된다.** trajectory.wage_basis 가 이걸
+    # 못 읽으면 "명목(기준연도 미상)" 으로 답하고, 화면은 그 문자열을 보고 사용자에게
+    # 주의 문구까지 띄운다 — 실제로는 2024년 기준으로 디플레이트된 값인데 앱이 자기
+    # 데이터 품질을 낮춰 말하게 된다. manifest 의 data_vintage 도 이 파일에서 온다.
+    ("data/raw/klips/klips_build_report.json", True, "소득 화폐기준(실질/기준연도)·데이터 빈티지"),
     ("data/raw/klips/klips_health26a.pkl", False, "건강 영역 상세 (domain_router)"),
 ]
 

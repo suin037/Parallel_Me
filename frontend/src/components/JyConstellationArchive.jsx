@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { zodiacOf, zodiacPoints, zodiacLines } from "../data/zodiac.js";
 import { ART_BY_MONTH, ART_VIEWBOX, ART_STAR_COUNT } from "../data/zodiacArt.js";
+import { MOOD_COLORS, MOOD_COLORS_SOFT } from "../data/moodColors.js";
 
 // 512 좌표계로 그려진 별자리 일러스트를 원하는 위치·크기로 얹는다.
 function ZodiacArt({ month, cx, cy, size, litCircles = 0 }) {
@@ -28,8 +29,8 @@ function litStarsFor(monthKey, records) {
   return { lit: Math.min(total, lit), total, pct };
 }
 
-const COL=["#E24B4A","#D85A30","#EDA100","#5DCAA5","#378ADD"];
-const PASTEL=["#F0A3A2","#F2B48E","#F7DCA0","#AEE6CF","#A8CDF5"];
+const COL=MOOD_COLORS;         // 별자리와 같은 램프 — data/moodColors.js
+const PASTEL=MOOD_COLORS_SOFT; // 헤일로용 옅은 짝
 // 평소 별빛 — 순백은 너무 쨍해서, 푸른 기 도는 은은한 별빛으로. (Constellation 반짝이와 같은 톤)
 const CALM="#DEE8FB";
 // 캘린더는 모달(최대 820px)이라 넓게 써도 된다. 별자리끼리 겹치지 않게 간격을 벌렸다.

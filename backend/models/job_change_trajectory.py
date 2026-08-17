@@ -20,6 +20,28 @@ STATE_LABELS = {
 }
 
 
+# 이 모듈이 쓰는 두 파일은 `data/clean/` 에 있고, 그 폴더는 .gitignore 에 걸려 있다.
+# 즉 **배포 서버에는 없다.** 그런데 예전엔 존재 확인 없이 바로 읽어서
+# FileNotFoundError 가 났고, 그걸 `main._validated_prediction` 이 통째로 잡아
+# `validated_predictions` 전체를 unavailable 로 만들었다.
+#
+# 문제는 같이 죽는 것들이다 — 재정 영향(financial_impact)은 `.joblib` 하나만
+# 있으면 되고 그 파일은 배포에 **있다.** 파일 하나가 없어서 있는 것까지 못 보여줬다.
+# (배포본 7명 전원이 이 상태였다.)
+#
+# 옆 모듈 `job_change_candidate.py` 는 이미 전부 `.exists()` 로 막고 None 을
+# 돌려준다. 같은 방식으로 맞춘다 — 없는 건 없다고 말하고, 있는 건 내보낸다.
+MISSING_DATA_REASON = (
+    "커리어 궤적 데이터(career_future_panel.parquet · career_trajectory_clusters.json)가 "
+    "배포에 포함되지 않아 관측 경로를 만들 수 없습니다"
+)
+
+
+def data_available() -> bool:
+    """이 모듈이 답을 낼 수 있는가 — 두 파일이 다 있어야 한다."""
+    return CLUSTERS.exists() and FUTURE_PANEL.exists()
+
+
 @lru_cache(maxsize=1)
 def _cluster_artifact() -> dict:
     return json.loads(CLUSTERS.read_text(encoding="utf-8"))
@@ -110,6 +132,9 @@ def _number_distribution(values: pd.Series) -> dict:
 def trajectory_for_choice(choice_kind: str, profile: dict) -> dict:
     if choice_kind not in {"이직", "유지"}:
         return {"status": "not_applicable"}
+    if not data_available():
+        # 없는 것만 없다고 말한다. 예외를 던지면 호출부가 재정 영향까지 버린다.
+        return {"status": "unavailable", "reason": MISSING_DATA_REASON}
     choice = "move" if choice_kind == "이직" else "stay"
     trajectory_type = _closest_cluster(profile)
     rows, applied, relaxed = _matched_rows(profile, choice, trajectory_type["id"])

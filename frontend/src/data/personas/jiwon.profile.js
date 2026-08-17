@@ -19,6 +19,13 @@ export const profile = {
   value_ranking: ["growth", "meaning", "stability", "friends", "freedom", "family", "money", "status"],
   tagline: "프로덕트 디자이너 4년차 · 합격한 곳으로 옮길지 남을지",
   choices: { a: "합격한 회사로 이직한다", b: "지금 회사에 남는다" },
+  // '조건 더 알려주기' 추천값. 키는 scenarioIntake.DOMAIN_QUESTIONS 의 질문 key 다.
+  // 그 인물의 1년 기록에 실제로 나오는 수치만 적는다 — 지어내면 기록과 화면이 어긋난다.
+  // 감지된 영역의 질문만 화면에 뜨므로, 여기 남는 키가 있어도 조용히 무시된다.
+  conditionHints: {
+    a: { time_horizon: "1개월 안", income_change: "40만원 증가" },
+    b: { time_horizon: "당분간 유지", income_change: "연 3.2% 인상" },
+  },
   // 카드 얼굴. 값은 avatarOptions.js 의 id 를 그대로 쓴다(없는 id 는 조용히 무시된다).
   avatarConfig: {
     face: "oval", hairStyle: "bobLong", hairColor: "2c1b18", skinColor: "f2d3b1",

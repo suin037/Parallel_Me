@@ -29,24 +29,66 @@ function writeProfile(profile) {
 }
 
 /**
- * 프로필에 **없는 키만** 채운다. 이미 있는 값은 건드리지 않는다.
+ * 이미 만들어진 슬롯의 프로필을 그 페르소나에 맞춘다.
  *
- * 왜 필요한가: 아래 enterPersona 는 슬롯을 처음 만들 때만 writeProfile 을 부른다.
+ * 왜 필요한가: enterPersona 는 슬롯을 **처음 만들 때만** writeProfile 을 부른다.
  *   그래서 한 번이라도 들어가 본 인물은, 나중에 페르소나 프로필에 새로 생긴 값이
- *   그 슬롯에 영영 안 들어간다. avatarConfig 를 추가했을 때 실제로 그랬다 —
- *   카드에는 얼굴이 뜨는데 그 인물로 들어가면 기본 아바타였다.
+ *   그 슬롯에 영영 안 들어간다.
  *
- *   덮어쓰기로 고치면 안 된다. 설정에서 아바타를 직접 고쳐둔 사람의 선택이 체험하기에
- *   다시 들어올 때마다 초기화된다. 그래서 빈 자리만 메운다.
+ * 아바타는 '없을 때만 채우기'로는 안 된다 — 저장소에는 avatarConfig 가 **언제나** 있다.
+ *   ResultContext 의 DEFAULT_PROFILE 이 avatarConfig: DEFAULT_AVATAR 를 들고 있고,
+ *   프로필이 바뀔 때마다 통째로 저장하기 때문이다(그쪽 useEffect). 그래서 빈 자리를
+ *   찾는 방식으로는 페르소나 얼굴이 영영 안 들어가고, 카드에는 얼굴이 뜨는데
+ *   프로필·시뮬레이션 화면은 기본 아바타인 상태가 된다.
+ *
+ *   대신 **사용자가 직접 고른 적이 있는가**(avatarChosen)로 가린다. 값이 있는지가 아니라
+ *   사람이 골랐는지를 보는 것으로, sex 를 sexConfirmed 로 가리는 것과 같은 방식이다.
+ *   설정·온보딩의 아바타 빌더만 그 표시를 남긴다.
  */
-function fillProfileGaps(profile) {
+// 모델이 실제로 읽는 '그 인물의 사실' — 취향 설정이 아니라 신원이다.
+//
+// 이 값들은 '없으면 채운다' 로는 안 된다. 다른 인물을 체험하다 넘어오면 앞사람의
+// 값이 그대로 남아 있어서, 화면에는 지금 인물이 뜨는데 직종·근속은 앞사람 것이
+// 붙는다(실제로 '전문가·관련 종사자 · 근속 4년' 이 인물을 바꿔도 계속 따라다녔다).
+//
+// 페르소나가 정의한 값은 **덮어쓰고**, 정의하지 않은 값은 **지운다.**
+// 지우는 쪽이 중요하다 — 고용형태·회사규모는 어떤 인물도 정하지 않아서,
+// 비우지 않으면 앞사람 값이 영영 남는다. 빈 값은 백엔드가 전체 표본으로
+// 떨어뜨리므로(api.js 의 sex 주석과 같은 방식) 근거 없는 매칭보다 낫다.
+const PERSONA_FACTS = [
+  "age", "sex", "sexConfirmed", "major", "occupation", "occupation_group",
+  "income", "edu_level", "tenure_years", "employment_status", "firm_size",
+  "mbti", "value_ranking",
+];
+
+function syncPersonaProfile(profile) {
   try {
     const prev = JSON.parse(storage.getItem(PROFILE_KEY) || "{}");
     const next = { ...prev };
     let changed = false;
+
+    for (const key of PERSONA_FACTS) {
+      const value = Object.prototype.hasOwnProperty.call(profile, key) ? profile[key] : null;
+      // value_ranking 은 배열이라 === 로는 늘 다르게 나온다 — 값으로 견준다.
+      const same = typeof value === "object" || typeof prev[key] === "object"
+        ? JSON.stringify(prev[key] ?? null) === JSON.stringify(value ?? null)
+        : prev[key] === value;
+      if (!same) { next[key] = value; changed = true; }
+    }
+
+    // 나머지(아직 없는 값)는 채운다 — 나중에 프로필에 필드가 추가돼도 예전 슬롯이 따라온다.
     for (const [key, value] of Object.entries(profile)) {
       if (prev[key] === undefined) { next[key] = value; changed = true; }
     }
+
+    // 얼굴은 그 인물의 정체다. 시뮬레이션 결과 이미지까지 이 값을 쓰므로
+    // (ResultContext 의 avatarToPngBlob) 카드에서 본 얼굴과 어긋나면 안 된다.
+    if (!prev.avatarChosen && profile.avatarConfig
+        && JSON.stringify(prev.avatarConfig) !== JSON.stringify(profile.avatarConfig)) {
+      next.avatarConfig = profile.avatarConfig;
+      changed = true;
+    }
+
     if (changed) storage.setItem(PROFILE_KEY, JSON.stringify(next));
   } catch { /* 무시 */ }
 }
@@ -77,8 +119,8 @@ export async function enterPersona(id, opts = {}) {
     writeProfile(persona.profile);
   }
   // 이미 있던 슬롯이면 위를 건너뛰므로, 그 뒤에 프로필에 새로 생긴 값은 빠진 채로 남는다.
-  // 빈 자리만 메워서 예전에 만든 슬롯도 최신 프로필과 어긋나지 않게 한다.
-  fillProfileGaps(persona.profile);
+  // 예전에 만든 슬롯도 최신 프로필과 어긋나지 않게 맞춘다.
+  syncPersonaProfile(persona.profile);
 
   // 슬롯에 심은 결과를 곧바로 담아둔다 — 새로고침 전에 저장이 끝나 있어야 한다.
   saveActiveSlot(new Date().toISOString());

@@ -12,8 +12,21 @@ export const profile = {
   tenure_years: 5,
   mbti: "ENFJ",
   value_ranking: ["meaning", "friends", "family", "freedom", "growth", "status", "money", "stability"],
-  tagline: "회사원 겸 브랜드 운영 5년차 · 독립할지 겸업을 이어갈지",
+  // tenure_years(5)는 회사 근속이고 브랜드는 2년차다 — 둘을 섞어 "브랜드 운영 5년차"로
+  // 적었다가 기록(1분기 "브랜드 2년차")과 어긋났다.
+  tagline: "마케터 겸 브랜드 운영 2년차 · 독립할지 겸업을 이어갈지",
   choices: { a: "회사를 나와 내 브랜드를 창업한다", b: "현재 직장을 유지한다" },
+  // '조건 더 알려주기' 추천값(키 = scenarioIntake.DOMAIN_QUESTIONS 의 질문 key).
+  // 편집숍 입점 조건이 '전업' 이라 3월이 사실상의 기한이다.
+  conditionHints: {
+    // "회사를 나와 …창업한다" 는 '회사' 쪽이 먼저 걸려 career 로 잡힌다(business 아님).
+    // 그래서 career 질문(time_horizon·income_change)까지 채워둬야 빈칸이 안 생긴다.
+    a: {
+      runway: "6개월", startup_cost: "3,000만원",
+      time_horizon: "3월까지", income_change: "월 300만원 → 브랜드 수익만",
+    },
+    b: { time_horizon: "승진 제안 수락", income_change: "변화 없음" },
+  },
   // 카드 얼굴. 값은 avatarOptions.js 의 id 를 그대로 쓴다(없는 id 는 조용히 무시된다).
   avatarConfig: {
     face: "original", hairStyle: "bobShortParted", hairColor: "2c1b18", skinColor: "edb98a",

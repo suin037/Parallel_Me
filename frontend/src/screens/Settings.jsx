@@ -615,7 +615,9 @@ export default function Settings() {
             <div className="min-h-0 overflow-y-auto px-5 pb-6 sm:px-6">
               <AvatarBuilder
                 config={profile.avatarConfig}
-                onChange={(cfg) => setProfile((p) => ({ ...p, avatarConfig: cfg }))}
+                // avatarChosen — 사람이 직접 고른 얼굴이라는 표시. 이게 있으면 체험하기로
+                // 다시 들어와도 페르소나 얼굴이 덮어쓰지 않는다(personaSession 참고).
+                onChange={(cfg) => setProfile((p) => ({ ...p, avatarConfig: cfg, avatarChosen: true }))}
               />
             </div>
             <div className="shrink-0 border-t border-white/[.07] bg-[#0D1727] px-5 py-3 sm:px-6">

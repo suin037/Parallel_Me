@@ -38,7 +38,12 @@ function metricValue(side, kind, futureYears) {
   if (kind.startsWith("score:")) {
     const key = kind.slice(6);
     const raw = side.indicator_scores?.[key];
-    if (raw == null) return null;
+    // 잴 재료가 없던 지표는 값이 아니라 '측정 안 됨' 으로 돌려준다. 그냥 비우면
+    // 화면에서 "—" 가 되어, 못 잰 것과 값이 낮은 것이 같아 보인다.
+    if (raw == null) {
+      return (side.indicator_unmeasured || []).includes(key)
+        ? { unmeasured: true } : null;
+    }
     const value = Number(raw) * 100;
     return Number.isFinite(value) ? { value, unit: "점", percentile: true } : null;
   }
@@ -47,6 +52,7 @@ function metricValue(side, kind, futureYears) {
 
 function formatMetric(metric) {
   if (!metric) return "—";
+  if (metric.unmeasured) return "측정 안 됨";
   const rounded = Math.abs(metric.value) >= 100
     ? Math.round(metric.value)
     : Math.round(metric.value * 10) / 10;
@@ -55,6 +61,9 @@ function formatMetric(metric) {
 }
 
 function comparisonMeta(left, right) {
+  // 한쪽이라도 못 잰 지표면 격차를 계산하지 않는다 — 중립 자리채우기와 실측을
+  // 빼면 없는 차이가 생긴다.
+  if (left?.unmeasured || right?.unmeasured) return null;
   if (!left || !right || left.unit !== right.unit) return null;
   const delta = right.value - left.value;
   const precision = Math.max(Math.abs(delta), Math.abs(left.value), Math.abs(right.value)) >= 100 ? 0 : 1;
@@ -78,8 +87,13 @@ function comparisonMeta(left, right) {
 function withCausalBaseline(row, a, b) {
   if (row.key !== "effect" || (row.A && row.B) || (!row.A && !row.B)) return row;
   const emptySide = row.A ? "B" : "A";
-  const emptyKind = (emptySide === "A" ? a : b)?.kind;
-  if (emptyKind !== "유지") return row;
+  const emptyTarget = emptySide === "A" ? a : b;
+  // 학습 범위 밖(해외 이동 등)은 '0 기준선'이 아니라 **못 잰 것**이다.
+  // 린의 B('런던에 남아 현지 취업')가 분류기에서 '유지'로 잡히는 바람에 여기
+  // 조건을 통과해 "0만원 기준"으로 떴다 — 런던 취업의 인과효과가 0이라는 뜻으로
+  // 읽힌다. 비운 쪽을 다시 0으로 채우면 앞에서 비운 의미가 사라진다.
+  if (emptyTarget?.out_of_scope) return row;
+  if (emptyTarget?.kind !== "유지") return row;
   return {
     ...row,
     [emptySide]: { value: 0, unit: (row.A || row.B).unit, signed: true, baseline: true },
@@ -93,12 +107,30 @@ function barShape(a, b) {
   return divergingShape(a.value, b.value);
 }
 
+// survival_months 는 선택 유형마다 **무엇의 기간인지가 다르다**(backend/schemas.py):
+//   이직·유지 = 재직 / 창업 = 자영 유지 / 쉬어가기 = 일에서 떠나 있는 기간(복귀까지)
+// 라벨을 "예상 재직기간" 하나로 고정해두는 바람에, 쉬어가기에서는 **쉬는 기간**을
+// '재직기간' 이라고 말하고 있었다. 일하지 않는 기간을 재직이라 부르는 셈이다.
+const TENURE_LABEL = {
+  이직: "예상 재직기간",
+  유지: "예상 재직기간",
+  창업: "예상 자영 유지기간",
+  휴식: "복귀까지 걸리는 기간",
+};
+
+function tenureLabel(a, b) {
+  // 한쪽에만 붙는 값이라(유지는 처치가 아니라 기준선이라 L4 가 없다) 값이 있는 쪽의
+  // 유형으로 라벨을 정한다.
+  const side = a?.survival_months != null ? a : b?.survival_months != null ? b : null;
+  return TENURE_LABEL[side?.kind] || "예상 지속기간";
+}
+
 export default function ResultQuickStats({ a, b, futureYears = 3 }) {
   const rows = [
     { key: "income", label: "월소득 중앙값" },
     { key: "wellbeing", label: "삶의 만족" },
     { key: "effect", label: "선택에 따른 변화 효과" },
-    { key: "tenure", label: "예상 재직기간" },
+    { key: "tenure", label: tenureLabel(a, b) },
     { key: "score:경제적안정도", label: "경제적 안정도" },
     { key: "score:성장가능성", label: "성장 가능성" },
     { key: "score:삶의질", label: "삶의 질" },
@@ -113,6 +145,15 @@ export default function ResultQuickStats({ a, b, futureYears = 3 }) {
   const oneSidedRows = rows.filter((row) => !row.A || !row.B);
 
   if (!rows.length) return null;
+
+  // 해외 선택 중 소득만 '입력값'으로 살아난 쪽(린의 런던 오퍼가 그렇다).
+  const abroadInput = ["A", "B"]
+    .map((side) => {
+      const target = side === "A" ? a : b;
+      return target?.out_of_scope?.income_from_input
+        ? { side, label: labelOf(target.choice) } : null;
+    })
+    .find(Boolean);
 
   return (
     <section className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0B1220]/85" aria-labelledby="quick-stats-title">
@@ -130,6 +171,20 @@ export default function ResultQuickStats({ a, b, futureYears = 3 }) {
       {comparableRows.length > 0 && <div className="divide-y divide-white/[.07]">
         {comparableRows.map((row) => <StatRow key={row.key} row={row} futureYears={futureYears} />)}
       </div>}
+      {/* 오해가 생기는 자리는 아래 해설 카드가 아니라 **막대 바로 밑**이다.
+          해외 오퍼를 세전 환산으로 넣으면 막대가 국내 쪽을 크게 앞지르는데,
+          런던 월세·세율이 빠져 있어 실수령은 뒤집힐 수 있다. 큰 막대를
+          작은 회색 글씨로 이길 수 없으므로 여기서 한 번 더 말한다. */}
+      {abroadInput && (
+        <div className="border-t border-[#F5C86B]/25 bg-[#F5C86B]/[.07] px-4 py-2.5">
+          <p className="text-[9.5px] leading-4 text-[#F5C86B]">
+            <b className="font-bold">{abroadInput.side} {abroadInput.label}</b>의 소득은
+            {" "}<b className="font-bold">해외 오퍼를 세전 환율로 환산한 값</b>입니다 —
+            {" "}현지 <b className="font-bold">월세·세금이 빠져 있어</b> 실제 손에 쥐는 돈은
+            {" "}이 막대보다 훨씬 적을 수 있습니다. 두 막대를 그대로 비교하지 마세요.
+          </p>
+        </div>
+      )}
       {oneSidedRows.length > 0 && (
         <div className="border-t border-white/[.07] px-4 py-3.5">
           <div className="mb-2.5">

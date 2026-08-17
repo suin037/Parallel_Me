@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import Constellation from "./Constellation.jsx";
+import Constellation, { MoodLegend } from "./Constellation.jsx";
 import JyConstellationArchive from "./JyConstellationArchive.jsx";
 import { constellationGroups, loadUniverse, todayKey } from "../data/myUniverse.js";
 import { zodiacOf } from "../data/zodiac.js";
 import { classifyConstellation, badgeLabel, HONESTY_NOTE } from "../data/constellationRules.js";
 import { useResult } from "../data/ResultContext.jsx";
+import { MOOD_COLORS } from "../data/moodColors.js";
 
 export default function HomeCalendar() {
   // 가치 순위로 별자리 주제(성장/안정/관계…)를 정한다 — 이름의 뒷말이 된다.
@@ -102,7 +103,7 @@ export default function HomeCalendar() {
           </button>;
         })}
       </div>}
-      {week&&<div className="mt-3 rounded-[18px] border border-white/[.07] bg-black/15 p-4"><div className="flex items-center justify-between"><div><p className="text-[9px] text-[#A88BE8]">WEEK CONSTELLATION</p><b className="text-[12px]">{badgeLabel(classifyConstellation(week, profile?.value_ranking))}</b><p className="mt-0.5 text-[10px] text-sub">{classifyConstellation(week, profile?.value_ranking).caption}</p></div><button onClick={()=>setReport(week)} className="tap rounded-full bg-[#8B6CCF] px-3 py-1.5 text-[10px] font-bold">주간 리포트</button></div><div className="mx-auto mt-2 max-w-[330px]"><Constellation size={230} stars={week.stars} todayDate={todayKey()} selectedDate={star?.date} onSelect={setStar}/></div>{star&&<div className="mt-3 rounded-xl bg-white/[.035] p-3"><div className="flex justify-between text-[10px]"><b>{star.date}</b><span className="text-[#BBA4ED]">기분 {star.mood || "-"}/5</span></div><p className="mt-2 text-[11px] leading-relaxed text-sub">{star.text||star.note||"간단한 체크인만 남긴 날입니다."}</p></div>}</div>}
+      {week&&<div className="mt-3 rounded-[18px] border border-white/[.07] bg-black/15 p-4"><div className="flex items-center justify-between"><div><p className="text-[9px] text-[#A88BE8]">WEEK CONSTELLATION</p><b className="text-[12px]">{badgeLabel(classifyConstellation(week, profile?.value_ranking))}</b><p className="mt-0.5 text-[10px] text-sub">{classifyConstellation(week, profile?.value_ranking).caption}</p></div><button onClick={()=>setReport(week)} className="tap rounded-full bg-[#8B6CCF] px-3 py-1.5 text-[10px] font-bold">주간 리포트</button></div><div className="mx-auto mt-2 max-w-[330px]"><Constellation size={230} stars={week.stars} todayDate={todayKey()} selectedDate={star?.date} onSelect={setStar}/><MoodLegend className="mt-1.5 justify-center"/></div>{star&&<div className="mt-3 rounded-xl bg-white/[.035] p-3"><div className="flex justify-between text-[10px]"><b>{star.date}</b><span className="text-[#BBA4ED]">기분 {star.mood || "-"}/5</span></div><p className="mt-2 text-[11px] leading-relaxed text-sub">{star.text||star.note||"간단한 체크인만 남긴 날입니다."}</p></div>}</div>}
     </>}
     {report&&<WeeklyReport group={report} onClose={()=>setReport(null)}/>} 
   </section>;
@@ -113,7 +114,7 @@ function MonthCluster({item,onClick}) {
   return <button disabled={!item.count} onClick={onClick} className="tap w-full text-center disabled:opacity-25"><svg viewBox="0 0 100 72" className="h-[58px] w-full overflow-visible">{Array.from({length:dots},(_,i)=>{const angle=i*2.399;const radius=7+Math.sqrt(i)*7;const x=50+Math.cos(angle)*radius,y=36+Math.sin(angle)*radius*.68;const warm=item.avg!=null&&item.avg<3;return <g key={i}><circle cx={x} cy={y} r={8} fill={warm?"#D7774F":"#62CDBC"} opacity=".09"/><circle cx={x} cy={y} r={item.count>15?3.8:3} fill={warm?"#F0A45E":"#A6E2D8"} opacity={.68+(i/dots)*.28}/></g>;})}</svg><div className="-mt-1 text-[10px] font-semibold text-sub">{item.index}월 <span className="text-[8px] text-mut">{item.count}일</span></div></button>;
 }
 
-const MOOD_COL=["#E24B4A","#D85A30","#EDA100","#5DCAA5","#378ADD"];
+const MOOD_COL=MOOD_COLORS;   // 별자리와 같은 램프 — data/moodColors.js
 const DAY_KO=["월","화","수","목","금","토","일"];
 
 // 주간 리포트 — 숫자 나열 대신 '그 주가 어떻게 흘렀는지'가 한눈에 보이게.

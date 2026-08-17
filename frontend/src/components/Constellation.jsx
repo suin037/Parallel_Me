@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { seedFrom, starShapeFor } from "../data/starShapes.js";
+import { MOOD_ALPHA, MOOD_COLORS, MOOD_EMPTY, MOOD_GLOW, MOOD_LABELS, MOOD_RULE_LINE, moodLevel } from "../data/moodColors.js";
 
 // 별자리 = 디자인 뼈대(starShapes) 위에 기록 별을 하나씩 앉힌 것.
 // 기분은 별의 색·크기로 읽고, 자리는 모양이 정한다 — 3D 우주에 뜬 그 별자리와 같은 모양이
@@ -9,15 +10,11 @@ import { seedFrom, starShapeFor } from "../data/starShapes.js";
 
 const W = 200, H = 200, CX = 100, CY = 100;
 const R = 74;   // 뼈대(-1~1) → 화면 반지름
-const COL = ["#E24B4A", "#D85A30", "#EDA100", "#5DCAA5", "#8B6CCF"]; // 기분 1~5 색
-const MOOD_LABEL = ["매우 낮음", "낮음", "보통", "좋음", "매우 좋음"];
-
-// valence(-1~1) 또는 mood(1~5) → 기분레벨 1~5
-function level(s) {
-  if (s.mood != null) return Math.max(1, Math.min(5, Math.round(s.mood)));
-  if (s.valence != null) return Math.max(1, Math.min(5, Math.round(s.valence * 2 + 3)));
-  return 3;
-}
+// 색·레벨 규칙은 data/moodColors.js 한 곳에 있다(밝기가 1→5 로 오르는 램프).
+// 여기서 다시 정의하면 홈 캘린더·기록 아카이브와 또 갈라진다.
+const COL = MOOD_COLORS;
+const MOOD_LABEL = MOOD_LABELS;
+const level = moodLevel;
 export const starColor = (s) => COL[level(s) - 1];
 
 function shortNote(star) {
@@ -81,10 +78,14 @@ export default function Constellation({ stars = [], onSelect, selectedDate = nul
         const isSel = selectedDate && p.date === selectedDate;
         const isToday = todayDate && p.date === todayDate;
         if (!p.filled) {
-          return <circle key={i} cx={p.x} cy={p.y} r={1.25} fill="#5F6B82" opacity={0.28} />;
+          return <circle key={i} cx={p.x} cy={p.y} r={1.25} fill={MOOD_EMPTY} opacity={0.28} />;
         }
-        const r = 2.8 + (p.lvl / 5) * 1.7;
+        // 밝기 차이가 한눈에 들어와야 한다 — 색·크기·헤일로를 같은 레벨로 함께 키운다.
+        // (전에는 크기 폭이 3.1~4.5 라 사실상 같은 크기였고, 헤일로는 레벨과 무관하게 고정이었다.)
+        const r = 2.1 + (p.lvl - 1) * 0.68;
         const col = COL[p.lvl - 1];
+        const alpha = MOOD_ALPHA[p.lvl - 1];
+        const glow = MOOD_GLOW[p.lvl - 1];
         const starPath = `M ${p.x} ${p.y-r} L ${p.x+r*.28} ${p.y-r*.28} L ${p.x+r} ${p.y} L ${p.x+r*.28} ${p.y+r*.28} L ${p.x} ${p.y+r} L ${p.x-r*.28} ${p.y+r*.28} L ${p.x-r} ${p.y} L ${p.x-r*.28} ${p.y-r*.28} Z`;
         return (
           <g
@@ -105,8 +106,8 @@ export default function Constellation({ stars = [], onSelect, selectedDate = nul
             }}
             style={{ cursor: onSelect ? "pointer" : "default", outline: "none" }}
           >
-            <circle cx={p.x} cy={p.y} r={r + (isSel ? 6 : 2.5)} fill={col} opacity={isSel ? 0.25 : 0.09} />
-            <path d={starPath} fill={col} stroke="#FFFFFF" strokeOpacity={isToday ? 0.9 : 0.28} strokeWidth={isToday ? 0.9 : 0.35} />
+            <circle cx={p.x} cy={p.y} r={r + (isSel ? 6 : 2.2 + p.lvl * 0.5)} fill={col} opacity={isSel ? 0.3 : glow} />
+            <path d={starPath} fill={col} fillOpacity={alpha} stroke="#FFFFFF" strokeOpacity={isToday ? 0.9 : 0.22} strokeWidth={isToday ? 0.9 : 0.3} />
             {/* 별이 작아서 탭 영역 별도 */}
             <circle cx={p.x} cy={p.y} r={13} fill="transparent" />
           </g>
@@ -148,6 +149,31 @@ export default function Constellation({ stars = [], onSelect, selectedDate = nul
         <p className="mt-1 line-clamp-2 text-[10px] leading-[1.45] text-sub">{shortNote(hovered)}</p>
       </div>
     )}
+    </div>
+  );
+}
+
+/**
+ * 별빛 범례 — 색 규칙을 사용자에게 한 번은 말해 준다.
+ *
+ * 규칙을 정해 놓고 화면 어디에도 안 적으면 사용자 입장에선 그냥 알록달록한 점이다.
+ * 다섯 점을 실제 램프 순서대로 놓고(밝기가 오르는 게 눈에 보인다) 한 줄로 설명한다.
+ * 문구는 moodColors.MOOD_RULE_LINE 하나를 공유한다 — 화면마다 다르게 적으면 규칙이 아니게 된다.
+ */
+export function MoodLegend({ className = "" }) {
+  return (
+    <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 ${className}`}>
+      <span className="flex items-center gap-[3px]" aria-hidden="true">
+        {COL.map((c, i) => (
+          // 별자리와 같은 규칙 — 좋은 날일수록 밝고 커진다(색·투명도·크기 셋 다).
+          <span
+            key={c}
+            className="block rounded-full"
+            style={{ background: c, opacity: MOOD_ALPHA[i], width: 3.5 + i * 1.4, height: 3.5 + i * 1.4 }}
+          />
+        ))}
+      </span>
+      <span className="text-[9px] leading-[1.5] text-mut">{MOOD_RULE_LINE}</span>
     </div>
   );
 }

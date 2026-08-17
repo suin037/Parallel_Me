@@ -869,16 +869,22 @@ def job_extract_url(req: JobExtractReq):
         title = m.group(1) if m else ""
 
     text = "\n".join(parts).strip()
+    source = "jobposting" if text else "page"   # 구조화 정보(JobPosting)에서 나온 글인가
     if len(text) < 200:      # JS 렌더링이라 본문을 못 건진 경우 — 페이지 텍스트로 보완
         page = _strip_html(html)
         if len(page) > len(text):
             text = page[:6000]
+            source = "page"
     head = " ".join(x for x in (company, title) if x)
     full = (head + "\n" + text).strip()
     # 본문이 얇으면(내비게이션만 긁힌 경우) 사용자에게 붙여넣기를 권한다.
     thin = len(text) < 300
+    # source 를 함께 준다 — 이게 없으면 호출측이 '공고를 읽었다'와 '페이지 글자를 긁었다'를
+    # 구분할 수 없다. 채용 포털 첫 화면(예: samsungcareers.com/hr/)을 넣으면 메뉴·안내문이
+    # 1,800자쯤 긁혀 thin 도 아니라서, 화면이 "잘 불러왔어요"라고 말하고는 그 메뉴를
+    # 분석에 넘긴다. 실제로 그렇게 엉뚱한 분석이 나온 제보가 있었다.
     return {"ok": True, "title": title, "company": company, "text": full[:6000],
-            "thin": thin, "chars": len(full)}
+            "thin": thin, "source": source, "chars": len(full)}
 
 
 @app.post("/job/extract-pdf")
