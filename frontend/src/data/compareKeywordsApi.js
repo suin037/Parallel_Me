@@ -8,6 +8,7 @@
 import { loadUniverse, hasRecord } from "./myUniverse.js";
 import { API_BASE } from "./apiBase.js";
 import storage from "./safeStorage.js";
+import { maskRecords } from "./outbound.js";
 
 // 하루에 한 번만 부른다. 다만 그날 일기를 새로 쓰면 키워드도 따라 바뀌어야 하므로
 // 기록 수까지 캐시 키에 넣는다 — 날짜만 보면 오늘 쓴 일기가 내일까지 반영이 안 된다.
@@ -27,12 +28,15 @@ function textOf(c) {
 
 /** 서버로 보낼 재료. 최근 것부터 MAX_RECORDS 개까지. */
 export function keywordMaterials(s = loadUniverse()) {
-  return (s.checkins || [])
-    .filter((c) => hasRecord(c))
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, MAX_RECORDS)
-    .map((c) => ({ date: c.date, text: textOf(c) }))
-    .filter((r) => r.text);
+  // 명사만 뽑아 오는 요청이지만 본문을 통째로 보낸다 — 이름·연락처는 가리고 나간다.
+  return maskRecords(
+    (s.checkins || [])
+      .filter((c) => hasRecord(c))
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, MAX_RECORDS)
+      .map((c) => ({ date: c.date, text: textOf(c) }))
+      .filter((r) => r.text),
+  );
 }
 
 export function getCachedKeywords(n) {

@@ -5,6 +5,7 @@ import { occupationGroupLabel } from "./data/occupationGroups.js";
 // ─────────────────────────────────────────────────────────────
 
 import { buildDisposition } from "./data/psychQuestions.js";
+import { maskAnswers, maskFunctional, maskText } from "./data/outbound.js";
 
 // 기본은 Vite의 same-origin /api 프록시. 외부 임시 터널에서도 프론트 URL
 // 하나만 열면 되며, 배포 API가 따로 있을 때만 VITE_API_BASE로 덮어쓴다.
@@ -170,19 +171,23 @@ function buildSimulateBody({ profile, choiceA, choiceB, choiceADetail, choiceBDe
       // 백엔드가 qmode.value_ranking.axis_weights 로 가중치 변환 → 강조·초점·서사 개인화.
       ...(profile.value_ranking?.length ? { value_ranking: profile.value_ranking } : {}),
     },
-    choice_a: choiceA,
-    choice_b: choiceB,
+    // 두 갈림길 문장도 사용자가 직접 쓴 자유서술이다. 다만 여기 적힌 금액·회사명은
+    // 분류·계산에 쓰이므로(choice_classifier, scenarioIntake) 기능 입력 정책으로 가린다.
+    choice_a: maskFunctional(choiceA),
+    choice_b: maskFunctional(choiceB),
     future_years: futureYears,
   };
   if (profile.value_ranking?.length) body.value_ranking = profile.value_ranking;
-  if (choiceADetail?.trim()) body.choice_a_detail = choiceADetail.trim();
-  if (choiceBDetail?.trim()) body.choice_b_detail = choiceBDetail.trim();
+  // 상세·조건은 금액이 계산에 쓰이므로(origin 의 '사용자가 적은 조건을 수치에 반영') 금액은
+  // 남기고 이름·연락처만 가린다. 반대로 diary 는 순수 자유서술이라 전부 가린다.
+  if (choiceADetail?.trim()) body.choice_a_detail = maskFunctional(choiceADetail.trim());
+  if (choiceBDetail?.trim()) body.choice_b_detail = maskFunctional(choiceBDetail.trim());
   // 새 삶의 영역 계약용 필드. 현재 백엔드는 extra 필드를 무시하므로 기존 API와 호환된다.
   if (choiceADomains?.length) body.choice_a_domains = choiceADomains;
   if (choiceBDomains?.length) body.choice_b_domains = choiceBDomains;
-  if (choiceAContext && Object.keys(choiceAContext).length) body.choice_a_context = choiceAContext;
-  if (choiceBContext && Object.keys(choiceBContext).length) body.choice_b_context = choiceBContext;
-  if (diary) body.diary = diary;
+  if (choiceAContext && Object.keys(choiceAContext).length) body.choice_a_context = maskAnswers(choiceAContext);
+  if (choiceBContext && Object.keys(choiceBContext).length) body.choice_b_context = maskAnswers(choiceBContext);
+  if (diary) body.diary = maskText(diary);
 
   // 심리 성향 서술(MBTI + 서술형 답변) → disposition_block + 답변 수(확신도).
   // 백엔드가 서사 프롬프트에 주입 → 개인화 심화.
@@ -235,8 +240,8 @@ export async function classifyChoicePair({ choiceA, choiceB, domainsA = [], doma
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      choice_a: choiceA,
-      choice_b: choiceB,
+      choice_a: maskFunctional(choiceA),
+      choice_b: maskFunctional(choiceB),
       choice_a_domain_hints: domainsA,
       choice_b_domain_hints: domainsB,
     }),

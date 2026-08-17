@@ -6,6 +6,7 @@ import { doneExpeditions } from "./expeditions.js";
 import { domainAnalysis } from "./diarySignals.js";
 import { localPersonaBlock } from "./jobAnalysis.js";
 import { API_BASE } from "./apiBase.js";
+import { maskRecords } from "./outbound.js";
 import storage from "./safeStorage.js";
 
 const BASE = API_BASE;
@@ -37,14 +38,17 @@ function domainRecordsAll(planetKey, s) {
 }
 
 function domainRecords(planetKey, s) {
-  return domainRecordsAll(planetKey, s)
-    .slice(0, 24)
-    .map((c) => ({
-      date: c.date,
-      text: (c.text || c.note || "").slice(0, 200),
-      mood: c.mood ?? null,
-      emotion: c.keyword || "",
-    }));
+  // 여기서 나가는 text 는 사용자가 쓴 일기 본문 그대로다 — 외부 AI 로 보내기 전에 가린다.
+  return maskRecords(
+    domainRecordsAll(planetKey, s)
+      .slice(0, 24)
+      .map((c) => ({
+        date: c.date,
+        text: (c.text || c.note || "").slice(0, 200),
+        mood: c.mood ?? null,
+        emotion: c.keyword || "",
+      })),
+  );
 }
 
 // 그 영역에서 돌린 시뮬레이션 + 회고. 보관함에 저장된 우주만 회고를 가진다.
@@ -75,17 +79,25 @@ function domainSims(planetKey) {
     }));
 }
 
+// 위 세 묶음(일기·시뮬 회고·탐험 기록)은 전부 사용자가 쓴 문장이다.
+// domainRecords 만 가리고 sims·trips 를 그냥 보내면 회고·탐험 노트로 그대로 새어 나간다.
+function maskedSims(planetKey) {
+  return maskRecords(domainSims(planetKey));
+}
+
 // 이 행성으로 이야기를 쓸 재료가 있는지 — 버튼을 띄울지 판단용.
 export function futureMaterials(planetKey, s = loadUniverse()) {
   const records = domainRecords(planetKey, s);
-  const sims = domainSims(planetKey);
+  const sims = maskedSims(planetKey);
   // 다녀온 탐험 — 상상이 아니라 실제로 겪고 온 것이라 회고와 같은 무게로 센다.
-  const trips = doneExpeditions(planetKey)
-    .filter((e) => (e.note || "").trim())
-    .map((e) => ({
-      title: e.title, step: e.step || "", note: e.note,
-      startedAt: e.startedAt, doneAt: e.doneAt,
-    }));
+  const trips = maskRecords(
+    doneExpeditions(planetKey)
+      .filter((e) => (e.note || "").trim())
+      .map((e) => ({
+        title: e.title, step: e.step || "", note: e.note,
+        startedAt: e.startedAt, doneAt: e.doneAt,
+      })),
+  );
   // total 은 상한 없는 실제 기록 수 — 24개를 넘겨도 "새 기록이 늘었다"를 알아채야 한다.
   const total = domainRecordsAll(planetKey, s).length;
   return {
