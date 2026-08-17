@@ -87,8 +87,13 @@ function comparisonMeta(left, right) {
 function withCausalBaseline(row, a, b) {
   if (row.key !== "effect" || (row.A && row.B) || (!row.A && !row.B)) return row;
   const emptySide = row.A ? "B" : "A";
-  const emptyKind = (emptySide === "A" ? a : b)?.kind;
-  if (emptyKind !== "유지") return row;
+  const emptyTarget = emptySide === "A" ? a : b;
+  // 학습 범위 밖(해외 이동 등)은 '0 기준선'이 아니라 **못 잰 것**이다.
+  // 린의 B('런던에 남아 현지 취업')가 분류기에서 '유지'로 잡히는 바람에 여기
+  // 조건을 통과해 "0만원 기준"으로 떴다 — 런던 취업의 인과효과가 0이라는 뜻으로
+  // 읽힌다. 비운 쪽을 다시 0으로 채우면 앞에서 비운 의미가 사라진다.
+  if (emptyTarget?.out_of_scope) return row;
+  if (emptyTarget?.kind !== "유지") return row;
   return {
     ...row,
     [emptySide]: { value: 0, unit: (row.A || row.B).unit, signed: true, baseline: true },
