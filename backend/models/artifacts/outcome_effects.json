@@ -1,5 +1,5 @@
 {
-  "built_at": "2026-08-15T06:35:06.231624+00:00",
+  "built_at": "2026-08-16T21:46:33.351394+00:00",
   "source": "KLIPS 12-27차",
   "horizon": 1,
   "age_band": [
@@ -49,6 +49,27 @@
       "scale": "likert5",
       "higher_is_better": true,
       "note": "전체 응답자"
+    },
+    "가족관계만족": {
+      "label": "가족관계 만족",
+      "unit": "점(1~5)",
+      "scale": "likert5",
+      "higher_is_better": true,
+      "note": "전체 응답자"
+    },
+    "친인척관계만족": {
+      "label": "친인척관계 만족",
+      "unit": "점(1~5)",
+      "scale": "likert5",
+      "higher_is_better": true,
+      "note": "전체 응답자"
+    },
+    "사회관계만족": {
+      "label": "사회적 친분관계 만족",
+      "unit": "점(1~5)",
+      "scale": "likert5",
+      "higher_is_better": true,
+      "note": "전체 응답자. 가족 밖 관계를 재는 유일한 축"
     }
   },
   "outcome_caveats": {
@@ -204,6 +225,141 @@
             "naive_diff": 0.0059,
             "n": 59398,
             "n_treated": 5666,
+            "w_cols": [
+              "income_now",
+              "tenure",
+              "occ",
+              "firm_size"
+            ]
+          },
+          "baseline_controlled": true,
+          "caveats": [
+            "자기보고 5점 척도다. (1) 응답 기준 자체가 이동한다 — 이직 직후엔 같은 처지를 더 후하게 평가하는 쪽으로 기울 수 있다(response shift). (2) 등간 척도가 아니므로 '2→3' 과 '4→5' 를 같은 크기로 읽으면 안 된다. 점 단위보다 `ate_sd`(대조군 표준편차 대비)로 읽을 것. (3) 소득과 달리 상한(5점)이 있어 이미 만족도가 높은 층에서는 효과가 눌린다(천장효과)."
+          ]
+        },
+        "가족관계만족": {
+          "ate": -0.0088,
+          "ci": [
+            -0.0237,
+            0.0062
+          ],
+          "significant": false,
+          "ate_sd": -0.0161,
+          "control_sd": 0.5449,
+          "control_mean": 3.7468,
+          "naive_diff": -0.0837,
+          "n": 59204,
+          "n_treated": 5642,
+          "w_cols": [
+            "income_now",
+            "tenure",
+            "occ",
+            "firm_size",
+            "outcome_now"
+          ],
+          "without_baseline_control": {
+            "ate": -0.0203,
+            "ci": [
+              -0.0359,
+              -0.0046
+            ],
+            "significant": true,
+            "ate_sd": -0.0372,
+            "control_sd": 0.5448,
+            "control_mean": 3.7467,
+            "naive_diff": -0.0835,
+            "n": 59300,
+            "n_treated": 5653,
+            "w_cols": [
+              "income_now",
+              "tenure",
+              "occ",
+              "firm_size"
+            ]
+          },
+          "baseline_controlled": true,
+          "caveats": [
+            "자기보고 5점 척도다. (1) 응답 기준 자체가 이동한다 — 이직 직후엔 같은 처지를 더 후하게 평가하는 쪽으로 기울 수 있다(response shift). (2) 등간 척도가 아니므로 '2→3' 과 '4→5' 를 같은 크기로 읽으면 안 된다. 점 단위보다 `ate_sd`(대조군 표준편차 대비)로 읽을 것. (3) 소득과 달리 상한(5점)이 있어 이미 만족도가 높은 층에서는 효과가 눌린다(천장효과)."
+          ]
+        },
+        "친인척관계만족": {
+          "ate": -0.005,
+          "ci": [
+            -0.0203,
+            0.0104
+          ],
+          "significant": false,
+          "ate_sd": -0.0088,
+          "control_sd": 0.5641,
+          "control_mean": 3.5555,
+          "naive_diff": -0.084,
+          "n": 59205,
+          "n_treated": 5642,
+          "w_cols": [
+            "income_now",
+            "tenure",
+            "occ",
+            "firm_size",
+            "outcome_now"
+          ],
+          "without_baseline_control": {
+            "ate": -0.0184,
+            "ci": [
+              -0.0346,
+              -0.0023
+            ],
+            "significant": true,
+            "ate_sd": -0.0327,
+            "control_sd": 0.5641,
+            "control_mean": 3.5554,
+            "naive_diff": -0.0838,
+            "n": 59301,
+            "n_treated": 5653,
+            "w_cols": [
+              "income_now",
+              "tenure",
+              "occ",
+              "firm_size"
+            ]
+          },
+          "baseline_controlled": true,
+          "caveats": [
+            "자기보고 5점 척도다. (1) 응답 기준 자체가 이동한다 — 이직 직후엔 같은 처지를 더 후하게 평가하는 쪽으로 기울 수 있다(response shift). (2) 등간 척도가 아니므로 '2→3' 과 '4→5' 를 같은 크기로 읽으면 안 된다. 점 단위보다 `ate_sd`(대조군 표준편차 대비)로 읽을 것. (3) 소득과 달리 상한(5점)이 있어 이미 만족도가 높은 층에서는 효과가 눌린다(천장효과)."
+          ]
+        },
+        "사회관계만족": {
+          "ate": 0.0105,
+          "ci": [
+            -0.0044,
+            0.0255
+          ],
+          "significant": false,
+          "ate_sd": 0.0191,
+          "control_sd": 0.5523,
+          "control_mean": 3.5538,
+          "naive_diff": -0.0559,
+          "n": 59204,
+          "n_treated": 5642,
+          "w_cols": [
+            "income_now",
+            "tenure",
+            "occ",
+            "firm_size",
+            "outcome_now"
+          ],
+          "without_baseline_control": {
+            "ate": 0.0061,
+            "ci": [
+              -0.0095,
+              0.0217
+            ],
+            "significant": false,
+            "ate_sd": 0.011,
+            "control_sd": 0.5522,
+            "control_mean": 3.5538,
+            "naive_diff": -0.056,
+            "n": 59301,
+            "n_treated": 5653,
             "w_cols": [
               "income_now",
               "tenure",
@@ -382,6 +538,144 @@
             "결과변수가 임금근로자는 '월평균임금'(p{w}1642), 자영은 '월평균 사업소득'(p{w}1672)로 **서로 다른 개념**이다(사업소득은 사업 관련 비용·변동성이 다르게 반영됨). 따라서 이 효과는 '창업하면 소득이 이만큼 오른다'가 아니라 '창업으로 전환한 사람의 신고 소득이 임금 대비 이만큼 높게 관측된다'로 읽어야 한다. 또한 폐업해 소득이 끊긴 사람은 결과 관측에서 빠져 생존편의가 남는다 (→ L4 자영 이탈확률과 반드시 함께 볼 것).",
             "자기보고 5점 척도다. (1) 응답 기준 자체가 이동한다 — 이직 직후엔 같은 처지를 더 후하게 평가하는 쪽으로 기울 수 있다(response shift). (2) 등간 척도가 아니므로 '2→3' 과 '4→5' 를 같은 크기로 읽으면 안 된다. 점 단위보다 `ate_sd`(대조군 표준편차 대비)로 읽을 것. (3) 소득과 달리 상한(5점)이 있어 이미 만족도가 높은 층에서는 효과가 눌린다(천장효과)."
           ]
+        },
+        "가족관계만족": {
+          "ate": -0.004,
+          "ci": [
+            -0.0437,
+            0.0357
+          ],
+          "significant": false,
+          "ate_sd": -0.0073,
+          "control_sd": 0.5416,
+          "control_mean": 3.7473,
+          "naive_diff": -0.0613,
+          "n": 47729,
+          "n_treated": 758,
+          "w_cols": [
+            "income_now",
+            "tenure",
+            "occ",
+            "firm_size",
+            "outcome_now"
+          ],
+          "without_baseline_control": {
+            "ate": 0.002,
+            "ci": [
+              -0.04,
+              0.044
+            ],
+            "significant": false,
+            "ate_sd": 0.0037,
+            "control_sd": 0.5415,
+            "control_mean": 3.7475,
+            "naive_diff": -0.0623,
+            "n": 47801,
+            "n_treated": 759,
+            "w_cols": [
+              "income_now",
+              "tenure",
+              "occ",
+              "firm_size"
+            ]
+          },
+          "baseline_controlled": true,
+          "caveats": [
+            "결과변수가 임금근로자는 '월평균임금'(p{w}1642), 자영은 '월평균 사업소득'(p{w}1672)로 **서로 다른 개념**이다(사업소득은 사업 관련 비용·변동성이 다르게 반영됨). 따라서 이 효과는 '창업하면 소득이 이만큼 오른다'가 아니라 '창업으로 전환한 사람의 신고 소득이 임금 대비 이만큼 높게 관측된다'로 읽어야 한다. 또한 폐업해 소득이 끊긴 사람은 결과 관측에서 빠져 생존편의가 남는다 (→ L4 자영 이탈확률과 반드시 함께 볼 것).",
+            "자기보고 5점 척도다. (1) 응답 기준 자체가 이동한다 — 이직 직후엔 같은 처지를 더 후하게 평가하는 쪽으로 기울 수 있다(response shift). (2) 등간 척도가 아니므로 '2→3' 과 '4→5' 를 같은 크기로 읽으면 안 된다. 점 단위보다 `ate_sd`(대조군 표준편차 대비)로 읽을 것. (3) 소득과 달리 상한(5점)이 있어 이미 만족도가 높은 층에서는 효과가 눌린다(천장효과)."
+          ]
+        },
+        "친인척관계만족": {
+          "ate": 0.0408,
+          "ci": [
+            0.0014,
+            0.0802
+          ],
+          "significant": true,
+          "ate_sd": 0.0726,
+          "control_sd": 0.5621,
+          "control_mean": 3.5531,
+          "naive_diff": -0.0227,
+          "n": 47728,
+          "n_treated": 758,
+          "w_cols": [
+            "income_now",
+            "tenure",
+            "occ",
+            "firm_size",
+            "outcome_now"
+          ],
+          "without_baseline_control": {
+            "ate": 0.0456,
+            "ci": [
+              0.0037,
+              0.0875
+            ],
+            "significant": true,
+            "ate_sd": 0.0811,
+            "control_sd": 0.562,
+            "control_mean": 3.5532,
+            "naive_diff": -0.0235,
+            "n": 47801,
+            "n_treated": 759,
+            "w_cols": [
+              "income_now",
+              "tenure",
+              "occ",
+              "firm_size"
+            ]
+          },
+          "baseline_controlled": true,
+          "caveats": [
+            "결과변수가 임금근로자는 '월평균임금'(p{w}1642), 자영은 '월평균 사업소득'(p{w}1672)로 **서로 다른 개념**이다(사업소득은 사업 관련 비용·변동성이 다르게 반영됨). 따라서 이 효과는 '창업하면 소득이 이만큼 오른다'가 아니라 '창업으로 전환한 사람의 신고 소득이 임금 대비 이만큼 높게 관측된다'로 읽어야 한다. 또한 폐업해 소득이 끊긴 사람은 결과 관측에서 빠져 생존편의가 남는다 (→ L4 자영 이탈확률과 반드시 함께 볼 것).",
+            "자기보고 5점 척도다. (1) 응답 기준 자체가 이동한다 — 이직 직후엔 같은 처지를 더 후하게 평가하는 쪽으로 기울 수 있다(response shift). (2) 등간 척도가 아니므로 '2→3' 과 '4→5' 를 같은 크기로 읽으면 안 된다. 점 단위보다 `ate_sd`(대조군 표준편차 대비)로 읽을 것. (3) 소득과 달리 상한(5점)이 있어 이미 만족도가 높은 층에서는 효과가 눌린다(천장효과)."
+          ]
+        },
+        "사회관계만족": {
+          "ate": 0.0335,
+          "ci": [
+            -0.0051,
+            0.072
+          ],
+          "significant": false,
+          "ate_sd": 0.061,
+          "control_sd": 0.5489,
+          "control_mean": 3.5532,
+          "naive_diff": -0.0176,
+          "n": 47729,
+          "n_treated": 758,
+          "w_cols": [
+            "income_now",
+            "tenure",
+            "occ",
+            "firm_size",
+            "outcome_now"
+          ],
+          "without_baseline_control": {
+            "ate": 0.0349,
+            "ci": [
+              -0.0053,
+              0.075
+            ],
+            "significant": false,
+            "ate_sd": 0.0635,
+            "control_sd": 0.5488,
+            "control_mean": 3.5533,
+            "naive_diff": -0.0184,
+            "n": 47802,
+            "n_treated": 759,
+            "w_cols": [
+              "income_now",
+              "tenure",
+              "occ",
+              "firm_size"
+            ]
+          },
+          "baseline_controlled": true,
+          "caveats": [
+            "결과변수가 임금근로자는 '월평균임금'(p{w}1642), 자영은 '월평균 사업소득'(p{w}1672)로 **서로 다른 개념**이다(사업소득은 사업 관련 비용·변동성이 다르게 반영됨). 따라서 이 효과는 '창업하면 소득이 이만큼 오른다'가 아니라 '창업으로 전환한 사람의 신고 소득이 임금 대비 이만큼 높게 관측된다'로 읽어야 한다. 또한 폐업해 소득이 끊긴 사람은 결과 관측에서 빠져 생존편의가 남는다 (→ L4 자영 이탈확률과 반드시 함께 볼 것).",
+            "자기보고 5점 척도다. (1) 응답 기준 자체가 이동한다 — 이직 직후엔 같은 처지를 더 후하게 평가하는 쪽으로 기울 수 있다(response shift). (2) 등간 척도가 아니므로 '2→3' 과 '4→5' 를 같은 크기로 읽으면 안 된다. 점 단위보다 `ate_sd`(대조군 표준편차 대비)로 읽을 것. (3) 소득과 달리 상한(5점)이 있어 이미 만족도가 높은 층에서는 효과가 눌린다(천장효과)."
+          ]
         }
       }
     },
@@ -466,6 +760,141 @@
             "naive_diff": 0.1199,
             "n": 59398,
             "n_treated": 227,
+            "w_cols": [
+              "income_now",
+              "tenure",
+              "occ",
+              "firm_size"
+            ]
+          },
+          "baseline_controlled": true,
+          "caveats": [
+            "자기보고 5점 척도다. (1) 응답 기준 자체가 이동한다 — 이직 직후엔 같은 처지를 더 후하게 평가하는 쪽으로 기울 수 있다(response shift). (2) 등간 척도가 아니므로 '2→3' 과 '4→5' 를 같은 크기로 읽으면 안 된다. 점 단위보다 `ate_sd`(대조군 표준편차 대비)로 읽을 것. (3) 소득과 달리 상한(5점)이 있어 이미 만족도가 높은 층에서는 효과가 눌린다(천장효과)."
+          ]
+        },
+        "가족관계만족": {
+          "ate": 0.0083,
+          "ci": [
+            -0.0694,
+            0.086
+          ],
+          "significant": false,
+          "ate_sd": 0.0152,
+          "control_sd": 0.5474,
+          "control_mean": 3.7387,
+          "naive_diff": 0.0268,
+          "n": 59204,
+          "n_treated": 226,
+          "w_cols": [
+            "income_now",
+            "tenure",
+            "occ",
+            "firm_size",
+            "outcome_now"
+          ],
+          "without_baseline_control": {
+            "ate": 0.0248,
+            "ci": [
+              -0.0599,
+              0.1094
+            ],
+            "significant": false,
+            "ate_sd": 0.0452,
+            "control_sd": 0.5473,
+            "control_mean": 3.7387,
+            "naive_diff": 0.0268,
+            "n": 59300,
+            "n_treated": 226,
+            "w_cols": [
+              "income_now",
+              "tenure",
+              "occ",
+              "firm_size"
+            ]
+          },
+          "baseline_controlled": true,
+          "caveats": [
+            "자기보고 5점 척도다. (1) 응답 기준 자체가 이동한다 — 이직 직후엔 같은 처지를 더 후하게 평가하는 쪽으로 기울 수 있다(response shift). (2) 등간 척도가 아니므로 '2→3' 과 '4→5' 를 같은 크기로 읽으면 안 된다. 점 단위보다 `ate_sd`(대조군 표준편차 대비)로 읽을 것. (3) 소득과 달리 상한(5점)이 있어 이미 만족도가 높은 층에서는 효과가 눌린다(천장효과)."
+          ]
+        },
+        "친인척관계만족": {
+          "ate": -0.0097,
+          "ci": [
+            -0.0893,
+            0.0699
+          ],
+          "significant": false,
+          "ate_sd": -0.0171,
+          "control_sd": 0.5655,
+          "control_mean": 3.5474,
+          "naive_diff": 0.019,
+          "n": 59205,
+          "n_treated": 226,
+          "w_cols": [
+            "income_now",
+            "tenure",
+            "occ",
+            "firm_size",
+            "outcome_now"
+          ],
+          "without_baseline_control": {
+            "ate": 0.0339,
+            "ci": [
+              -0.0521,
+              0.1199
+            ],
+            "significant": false,
+            "ate_sd": 0.06,
+            "control_sd": 0.5654,
+            "control_mean": 3.5473,
+            "naive_diff": 0.0191,
+            "n": 59301,
+            "n_treated": 226,
+            "w_cols": [
+              "income_now",
+              "tenure",
+              "occ",
+              "firm_size"
+            ]
+          },
+          "baseline_controlled": true,
+          "caveats": [
+            "자기보고 5점 척도다. (1) 응답 기준 자체가 이동한다 — 이직 직후엔 같은 처지를 더 후하게 평가하는 쪽으로 기울 수 있다(response shift). (2) 등간 척도가 아니므로 '2→3' 과 '4→5' 를 같은 크기로 읽으면 안 된다. 점 단위보다 `ate_sd`(대조군 표준편차 대비)로 읽을 것. (3) 소득과 달리 상한(5점)이 있어 이미 만족도가 높은 층에서는 효과가 눌린다(천장효과)."
+          ]
+        },
+        "사회관계만족": {
+          "ate": 0.0269,
+          "ci": [
+            -0.0495,
+            0.1034
+          ],
+          "significant": false,
+          "ate_sd": 0.0488,
+          "control_sd": 0.5523,
+          "control_mean": 3.5481,
+          "naive_diff": 0.089,
+          "n": 59204,
+          "n_treated": 226,
+          "w_cols": [
+            "income_now",
+            "tenure",
+            "occ",
+            "firm_size",
+            "outcome_now"
+          ],
+          "without_baseline_control": {
+            "ate": 0.0602,
+            "ci": [
+              -0.0226,
+              0.143
+            ],
+            "significant": false,
+            "ate_sd": 0.109,
+            "control_sd": 0.5522,
+            "control_mean": 3.5481,
+            "naive_diff": 0.089,
+            "n": 59301,
+            "n_treated": 226,
             "w_cols": [
               "income_now",
               "tenure",
@@ -632,6 +1061,144 @@
             "naive_diff": -0.0336,
             "n": 46263,
             "n_treated": 2598,
+            "w_cols": [
+              "income_now",
+              "tenure",
+              "occ",
+              "firm_size"
+            ]
+          },
+          "baseline_controlled": true,
+          "caveats": [
+            "**복귀한 사람만 보고 잰 소득효과다.** 결과변수는 t+h 의 월소득인데, 아직 일로 돌아오지 않았으면 소득이 없어 표본에서 빠진다. 그래서 이 값은 '쉬면 소득이 이만큼 된다' 가 아니라 '쉬었다가 **돌아온 사람의** 소득이 계속 다닌 사람 대비 이만큼 관측된다' 로 읽어야 한다 (→ L4 복귀까지 걸리는 기간과 반드시 함께 볼 것). 또한 자발적으로 쉬는 선택은 쉴 여유가 있어야 가능하다. DML 은 관측된 공변량(나이·성별·학력·소득·근속·직종·규모)만 통제하므로 자산·배우자소득 같은 미관측 여유는 남는다 — 효과가 실제보다 낙관적일 수 있다.",
+            "자기보고 5점 척도다. (1) 응답 기준 자체가 이동한다 — 이직 직후엔 같은 처지를 더 후하게 평가하는 쪽으로 기울 수 있다(response shift). (2) 등간 척도가 아니므로 '2→3' 과 '4→5' 를 같은 크기로 읽으면 안 된다. 점 단위보다 `ate_sd`(대조군 표준편차 대비)로 읽을 것. (3) 소득과 달리 상한(5점)이 있어 이미 만족도가 높은 층에서는 효과가 눌린다(천장효과)."
+          ]
+        },
+        "가족관계만족": {
+          "ate": -0.0318,
+          "ci": [
+            -0.0577,
+            -0.0058
+          ],
+          "significant": true,
+          "ate_sd": -0.0589,
+          "control_sd": 0.5398,
+          "control_mean": 3.7533,
+          "naive_diff": -0.1043,
+          "n": 46123,
+          "n_treated": 2587,
+          "w_cols": [
+            "income_now",
+            "tenure",
+            "occ",
+            "firm_size",
+            "outcome_now"
+          ],
+          "without_baseline_control": {
+            "ate": -0.038,
+            "ci": [
+              -0.0652,
+              -0.0108
+            ],
+            "significant": true,
+            "ate_sd": -0.0704,
+            "control_sd": 0.5396,
+            "control_mean": 3.7534,
+            "naive_diff": -0.1046,
+            "n": 46195,
+            "n_treated": 2594,
+            "w_cols": [
+              "income_now",
+              "tenure",
+              "occ",
+              "firm_size"
+            ]
+          },
+          "baseline_controlled": true,
+          "caveats": [
+            "**복귀한 사람만 보고 잰 소득효과다.** 결과변수는 t+h 의 월소득인데, 아직 일로 돌아오지 않았으면 소득이 없어 표본에서 빠진다. 그래서 이 값은 '쉬면 소득이 이만큼 된다' 가 아니라 '쉬었다가 **돌아온 사람의** 소득이 계속 다닌 사람 대비 이만큼 관측된다' 로 읽어야 한다 (→ L4 복귀까지 걸리는 기간과 반드시 함께 볼 것). 또한 자발적으로 쉬는 선택은 쉴 여유가 있어야 가능하다. DML 은 관측된 공변량(나이·성별·학력·소득·근속·직종·규모)만 통제하므로 자산·배우자소득 같은 미관측 여유는 남는다 — 효과가 실제보다 낙관적일 수 있다.",
+            "자기보고 5점 척도다. (1) 응답 기준 자체가 이동한다 — 이직 직후엔 같은 처지를 더 후하게 평가하는 쪽으로 기울 수 있다(response shift). (2) 등간 척도가 아니므로 '2→3' 과 '4→5' 를 같은 크기로 읽으면 안 된다. 점 단위보다 `ate_sd`(대조군 표준편차 대비)로 읽을 것. (3) 소득과 달리 상한(5점)이 있어 이미 만족도가 높은 층에서는 효과가 눌린다(천장효과)."
+          ]
+        },
+        "친인척관계만족": {
+          "ate": -0.0187,
+          "ci": [
+            -0.0452,
+            0.0078
+          ],
+          "significant": false,
+          "ate_sd": -0.0333,
+          "control_sd": 0.5611,
+          "control_mean": 3.5601,
+          "naive_diff": -0.1155,
+          "n": 46122,
+          "n_treated": 2587,
+          "w_cols": [
+            "income_now",
+            "tenure",
+            "occ",
+            "firm_size",
+            "outcome_now"
+          ],
+          "without_baseline_control": {
+            "ate": -0.0357,
+            "ci": [
+              -0.0636,
+              -0.0079
+            ],
+            "significant": true,
+            "ate_sd": -0.0637,
+            "control_sd": 0.561,
+            "control_mean": 3.5602,
+            "naive_diff": -0.1169,
+            "n": 46195,
+            "n_treated": 2594,
+            "w_cols": [
+              "income_now",
+              "tenure",
+              "occ",
+              "firm_size"
+            ]
+          },
+          "baseline_controlled": true,
+          "caveats": [
+            "**복귀한 사람만 보고 잰 소득효과다.** 결과변수는 t+h 의 월소득인데, 아직 일로 돌아오지 않았으면 소득이 없어 표본에서 빠진다. 그래서 이 값은 '쉬면 소득이 이만큼 된다' 가 아니라 '쉬었다가 **돌아온 사람의** 소득이 계속 다닌 사람 대비 이만큼 관측된다' 로 읽어야 한다 (→ L4 복귀까지 걸리는 기간과 반드시 함께 볼 것). 또한 자발적으로 쉬는 선택은 쉴 여유가 있어야 가능하다. DML 은 관측된 공변량(나이·성별·학력·소득·근속·직종·규모)만 통제하므로 자산·배우자소득 같은 미관측 여유는 남는다 — 효과가 실제보다 낙관적일 수 있다.",
+            "자기보고 5점 척도다. (1) 응답 기준 자체가 이동한다 — 이직 직후엔 같은 처지를 더 후하게 평가하는 쪽으로 기울 수 있다(response shift). (2) 등간 척도가 아니므로 '2→3' 과 '4→5' 를 같은 크기로 읽으면 안 된다. 점 단위보다 `ate_sd`(대조군 표준편차 대비)로 읽을 것. (3) 소득과 달리 상한(5점)이 있어 이미 만족도가 높은 층에서는 효과가 눌린다(천장효과)."
+          ]
+        },
+        "사회관계만족": {
+          "ate": -0.0188,
+          "ci": [
+            -0.0446,
+            0.0071
+          ],
+          "significant": false,
+          "ate_sd": -0.0342,
+          "control_sd": 0.5491,
+          "control_mean": 3.5574,
+          "naive_diff": -0.0966,
+          "n": 46123,
+          "n_treated": 2587,
+          "w_cols": [
+            "income_now",
+            "tenure",
+            "occ",
+            "firm_size",
+            "outcome_now"
+          ],
+          "without_baseline_control": {
+            "ate": -0.0308,
+            "ci": [
+              -0.0574,
+              -0.0041
+            ],
+            "significant": true,
+            "ate_sd": -0.0561,
+            "control_sd": 0.549,
+            "control_mean": 3.5575,
+            "naive_diff": -0.0972,
+            "n": 46196,
+            "n_treated": 2594,
             "w_cols": [
               "income_now",
               "tenure",

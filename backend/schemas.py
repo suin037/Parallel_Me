@@ -120,7 +120,7 @@ class SimulateRequest(CompareRequest):
     )
     indicator_scores: Optional[dict[str, float]] = Field(
         None,
-        description="3지표(경제적안정도/성장가능성/삶의질) 0~1 override(선택). 미지정 시 엔진에서 산출",
+        description="5축(경제/성장/관계/자기실현/안정) 0~1 override(선택). 미지정 시 엔진에서 산출",
     )
 
     # --- 성향 개인화 재료 (선택) — 지윤 qmode 산출물. 없으면 개인화는 건너뛴다 ---
@@ -268,6 +268,12 @@ class PredictResponse(BaseModel):
         description="만족도 세부 facet별 궤적 {facet_key: [{year,age,sample_n,p50}]} — 직무·자기발전·소득·고용안정·장래성")
     scenario_trajectories: dict[str, list[TrajectoryPoint]] = Field(default_factory=dict,
         description="선택지 평행우주 — {'유지': 기준경로, '이직': 기준+L3인과효과}. 이직 choice에서만 제공")
+    relationship_effects: dict = Field(default_factory=dict,
+        description="관계 영역 개인단위 인과효과 {available, effects[], significant[], "
+                    "indistinguishable[], estimator, source, note} — 이직·창업·휴식은 KLIPS, "
+                    "결혼·이사는 KOWEPS. 신뢰구간이 0을 포함하면 significant=false 로 실려 오고, "
+                    "화면은 그 경우 막대를 그리지 않고 '구분되지 않음'으로 표시한다. "
+                    "available=false 면 reason 에 왜 없는지가 담긴다(진학은 처치 정의 불가로 차단)")
     narrative: str = Field("", description="Claude 가 생성한 설명")
 
 

@@ -76,6 +76,7 @@ ACTIVE_METRICS = [
         "satisfaction_leisure_change": "여가 만족 변화",
         "satisfaction_housing_change": "주거 만족 변화",
         "satisfaction_family_relationship_change": "가족관계 만족 변화",
+        "satisfaction_kin_relationship_change": "친인척관계 만족 변화",
         "satisfaction_social_relationship_change": "사회적 친분 만족 변화",
     }.items()
 ]

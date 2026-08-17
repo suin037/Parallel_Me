@@ -3,10 +3,29 @@
 import asyncio
 import hashlib
 import json
+import logging
 import time
 import requests
 
 from config import settings
+
+log = logging.getLogger(__name__)
+
+
+def _is_content_flag(response) -> bool:
+    """Workers AI 안전 분류기에 걸린 응답인가.
+
+    코드 3030("Your output has been flagged")으로 판별한다. 문구는 바뀔 수 있어
+    코드를 먼저 보고, 본문이 JSON 이 아니면 문자열로 한 번 더 확인한다.
+    """
+    if response.status_code != 400:
+        return False
+    try:
+        if any(e.get("code") == 3030 for e in (response.json().get("errors") or [])):
+            return True
+    except Exception:  # noqa: BLE001 - 본문이 JSON 이 아닌 경우
+        pass
+    return "flagged" in (response.text or "").lower()
 
 
 VISUAL_PROMPT_VERSION = "cinematic-3d-responsive-v6-gender"
@@ -96,27 +115,41 @@ def _generate_one(avatar_png, choice, narrative, visual_scene, avatar_spec, futu
         "https://api.cloudflare.com/client/v4/accounts/"
         f"{settings.cloudflare_account_id}/ai/run/{model}"
     )
+    prompt = build_visual_prompt(
+        choice, narrative, visual_scene, avatar_spec, future_years, visual_format
+    )
     response = None
     max_attempts = max(1, settings.cloudflare_image_max_attempts)
+    # 안전 분류기(code 3030)는 확률적이다 — 같은 프롬프트가 통과했다 막혔다 한다.
+    # 그래서 seed 를 바꿔 다시 그리면 대개 통과한다. 예전엔 5xx 만 재시도하고
+    # 400 은 즉시 포기해서, 한 번 걸리면 그 장면은 무조건 실패했다.
+    attempt_seed = seed
     for attempt in range(max_attempts):
         response = requests.post(
             url,
             headers={"Authorization": f"Bearer {settings.cloudflare_api_token}"},
             data={
-                "prompt": build_visual_prompt(
-                    choice, narrative, visual_scene, avatar_spec, future_years, visual_format
-                ),
+                "prompt": prompt,
                 "width": str(width),
                 "height": str(height),
-                "seed": str(seed),
+                "seed": str(attempt_seed),
             },
             files={"input_image_0": ("avatar.png", avatar_png, "image/png")},
-            timeout=(30, 240),
+            # 읽기 상한을 240→90 으로 줄인다. 한 번 붙잡혀 있으면 재시도할 시간이
+            # 없어져 프론트 타임아웃(60초)이 먼저 끊는다. 정상 생성은 10초대다.
+            timeout=(30, 90),
         )
-        if response.status_code < 500 or attempt == max_attempts - 1:
+        if response.ok or attempt == max_attempts - 1:
             break
-        # Workers AI의 일시적인 5xx/동시 처리 실패는 짧게 기다렸다 재시도한다.
-        time.sleep(0.5 * (attempt + 1))
+        if response.status_code >= 500:
+            # Workers AI의 일시적인 5xx/동시 처리 실패는 짧게 기다렸다 재시도한다.
+            time.sleep(0.5 * (attempt + 1))
+        elif _is_content_flag(response):
+            # 같은 seed 로 다시 보내면 결정적으로 또 막힌다. 반드시 바꾼다.
+            attempt_seed = (attempt_seed * 7919 + 104729) % 2_000_000_000
+            log.info("이미지 안전 분류기에 걸려 seed 를 바꿔 재시도한다 (%s)", choice)
+        else:
+            break  # 그 외 4xx 는 요청 자체가 잘못된 것이라 재시도해도 같다
     if not response.ok:
         try:
             detail = response.json()
@@ -161,7 +194,11 @@ async def generate_pair(
     # 같은 참조 이미지와 seed를 사용해 A/B의 인물 정체성과 기본 화풍을 최대한 맞춘다.
     # 장면 차이는 choice·narrative·scene prompt가 만든다.
     identity_seed = 427
-    image_a, image_b = await asyncio.gather(
+    # return_exceptions 가 없으면 한쪽이 실패한 순간 gather 가 그 예외를 올리고
+    # **성공한 다른 한 장까지 버려진다**. 안전 분류기는 장면별로 걸리므로
+    # 실제로 한 장만 막히는 경우가 흔한데, 화면은 A/B 이미지를 각각 쓰므로
+    # (visuals?.a / visuals?.b) 한 장만 있어도 나머지는 아바타로 채워진다.
+    results = await asyncio.gather(
         asyncio.to_thread(
             _generate_one, avatar_png, choice_a, narrative_a, visual_a, avatar_spec,
             future_years, width, height, visual_format, identity_seed
@@ -170,10 +207,26 @@ async def generate_pair(
             _generate_one, avatar_png, choice_b, narrative_b, visual_b, avatar_spec,
             future_years, width, height, visual_format, identity_seed
         ),
+        return_exceptions=True,
     )
-    pair = {"a": image_a, "b": image_b}
+    images = []
+    for side, result in zip(("A", "B"), results):
+        if isinstance(result, BaseException):
+            log.warning("장면 이미지 %s 실패(아바타로 대체): %s: %s",
+                        side, type(result).__name__, result)
+            images.append(None)
+        else:
+            images.append(result)
+    if all(image is None for image in images):
+        # 둘 다 실패했으면 알린다 — 화면이 '이미지 없음'을 조용히 정상처럼
+        # 보여주면 무엇이 고장났는지 아무도 모른다.
+        raise RuntimeError("두 장면 이미지 생성이 모두 실패했습니다")
+    pair = {"a": images[0], "b": images[1]}
     # 발표 중 같은 선택을 다시 실행하면 외부 모델을 재호출하지 않아 즉시 표시한다.
-    if len(_PAIR_CACHE) >= 24:
-        _PAIR_CACHE.pop(next(iter(_PAIR_CACHE)))
-    _PAIR_CACHE[cache_key] = pair
+    # 단 **둘 다 성공했을 때만** 캐시한다 — 반쪽을 캐시하면 일시적인 분류기
+    # 실패가 그 조합에서 영구히 굳어, 다시 눌러도 계속 한 장만 나온다.
+    if all(images):
+        if len(_PAIR_CACHE) >= 24:
+            _PAIR_CACHE.pop(next(iter(_PAIR_CACHE)))
+        _PAIR_CACHE[cache_key] = pair
     return pair

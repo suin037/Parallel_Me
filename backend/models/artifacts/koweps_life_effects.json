@@ -1,5 +1,5 @@
 {
-  "built_at": "2026-08-15T10:52:49.878937+00:00",
+  "built_at": "2026-08-16T21:41:55.294262+00:00",
   "source": "KOWEPS 1~20차 (2006~2025) Long Form",
   "horizon": 1,
   "estimator": "LinearDML (RF nuisance, 분석적 95% CI)",
@@ -33,6 +33,15 @@
       "scale": "likert5",
       "level": "개인",
       "note": "정방향 — 전반만족과 +0.469 상관으로 확인"
+    },
+    "사회관계만족": {
+      "src": "p03_10",
+      "unit": "점(1~5)",
+      "top": 5,
+      "reverse": false,
+      "scale": "likert5",
+      "level": "개인",
+      "note": "정방향 — 전반만족과 +0.550, 가구소득과 +0.157 상관으로 확인(유효관측 247,038). 가족 밖 친분관계 축이라 가족만족과 짝을 이룬다"
     },
     "전반만족": {
       "src": "p03_12",
@@ -91,6 +100,28 @@
             "control_mean": 3.9094,
             "naive_diff": 0.2815,
             "n": 26343,
+            "n_treated": 1053,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "사회관계만족": {
+            "ate": 0.0863,
+            "ci": [
+              0.047,
+              0.1256
+            ],
+            "significant": true,
+            "ate_sd": 0.1302,
+            "control_sd": 0.6625,
+            "control_mean": 3.7659,
+            "naive_diff": 0.1477,
+            "n": 26346,
             "n_treated": 1053,
             "w_cols": [
               "income_now",
@@ -179,6 +210,28 @@
             "control_mean": 3.9308,
             "naive_diff": 0.2768,
             "n": 24355,
+            "n_treated": 1016,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "사회관계만족": {
+            "ate": 0.0773,
+            "ci": [
+              0.0338,
+              0.1207
+            ],
+            "significant": true,
+            "ate_sd": 0.1195,
+            "control_sd": 0.6466,
+            "control_mean": 3.7889,
+            "naive_diff": 0.1274,
+            "n": 24357,
             "n_treated": 1016,
             "w_cols": [
               "income_now",
@@ -467,6 +520,28 @@
             ],
             "baseline_controlled": true
           },
+          "사회관계만족": {
+            "ate": 0.0106,
+            "ci": [
+              -0.0035,
+              0.0246
+            ],
+            "significant": false,
+            "ate_sd": 0.0167,
+            "control_sd": 0.6324,
+            "control_mean": 3.8089,
+            "naive_diff": 0.0304,
+            "n": 70810,
+            "n_treated": 8756,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
           "전반만족": {
             "ate": 0.032,
             "ci": [
@@ -526,6 +601,28 @@
             "naive_diff": 0.1586,
             "n": 49712,
             "n_treated": 6699,
+            "w_cols": [
+              "income_now",
+              "occ",
+              "work_hours_type",
+              "household_size",
+              "outcome_now"
+            ],
+            "baseline_controlled": true
+          },
+          "사회관계만족": {
+            "ate": 0.016,
+            "ci": [
+              -0.0002,
+              0.0321
+            ],
+            "significant": false,
+            "ate_sd": 0.0254,
+            "control_sd": 0.6284,
+            "control_mean": 3.8172,
+            "naive_diff": 0.0323,
+            "n": 49704,
+            "n_treated": 6698,
             "w_cols": [
               "income_now",
               "occ",

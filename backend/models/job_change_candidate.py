@@ -305,7 +305,7 @@ def financial_impact(profile: dict) -> dict:
             if sensitivity and sensitivity.get("decision") == "보류"
             else "supported_direction" if population else "candidate_only"
         ),
-        "indicator": "경제적안정도",
+        "indicator": "경제",
         "outcome": "실질임금 변화율",
         "observed_transitions": _observed_transitions(profile),
         "population_evidence": population,
