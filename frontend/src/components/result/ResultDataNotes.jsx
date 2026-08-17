@@ -109,6 +109,14 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
   // 그래서 화면만 보면 반년을 쉬었는데 1년차 소득이 남는 쪽보다 높게 보인다.
   // 숫자를 고치는 건 재학습이 필요한 일이라, 무엇이 빠졌는지를 밝힌다.
   const breakSide = [a, b].find((side) => side?.kind === "휴식");
+  // 값이 비어 있는 쪽은 반드시 이유를 말해야 한다. 말하지 않으면 관람객은
+  // '아직 로딩 중' 이거나 '0' 이라고 읽는다.
+  const scopeSides = ["A", "B"]
+    .map((side) => {
+      const target = side === "A" ? a : b;
+      return target?.out_of_scope ? { side, label: labelOf(target?.choice) } : null;
+    })
+    .filter(Boolean);
   const conditions = conditionRows(a, b);
   const asym = asymmetry(a, b);
   const cumulative = { A: cumulativeAt(a, futureYears), B: cumulativeAt(b, futureYears) };
@@ -121,7 +129,7 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
   // 그릴 게 하나도 없으면 카드 자체를 내보내지 않는다. 여기에 렌더하지 않는
   // 값(건강 실측 등)을 조건에 남겨두면 제목만 있는 빈 카드가 뜬다.
   if (!hasGrowth && !gaps.length && !breakSide && !conditions.length
-      && !asym && !showCumulative) return null;
+      && !asym && !showCumulative && !scopeSides.length) return null;
 
   return (
     <section className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0B1220]/85" aria-labelledby="data-notes-title">
@@ -129,6 +137,26 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
         <h2 id="data-notes-title" className="text-[13px] font-bold text-ink">숫자를 읽는 배경</h2>
         <p className="mt-0.5 text-[9px] text-mut">위 비교표의 수치가 어떤 조건에서 나온 값인지 함께 봅니다.</p>
       </div>
+
+      {scopeSides.length > 0 && (
+        <div className="border-white/[.07] px-4 py-3.5 [&:not(:last-child)]:border-b">
+          <h3 className="text-[11px] font-semibold text-[#F5C86B]">이 선택은 우리 데이터로 답할 수 없습니다</h3>
+          <ul className="mt-1.5 grid gap-1.5">
+            {scopeSides.map((item) => (
+              <li key={item.side} className="flex items-baseline gap-1.5">
+                <b className="text-[9px] font-black" style={{ color: COLORS[item.side] }}>{item.side}</b>
+                <span className="text-[9.5px] text-sub">{item.label}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-[9px] leading-4 text-mut">
+            우리가 쓰는 패널(KLIPS·GOMS·YP·KOWEPS)은 <b className="font-semibold text-sub">전부 국내 자료</b>입니다.
+            해외에서 일하는 경로는 학습 데이터에 없어서 소득·만족도·이탈확률을 낼 근거가 없습니다.
+            <b className="font-semibold text-sub"> 국내 궤적을 대신 그리지 않고 비워 둡니다.</b>
+            {" "}그쪽 이야기는 아래 서사로만 읽어 주세요.
+          </p>
+        </div>
+      )}
 
       {asym && (
         <div className="border-white/[.07] px-4 py-3.5 [&:not(:last-child)]:border-b">

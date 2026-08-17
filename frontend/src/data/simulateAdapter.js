@@ -95,9 +95,17 @@ function buildSide(scenario, choice, detail, profile, evidence, domainCov, domai
   // (유지·이직 등)이다. "현재 진로 유지" 같은 문장으로 조회하면 항상 공통
   // 기준선으로 떨어져 A/B 격차와 상세 인사이트가 사라진다.
   const { rows: rawTrajectory, isBaseline } = pickTrajectory(raw, kind);
-  // 사용자 조건이 반영된 수준으로 궤적을 맞춘다(조건이 없으면 배율 1 → 원본 그대로).
-  const trajectory = scaleTrajectory(rawTrajectory, anchorFactor(rawTrajectory, scenario?.income));
-  const wellbeing = raw.wellbeing_trajectory || [];
+  // 학습 데이터 범위 밖(해외 이동 등)이면 **원자료 궤적까지 지운다.**
+  //
+  // 백엔드는 scenario.income 을 비우는데, 화면의 월소득 행은 raw 쪽 trajectory 를
+  // 읽는다(ResultQuickStats). 그래서 린의 B('런던에 남아 현지 취업')에 국내 잔류자
+  // 궤적 211만원이 그대로 떴다 — '지금 대비 소득 증감'만 '—' 로 비어서 한쪽은
+  // 막히고 한쪽은 안 막힌 상태였다. 근거가 없으면 어느 경로로도 보이면 안 된다.
+  const outOfScope = Boolean(scenario?.out_of_scope);
+  const trajectory = outOfScope
+    ? []
+    : scaleTrajectory(rawTrajectory, anchorFactor(rawTrajectory, scenario?.income));
+  const wellbeing = outOfScope ? [] : (raw.wellbeing_trajectory || []);
 
   // 이직은 개인단위 모델, 창업은 artifact가 배포된 경우 개인단위 자영 이탈모델을 쓴다.
   // artifact가 없더라도 창업 risk_timeline에는 업종·규모별 기업생멸 통계가 들어온다.
@@ -106,12 +114,12 @@ function buildSide(scenario, choice, detail, profile, evidence, domainCov, domai
     || raw.causal_effect != null
     || raw.survival_months != null
     || (Array.isArray(raw.neighbors) && raw.neighbors.length > 0);
-  const hasIndividual = kind === "이직"
+  const hasIndividual = !outOfScope && (kind === "이직"
     || hasIndividualPayload
-    || (["창업", "휴식"].includes(kind) && raw.survival_months != null);
-  const hasRisk = kind === "창업"
+    || (["창업", "휴식"].includes(kind) && raw.survival_months != null));
+  const hasRisk = !outOfScope && (kind === "창업"
     || hasIndividual
-    || (raw.risk_timeline && Object.keys(raw.risk_timeline).length > 0);
+    || (raw.risk_timeline && Object.keys(raw.risk_timeline).length > 0));
 
   return {
     choice,
@@ -149,6 +157,8 @@ function buildSide(scenario, choice, detail, profile, evidence, domainCov, domai
     income_cumulative: scenario?.income_cumulative || [],
     // 사용자가 적은 조건 중 실제로 수치에 들어간 것. null 이면 반영된 게 없다.
     applied_conditions: scenario?.applied_conditions || null,
+    // 범위 밖 사유 — 화면이 '왜 비었는지' 를 말할 수 있게 한다.
+    out_of_scope: scenario?.out_of_scope || null,
     // KNHANES·KWCS 실측(스트레스인지율·우울장애유병률 등). 선택별로 갈리는 값이
     // 아니라 '같은 조건 집단은 지금 이렇다'는 배경 수치다.
     health_context: scenario?.health_context || [],
