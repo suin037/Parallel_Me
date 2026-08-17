@@ -16,6 +16,7 @@ import ActionView from "../components/result/ActionView.jsx";
 import AvatarComparison from "../components/result/AvatarComparison.jsx";
 import DiarySignalCard from "../components/result/DiarySignalCard.jsx";
 import KowepsEvidenceCard from "../components/result/KowepsEvidenceCard.jsx";
+import RelationshipEffectCard from "../components/result/RelationshipEffectCard.jsx";
 import KowepsTrajectoryView from "../components/result/KowepsEvidenceView.jsx";
 import JobAnalysisView from "../components/result/JobAnalysisView.jsx";
 import RelationshipView from "../components/result/RelationshipView.jsx";
@@ -49,6 +50,10 @@ export default function Result() {
   const softPlanet = softDomainOf([...(result.domains?.a || scenarioDomains?.a || []),
                                    ...(result.domains?.b || scenarioDomains?.b || [])]);
   const hasKowepsObservation = [a, b].some((side) => side.koweps_evidence?.available);
+  // 관계 인과효과는 '집단 관측'과 성격이 달라(처치효과) 같은 탭에 두되 위에 놓는다.
+  // 값이 없어도 '왜 없는지'가 있으면 탭을 연다 — 진학처럼 의도적으로 막은 경우다.
+  const hasRelationshipEffects = [a, b].some(
+    (side) => side.relationship_effects || side.relationship_effects_reason);
   const hasNumericComparison = hasComparableNumbers(a, b);
 
   const tabs = [
@@ -62,8 +67,11 @@ export default function Result() {
       <DiarySignalCard />
       {softPlanet && <SoftCompareView a={a} b={b} planet={softPlanet} planetLabel={DOMAIN_LABEL[softPlanet] || ""} />}
     </> },
-    ...(hasKowepsObservation
-      ? [{ key: "observation", label: "집단 관측", View: (p) => <KowepsEvidenceCard {...p} /> }]
+    ...(hasKowepsObservation || hasRelationshipEffects
+      ? [{ key: "observation", label: "집단 관측", View: (p) => <>
+          {hasRelationshipEffects && <RelationshipEffectCard a={a} b={b} />}
+          {hasKowepsObservation && <KowepsEvidenceCard {...p} />}
+        </> }]
       : []),
     // 입력에서 공고를 분석했을 때만 — 예측 수치 옆에서 그 공고를 다시 확인한다.
     ...(jobAnalyses?.length || postings?.length
