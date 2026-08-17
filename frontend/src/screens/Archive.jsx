@@ -183,13 +183,13 @@ export default function Archive() {
         <EmptyState onStart={() => navigate("/input")} />
       ) : (
         <>
-          <div className="mb-5 grid grid-cols-3 gap-2 rounded-[22px] border border-white/[.08] bg-[#0C1627]/70 p-3 shadow-[0_18px_55px_rgba(0,0,0,.22)] backdrop-blur-xl lg:max-w-[760px] lg:p-4">
+          <div data-tour="archive-stats" className="mb-5 grid grid-cols-3 gap-2 rounded-[22px] border border-white/[.08] bg-[#0C1627]/70 p-3 shadow-[0_18px_55px_rgba(0,0,0,.22)] backdrop-blur-xl lg:max-w-[760px] lg:p-4">
             <ArchiveStat label="저장한 우주" value={counts.all} />
             <ArchiveStat label="탐험 중" value={counts.going} accent />
             <ArchiveStat label="회고 완료" value={counts.done} />
           </div>
 
-          <div className="no-scrollbar -mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-0.5">
+          <div data-tour="archive-filters" className="no-scrollbar -mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-0.5">
             <Chip active={filter === "all"} onClick={() => setFilter("all")} count={counts.all}>
               전체
             </Chip>
@@ -229,7 +229,7 @@ export default function Archive() {
           {visible.length === 0 ? (
             <FilterEmpty filter={filter} onShowAll={() => setFilter("all")} />
           ) : (
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div data-tour="archive-card" className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {visible.map((u) => (
                 <UniverseCard key={u.id} u={u} signals={signals} onOpen={() => setOpenId(u.id)} />
               ))}

@@ -32,7 +32,7 @@ export default function HomeHub() {
           <h1 className="mt-2 text-[26px] font-black tracking-[-.04em] text-ink lg:text-[38px]">오늘의 기록</h1>
           <p className="mt-1.5 max-w-[650px] text-[11px] leading-5 text-sub lg:text-[13px]">오늘 있었던 일과 마음을 한곳에 남겨보세요.</p>
         </div>
-        <PetPeek />
+        <div data-tour="pet-peek"><PetPeek /></div>
       </header>
 
       <div className="grid items-start gap-8 border-t border-white/[.08] pt-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,.65fr)] lg:gap-10 lg:pt-8">

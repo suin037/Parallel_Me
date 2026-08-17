@@ -177,8 +177,12 @@ def _matched_cases(profile: dict, scenario: str, minimum_n: int = 40) -> tuple[p
 
 def _observed_outcomes(choice_kind: str, profile: dict) -> dict:
     report = _observed_outcomes_report()
-    if not report:
-        return {"status": "unavailable"}
+    # 리포트만 보고 통과시키면 그다음 _personalization_panel() 이 KLIPS 패널 CSV 를
+    # 읽다 FileNotFoundError 를 던진다. 그 예외는 호출부에서 validated_predictions
+    # 전체를 무효로 만들므로(job_change_trajectory 주석 참고), 여기서 함께 막는다.
+    if not report or not KLIPS_PANEL.exists():
+        return {"status": "unavailable",
+                "reason": "관측 결과 패널(data/clean)이 배포에 포함되지 않았습니다"}
     scenario = "move" if choice_kind == "이직" else "stay"
     cases, applied, relaxed = _matched_cases(profile, scenario)
     domains: dict[str, list[dict]] = {}

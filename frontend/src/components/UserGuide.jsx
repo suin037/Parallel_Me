@@ -49,7 +49,7 @@ export default function UserGuide({ open, onClose, onStartTour }) {
                 onClick={() => { onClose(); onStartTour(); }}
                 className="tap flex flex-1 items-center justify-center gap-2 rounded-full bg-[#8B6CCF] py-3.5 text-[13px] font-bold text-white"
               >
-                <Compass size={16} /> 화면을 짚어주며 안내받기
+                <Compass size={16} /> 기능을 하나씩 안내받기
               </button>
               <button
                 type="button"
@@ -67,7 +67,8 @@ export default function UserGuide({ open, onClose, onStartTour }) {
               혼자 둘러볼게요
             </button>
             <p className="mt-1 text-center text-[10px] text-mut">
-              가이드를 켜면 화면마다 무엇을 하는 곳인지 옆에서 알려드려요. 설정에서 다시 켤 수 있어요.
+              안내는 우주 · 일기 · 시뮬레이션 · 결과 · 보관함 · 기업분석 · 설정을 차례로 짚어드려요.
+              말풍선의 &lsquo;자동&rsquo;을 켜면 손대지 않아도 끝까지 넘어가요. 설정에서 언제든 다시 켤 수 있어요.
             </p>
           </>
         ) : (

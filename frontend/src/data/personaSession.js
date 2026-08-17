@@ -45,13 +45,38 @@ function writeProfile(profile) {
  *   사람이 골랐는지를 보는 것으로, sex 를 sexConfirmed 로 가리는 것과 같은 방식이다.
  *   설정·온보딩의 아바타 빌더만 그 표시를 남긴다.
  */
+// 모델이 실제로 읽는 '그 인물의 사실' — 취향 설정이 아니라 신원이다.
+//
+// 이 값들은 '없으면 채운다' 로는 안 된다. 다른 인물을 체험하다 넘어오면 앞사람의
+// 값이 그대로 남아 있어서, 화면에는 지금 인물이 뜨는데 직종·근속은 앞사람 것이
+// 붙는다(실제로 '전문가·관련 종사자 · 근속 4년' 이 인물을 바꿔도 계속 따라다녔다).
+//
+// 페르소나가 정의한 값은 **덮어쓰고**, 정의하지 않은 값은 **지운다.**
+// 지우는 쪽이 중요하다 — 고용형태·회사규모는 어떤 인물도 정하지 않아서,
+// 비우지 않으면 앞사람 값이 영영 남는다. 빈 값은 백엔드가 전체 표본으로
+// 떨어뜨리므로(api.js 의 sex 주석과 같은 방식) 근거 없는 매칭보다 낫다.
+const PERSONA_FACTS = [
+  "age", "sex", "sexConfirmed", "major", "occupation", "occupation_group",
+  "income", "edu_level", "tenure_years", "employment_status", "firm_size",
+  "mbti", "value_ranking",
+];
+
 function syncPersonaProfile(profile) {
   try {
     const prev = JSON.parse(storage.getItem(PROFILE_KEY) || "{}");
     const next = { ...prev };
     let changed = false;
 
-    // 아직 없는 값은 채운다(나중에 프로필에 필드가 추가돼도 예전 슬롯이 따라온다).
+    for (const key of PERSONA_FACTS) {
+      const value = Object.prototype.hasOwnProperty.call(profile, key) ? profile[key] : null;
+      // value_ranking 은 배열이라 === 로는 늘 다르게 나온다 — 값으로 견준다.
+      const same = typeof value === "object" || typeof prev[key] === "object"
+        ? JSON.stringify(prev[key] ?? null) === JSON.stringify(value ?? null)
+        : prev[key] === value;
+      if (!same) { next[key] = value; changed = true; }
+    }
+
+    // 나머지(아직 없는 값)는 채운다 — 나중에 프로필에 필드가 추가돼도 예전 슬롯이 따라온다.
     for (const [key, value] of Object.entries(profile)) {
       if (prev[key] === undefined) { next[key] = value; changed = true; }
     }

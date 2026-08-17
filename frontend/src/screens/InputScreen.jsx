@@ -249,6 +249,48 @@ export default function InputScreen() {
     });
   }
 
+  // 체험 중인 인물의 조건을 **실제 답변으로 미리 채운다.**
+  //
+  // 예전엔 hints 를 placeholder 로만 보여줬다. 그래서 관람객이 그 칸을 직접
+  // 건드리지 않으면 answers 가 빈 채로 전송돼, 인물이 들고 있던 조건
+  // (도현의 '반년 무소득', 성민의 창업비 1.2억)이 수치에 하나도 반영되지
+  // 않았다. 배포본 7명 전원이 그 상태였다.
+  //
+  // 지금 감지된 영역이 실제로 묻는 질문만 채운다 — hints 에 남는 키는 화면에
+  // 뜨지도 않으므로 채워봐야 사용자가 고칠 수 없다. 이미 값이 있으면 덮지
+  // 않는다(사용자가 고친 값이 우선).
+  useEffect(() => {
+    if (!persona?.hints) return;
+    [["A", intakeA], ["B", intakeB]].forEach(([side, intake]) => {
+      const field = side.toLowerCase();
+      const hints = persona.hints[field];
+      if (!hints || !intake.questions.length) return;
+      setScenarioContexts((prev) => {
+        const answers = prev[field]?.answers || {};
+        const next = { ...answers };
+        let changed = false;
+        intake.questions.forEach((question) => {
+          const hint = hints[question.key];
+          if (hint && !String(answers[question.key] || "").trim()) {
+            next[question.key] = String(hint);
+            changed = true;
+          }
+        });
+        if (!changed) return prev;
+        return {
+          ...prev,
+          [field]: {
+            event: prev[field]?.event ?? intake.event,
+            event_label: prev[field]?.event_label ?? intake.eventLabel,
+            domain: prev[field]?.domain ?? intake.domain,
+            answers: next,
+          },
+        };
+      });
+    });
+    // intake 는 선택 문구·영역에서 파생되므로 그 두 가지가 바뀔 때만 다시 채운다.
+  }, [persona, intakeA.domain, intakeB.domain, intakeA.event, intakeB.event, setScenarioContexts]);
+
   async function startComparison() {
     const fallback = (choice) => {
       if (["이직", "유지"].includes(choice)) return ["career"];

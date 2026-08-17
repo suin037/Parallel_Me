@@ -351,9 +351,23 @@ class ScenarioView(BaseModel):
     regret_summary: Optional[dict] = Field(None,
         description="후회 리스크 한 줄 요약 {label, worst_year, worst_value, unit, source}")
 
+    income_cumulative: list[IndicatorPoint] = Field(default_factory=list,
+        description="누적 소득(만원) — 월소득 궤적 적분에 공백 개월(휴식·창업 runway)과 "
+                    "초기비용을 반영. 월소득 줄에는 안 나오는 '쉬는 동안 못 번 돈'이 여기 들어간다")
+
     # ---- 보조 지표 ----
     growth_potential: list[IndicatorPoint] = Field(default_factory=list,
         description="(보조) 성장 가능성 — 현재 대비 소득 상승률(L5 궤적 기울기)")
+
+    out_of_scope: Optional[dict] = Field(None,
+        description="이 선택이 학습 데이터 범위 밖일 때의 사유 {reason}. 해외 이동처럼 "
+                    "국내 패널로 답할 수 없는 경우 수치를 비우고 여기에 이유를 담는다. "
+                    "None 이면 범위 안이라는 뜻")
+
+    applied_conditions: Optional[dict] = Field(None,
+        description="사용자가 적은 조건 중 수치에 실제로 반영된 것 "
+                    "{income_anchor, gap_months, startup_cost_manwon, source, ignored}. "
+                    "None 이면 반영된 조건이 없다는 뜻")
 
     # ---- 맥락 ----
     health_context: list[LifeIndicator] = Field(default_factory=list,

@@ -57,9 +57,35 @@ export function interpretChoice(text, domains = []) {
 
 export function questionsForChoice(text, domains = []) {
   const interpreted = interpretChoice(text, domains);
-  return {
-    ...interpreted,
-    questions: (DOMAIN_QUESTIONS[interpreted.domain] || [])
-      .map(([key, label, placeholder, shared = false]) => ({ key, label, placeholder, shared })),
-  };
+  // 표시용 영역과 **사건이 실제로 가리키는 영역**이 다를 수 있다.
+  //
+  //   "회사를 나와 내 브랜드를 창업한다"
+  //     · 사건 규칙  → business.self_employment_start (business)
+  //     · 표시 영역  → career  (choices.js 의 `business: "career"` — 창업도 일의 영역)
+  //
+  // 예전엔 표시 영역 하나만 보고 질문을 골라서, 창업인데도 career 질문
+  // (실행 시점·월소득 변화)만 떴다. 창업의 핵심 조건인 **runway·초기자금**은
+  // 화면에 나오지도 않으니 사용자가 적을 방법이 없었고, 다운의 3,000만원과
+  // 성민의 1억 2천만원이 수치에 전혀 반영되지 않았다.
+  //
+  // 둘 중 하나를 고르는 대신 **합친다.** 사건 쪽을 먼저 놓아 더 구체적인 질문이
+  // 위로 오게 하고, 키가 겹치면 앞의 것을 남긴다.
+  const eventDomain = interpreted.event.split(".")[0];
+  const order = eventDomain === interpreted.domain
+    ? [interpreted.domain]
+    : [eventDomain, interpreted.domain];
+
+  //
+  // shared 는 네 번째 자리에 있는 '상황 조건' 표시다(A 에서 물으면 B 에는 다시 안 묻는다).
+  // 영역을 합치면서 이 값을 떨어뜨리면 B 카드에 공통 질문이 되살아난다.
+  const seen = new Set();
+  const questions = [];
+  for (const key of order) {
+    for (const [qKey, label, placeholder, shared = false] of DOMAIN_QUESTIONS[key] || []) {
+      if (seen.has(qKey)) continue;
+      seen.add(qKey);
+      questions.push({ key: qKey, label, placeholder, shared });
+    }
+  }
+  return { ...interpreted, questions };
 }

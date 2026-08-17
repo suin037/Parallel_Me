@@ -54,6 +54,38 @@ function pickTrajectory(raw, choice) {
 const maxYear = (rows, fallback) =>
   Array.isArray(rows) && rows.length ? Math.max(...rows.map((p) => p.year ?? 0)) : fallback;
 
+// 백엔드가 사용자 조건(입력한 월소득 수준)을 반영한 값은 `scenario.income` 에만 담긴다.
+// 그런데 화면의 소득은 다섯 군데가 `trajectory` 를 직접 읽는다 — 비교표·평행뷰·
+// 궤적그래프·상세인사이트·요약. 그래서 응답에는 280만원이 들어 있는데 화면에는
+// 308만원(모델 원값)이 그대로 떴다.
+//
+// 컴포넌트를 다섯 개 고치는 대신 궤적을 한 번 맞춘다. 배율은 **백엔드 결과에서
+// 그대로 끌어온다** — 같은 공식을 프론트에 다시 적으면 두 곳이 조용히 어긋난다.
+//   배율 = income_series 의 첫 연차 값 ÷ trajectory 의 같은 연차 원값
+function anchorFactor(trajectory, incomeSeries) {
+  if (!Array.isArray(incomeSeries) || !Array.isArray(trajectory)) return 1;
+  const shown = incomeSeries.find((p) => p?.available !== false && Number.isFinite(Number(p?.value)));
+  if (!shown) return 1;
+  const rawPoint = trajectory.find((p) => Number(p?.year) === Number(shown.year));
+  const base = Number(rawPoint?.income_p50);
+  if (!Number.isFinite(base) || base <= 0) return 1;
+  const factor = Number(shown.value) / base;
+  // 부동소수 오차로 매번 새 배열을 만들지 않도록 1에 가까우면 그대로 둔다.
+  return Math.abs(factor - 1) < 1e-6 ? 1 : factor;
+}
+
+function scaleTrajectory(rows, factor) {
+  if (factor === 1) return rows;
+  return rows.map((p) => (Number(p?.year) <= 0 ? p : {
+    // 0년차는 '지금의 나' 다. 조건은 앞으로의 이야기라 현재 소득을 바꾸면 안 된다
+    // (SummaryView 가 이 값을 '현재 월소득'으로 쓰고, 증감률도 여기를 기준 삼는다).
+    ...p,
+    income_p25: Number.isFinite(Number(p.income_p25)) ? Math.round(Number(p.income_p25) * factor * 10) / 10 : p.income_p25,
+    income_p50: Number.isFinite(Number(p.income_p50)) ? Math.round(Number(p.income_p50) * factor * 10) / 10 : p.income_p50,
+    income_p75: Number.isFinite(Number(p.income_p75)) ? Math.round(Number(p.income_p75) * factor * 10) / 10 : p.income_p75,
+  }));
+}
+
 function buildSide(scenario, choice, detail, profile, evidence, domainCov, domainStats, validatedPrediction, indicatorEvidence, kowepsEvidence, side) {
   const raw = scenario?.raw || {};
   // 자유입력 원문 대신 백엔드가 정규화한 유형을 사용한다. "개발자로 이직" 같은
@@ -62,8 +94,23 @@ function buildSide(scenario, choice, detail, profile, evidence, domainCov, domai
   // scenario_trajectories 키는 사용자가 쓴 원문이 아니라 백엔드 정규화 유형
   // (유지·이직 등)이다. "현재 진로 유지" 같은 문장으로 조회하면 항상 공통
   // 기준선으로 떨어져 A/B 격차와 상세 인사이트가 사라진다.
-  const { rows: trajectory, isBaseline } = pickTrajectory(raw, kind);
-  const wellbeing = raw.wellbeing_trajectory || [];
+  const { rows: rawTrajectory, isBaseline } = pickTrajectory(raw, kind);
+  // 학습 데이터 범위 밖(해외 이동 등)이면 **원자료 궤적까지 지운다.**
+  //
+  // 백엔드는 scenario.income 을 비우는데, 화면의 월소득 행은 raw 쪽 trajectory 를
+  // 읽는다(ResultQuickStats). 그래서 린의 B('런던에 남아 현지 취업')에 국내 잔류자
+  // 궤적 211만원이 그대로 떴다 — '지금 대비 소득 증감'만 '—' 로 비어서 한쪽은
+  // 막히고 한쪽은 안 막힌 상태였다. 근거가 없으면 어느 경로로도 보이면 안 된다.
+  const outOfScope = Boolean(scenario?.out_of_scope);
+  // 범위 밖이어도 소득이 **입력값에서 온 것**이면 궤적을 살린다. 사용자가 적은
+  // 수준은 모델 산출이 아니라서 '데이터가 없다'는 이유로 지울 근거가 없다.
+  // 만족도는 다르다 — 적을 수 있는 값이 아니라 모델만 낼 수 있고, 그 모델에
+  // 해당 데이터가 없다. 그건 계속 비운다.
+  const incomeFromInput = Boolean(scenario?.out_of_scope?.income_from_input);
+  const trajectory = (outOfScope && !incomeFromInput)
+    ? []
+    : scaleTrajectory(rawTrajectory, anchorFactor(rawTrajectory, scenario?.income));
+  const wellbeing = outOfScope ? [] : (raw.wellbeing_trajectory || []);
 
   // 이직은 개인단위 모델, 창업은 artifact가 배포된 경우 개인단위 자영 이탈모델을 쓴다.
   // artifact가 없더라도 창업 risk_timeline에는 업종·규모별 기업생멸 통계가 들어온다.
@@ -72,12 +119,12 @@ function buildSide(scenario, choice, detail, profile, evidence, domainCov, domai
     || raw.causal_effect != null
     || raw.survival_months != null
     || (Array.isArray(raw.neighbors) && raw.neighbors.length > 0);
-  const hasIndividual = kind === "이직"
+  const hasIndividual = !outOfScope && (kind === "이직"
     || hasIndividualPayload
-    || (["창업", "휴식"].includes(kind) && raw.survival_months != null);
-  const hasRisk = kind === "창업"
+    || (["창업", "휴식"].includes(kind) && raw.survival_months != null));
+  const hasRisk = !outOfScope && (kind === "창업"
     || hasIndividual
-    || (raw.risk_timeline && Object.keys(raw.risk_timeline).length > 0);
+    || (raw.risk_timeline && Object.keys(raw.risk_timeline).length > 0));
 
   return {
     choice,
@@ -110,6 +157,13 @@ function buildSide(scenario, choice, detail, profile, evidence, domainCov, domai
     // 쪽만 써서 그 문자열이 통째로 유실됐는데, 거기 "명목 — 물가상승분 포함" 경고가
     // 들어 있다. 10년 뒤 소득을 명목으로 보여주면서 그 말을 빼면 실제보다 좋아 보인다.
     income_series: scenario?.income || [],
+    // 공백 기간·초기비용이 반영된 누적 소득. 월소득 줄에는 안 들어 있다 —
+    // "반년 쉬는데 1년차 월급이 남는 쪽보다 높다" 가 여기서 뒤집힌다.
+    income_cumulative: scenario?.income_cumulative || [],
+    // 사용자가 적은 조건 중 실제로 수치에 들어간 것. null 이면 반영된 게 없다.
+    applied_conditions: scenario?.applied_conditions || null,
+    // 범위 밖 사유 — 화면이 '왜 비었는지' 를 말할 수 있게 한다.
+    out_of_scope: scenario?.out_of_scope || null,
     // KNHANES·KWCS 실측(스트레스인지율·우울장애유병률 등). 선택별로 갈리는 값이
     // 아니라 '같은 조건 집단은 지금 이렇다'는 배경 수치다.
     health_context: scenario?.health_context || [],
@@ -198,8 +252,10 @@ export function mapSimulateToPair(sim, { choiceA, choiceB, detailA = "", detailB
   };
   a.indicator_scores = measuredScores("A");
   b.indicator_scores = measuredScores("B");
-  // 걸러낸 축을 이름으로도 남긴다. 값을 빼는 것만으로는 '데이터가 없다'와
-  // '이 축은 잰 적이 없다'가 구분되지 않아, 화면이 이유를 말할 수 없다.
+  // 왜 지웠는지도 함께 넘긴다. 값만 빼면 화면에는 그냥 "—" 로 떠서, 측정을 못 한
+  // 것인지 값이 0 인지 구분이 안 된다. 성민(창업)의 B 가 정확히 그 경우였다 —
+  // 백엔드는 unmeasured 로 "못 쟀다" 고 말하는데 응답의 indicators 에는 중립값
+  // 0.5 가 들어 있어, 실측 0.314 와 나란히 놓이면 큰 격차처럼 보였다.
   a.indicator_unmeasured = sim.indicator_detail?.A?.unmeasured || [];
   b.indicator_unmeasured = sim.indicator_detail?.B?.unmeasured || [];
   // 장기 가치는 별도 미래점수가 아니라 어떤 결과를 먼저 읽을지 정하는 개인화 축이다.
