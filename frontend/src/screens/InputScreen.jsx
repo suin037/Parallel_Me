@@ -5,6 +5,7 @@ import { LIFE_DOMAINS, detectPrimaryLifeDomain, domainLabel, suggestComparePromp
 import { OCCUPATION_GROUPS } from "../data/profileOptions.js";
 import { detectEmotions } from "../data/DiaryContext.jsx";
 import { domainRumination } from "../data/diarySignals.js";
+import { fetchCompareKeywords } from "../data/compareKeywordsApi.js";
 import { loadUniverse } from "../data/myUniverse.js";
 import { questionsForChoice } from "../data/scenarioIntake.js";
 import { currentSlot } from "../data/personaSession.js";
@@ -78,6 +79,9 @@ export default function InputScreen() {
   const [rumination, setRumination] = useState(() => domainRumination({ windowDays: 28, threshold: 4 }));
   const [conversationFutures, setConversationFutures] = useState(latestConversationFutures);
   const [classifying, setClassifying] = useState(false);
+  // 일기에서 뽑은 '요즘 튄 말'. 서버 왕복이라 늦게 도착할 수 있는데, 그동안에도
+  // 칩은 고정 사전으로 이미 떠 있다 — 도착하면 위 두 칸만 그 말로 바뀐다.
+  const [diaryKeywords, setDiaryKeywords] = useState([]);
   // 체험 중인 인물이 있으면 그 사람이 고민하던 두 갈래를 추천한다.
   // 마운트 때 한 번만 읽는다 — 슬롯은 이 화면에 있는 동안 바뀌지 않는다.
   const [persona] = useState(() => {
@@ -103,6 +107,18 @@ export default function InputScreen() {
     const refresh = () => setRumination(domainRumination({ windowDays: 28, threshold: 4 }));
     window.addEventListener("pm:universe", refresh);
     return () => window.removeEventListener("pm:universe", refresh);
+  }, []);
+
+  // 키워드도 일기가 바뀌면 다시 본다. 기록 수가 그대로면 캐시가 받아쳐서
+  // 왕복이 실제로 일어나지는 않는다(compareKeywordsApi 의 캐시 키가 기록 수다).
+  useEffect(() => {
+    let alive = true;
+    const load = () => {
+      fetchCompareKeywords().then((r) => { if (alive && r?.keywords) setDiaryKeywords(r.keywords); });
+    };
+    load();
+    window.addEventListener("pm:universe", load);
+    return () => { alive = false; window.removeEventListener("pm:universe", load); };
   }, []);
 
   // 그 인물의 1년 기록은 이 두 갈림길로 수렴하도록 쓰였다. 기록과 비교 대상이
@@ -210,12 +226,27 @@ export default function InputScreen() {
   const intakeA = questionsForChoice(textA, inheritedDomains.a);
   const intakeB = questionsForChoice(textB, inheritedDomains.b);
 
+  // 두 선택이 같은 영역이면 '상황 질문'은 한 번만 묻는다. 관계가 대표적이다 —
+  // '솔직하게 대화' vs '거리 두기'는 같은 관계의 두 접근이라 "누구와의 관계인가"가
+  // A와 B에서 다를 수 없는데, 예전엔 양쪽에 따로 떠서 같은 문장을 두 번 쓰게 했다.
+  const sharesConditions = intakeA.domain === intakeB.domain;
+
   function updateContext(side, intake, key, value) {
     const field = side.toLowerCase();
-    setScenarioContexts((prev) => ({
-      ...prev,
-      [field]: { event: intake.event, event_label: intake.eventLabel, domain: intake.domain, answers: { ...(prev[field]?.answers || {}), [key]: value } },
-    }));
+    const shared = sharesConditions
+      && intake.questions.find((question) => question.key === key)?.shared;
+    setScenarioContexts((prev) => {
+      const write = (target, targetIntake) => ({
+        event: targetIntake.event,
+        event_label: targetIntake.eventLabel,
+        domain: targetIntake.domain,
+        answers: { ...(prev[target]?.answers || {}), [key]: value },
+      });
+      if (!shared) return { ...prev, [field]: write(field, intake) };
+      // 상황 조건은 양쪽 context 에 같이 넣는다. 백엔드는 A/B 를 각각 독립된
+      // 요청으로 읽으므로, 한쪽에만 넣으면 반대편이 조건 없는 상태로 계산된다.
+      return { ...prev, a: write("a", intakeA), b: write("b", intakeB) };
+    });
   }
 
   async function startComparison() {
@@ -280,6 +311,19 @@ export default function InputScreen() {
     navigate("/simulate", { state: { classifiedDomains: resolved, classifiedContexts: nextContexts } });
   }
 
+  // 갈림길 추천 배너는 **하나만** 띄운다. 셋 다 "두 칸을 대신 채워 준다"는 같은 일을
+  // 하는데 나란히 쌓이면 무엇을 누르라는 건지 알 수 없다. 실제로 겹쳐서 떴다 —
+  // 체험 인물의 심어준 일기로 rumination 을 계산하니 같은 기록을 두 번 말한다
+  // ("성민 님의 두 갈래" 아래에 "직업 이야기가 10일").
+  //
+  // 우선순위 = 사용자가 얼마나 직접 고른 것인가.
+  //   1) 체험 인물   그 인물을 고른 건 명시적 선택이고, 아래 둘의 재료가 그 사람 일기다
+  //   2) 코스모 대화 실제로 나눈 대화에서 나온 두 미래
+  //   3) 반복 고민   수동적으로 감지한 신호 — 위 둘이 없을 때만 말한다
+  const topBanner = persona && !typed ? "persona"
+    : conversationFutures ? "conversation"
+      : rumination.prompt ? "rumination" : null;
+
   function focusFirstChoice() {
     setFocused("a");
     requestAnimationFrame(() => {
@@ -324,7 +368,7 @@ export default function InputScreen() {
       </section>
       {/* 체험 중인 인물의 갈림길. 아직 아무것도 안 적었을 때만 권한다 —
           이미 쓰고 있는 문장을 덮어쓰면 안 된다. */}
-      {persona && !typed && (
+      {topBanner === "persona" && (
         <button type="button" onClick={applyPersonaCompare} className="tap mt-3 flex w-full items-center gap-3 rounded-[18px] border border-violet-400/40 bg-[#1D1730] px-4 py-3.5 text-left transition-colors hover:bg-[#16264a] lg:mt-5 lg:max-w-[720px] lg:px-5 lg:py-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-violet-300">
             <GitCompareArrows size={18} strokeWidth={2} />
@@ -339,7 +383,7 @@ export default function InputScreen() {
           </span>
         </button>
       )}
-      {conversationFutures && (
+      {topBanner === "conversation" && (
         <button type="button" onClick={applyConversationFutures} className="tap mt-3 flex w-full items-center gap-3 rounded-[18px] border border-violet-400/40 bg-[#1D1730] px-4 py-3.5 text-left transition-colors hover:bg-[#16264a] lg:max-w-[720px]">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-violet-300">
             <Mascot which="cosmo" size={24} />
@@ -350,7 +394,7 @@ export default function InputScreen() {
           </span>
         </button>
       )}
-      {rumination.prompt && (
+      {topBanner === "rumination" && (
         <button type="button" onClick={applySuggestedCompare} className="tap mt-3 flex w-full items-center gap-3 rounded-[18px] border border-cyan/40 bg-[#1D1730] px-4 py-3.5 text-left transition-colors hover:bg-[#16264a] lg:mt-5 lg:max-w-[720px] lg:px-5 lg:py-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-violet-400">
             <GitCompareArrows size={18} strokeWidth={2} />
@@ -375,7 +419,7 @@ export default function InputScreen() {
           inputId="choice-a-input"
           side="A" text={textA} domains={scenarioDomains.a} domainAuto={domainAuto.a}
           intake={intakeA} context={scenarioContexts.a} hints={persona?.hints?.a}
-          active={focused === "a"} suggestions={suggestComparePrompts({ side: "a", recentDomains: rumination.domains, valueRanking: profile.value_ranking, otherText: textB })}
+          active={focused === "a"} suggestions={suggestComparePrompts({ side: "a", recentDomains: rumination.domains, valueRanking: profile.value_ranking, otherText: textB, keywords: diaryKeywords })}
           suggestionLabel="이런 식으로 시작할 수 있어요"
           onFocus={() => setFocused("a")} onText={(value) => onText("A", value)}
           onSuggestion={(value) => chooseSuggestion("a", value)}
@@ -393,12 +437,15 @@ export default function InputScreen() {
           inputId="choice-b-input"
           side="B" text={textB} domains={scenarioDomains.b} domainAuto={domainAuto.b}
           intake={intakeB} context={scenarioContexts.b} hints={persona?.hints?.b}
-          active={focused === "b"} suggestions={suggestComparePrompts({ side: "b", recentDomains: rumination.domains, valueRanking: profile.value_ranking, otherText: textA })}
+          active={focused === "b"} suggestions={suggestComparePrompts({ side: "b", recentDomains: rumination.domains, valueRanking: profile.value_ranking, otherText: textA, keywords: diaryKeywords })}
           suggestionLabel={textA.trim() ? "A와 비교할 수 있는 다른 길이에요" : "이런 식으로 시작할 수 있어요"}
           onFocus={() => setFocused("b")} onText={(value) => onText("B", value)}
           onSuggestion={(value) => chooseSuggestion("b", value)}
           onDomain={(key) => toggleDomain("B", key)} onRedetect={() => resetDomainDetection("B")}
           onConditionChange={(key, value) => updateContext("b", intakeB, key, value)}
+          // A와 같은 영역이고 A를 이미 적었을 때만 상황 조건을 A에 맡긴다.
+          // A가 비어 있으면 B에서 물어야 아무도 안 묻는 상황을 피한다.
+          sharedHandledByA={sharesConditions && Boolean(textA.trim())}
         />
       </div>
       </section>
@@ -541,10 +588,18 @@ function CompactFuturePicker({ futureYears, setFutureYears }) {
   );
 }
 
-function ChoiceConditions({ side, intake, context, hints, onChange }) {
+function ChoiceConditions({ side, intake, context, hints, onChange, sharedHandledByA = false }) {
   const color = side === "A" ? "#9B72F2" : "#F39A4A";
   const answers = context?.answers || {};
-  const completed = intake.questions.filter((question) => String(answers[question.key] || "").trim());
+  // B는 A가 이미 물은 상황 조건을 다시 묻지 않는다. 값은 그대로 들어가 있고
+  // (updateContext 가 양쪽에 쓴다) 화면에서만 뺀다.
+  const questions = sharedHandledByA
+    ? intake.questions.filter((question) => !question.shared)
+    : intake.questions;
+  const sharedFromA = sharedHandledByA
+    ? intake.questions.filter((question) => question.shared && String(answers[question.key] || "").trim())
+    : [];
+  const completed = questions.filter((question) => String(answers[question.key] || "").trim());
   const hasAnswers = completed.length > 0;
   // 체험 중인 인물이 있으면 그 사람의 조건을 권한다. 감지된 영역의 질문만 뜨므로
   // hints 에 남는 키가 있어도 여기서 자연히 걸러진다.
@@ -552,7 +607,19 @@ function ChoiceConditions({ side, intake, context, hints, onChange }) {
   // 권할 게 있으면 처음부터 펼친다 — 접혀 있으면 아무도 못 본다.
   const [open, setOpen] = useState(() => hasAnswers || offered.length > 0);
 
-  if (!intake.questions.length) return null;
+  if (!questions.length) {
+    // 이 영역의 조건이 전부 상황 질문이면(관계가 그렇다) B에는 물을 게 남지 않는다.
+    // 카드를 통째로 지우는 대신, A의 답이 여기에도 쓰인다는 사실만 한 줄로 남긴다.
+    if (!sharedFromA.length) return null;
+    return (
+      <div className="mt-3 rounded-xl border border-white/10 bg-[#0B1424]/55 px-3.5 py-2.5">
+        <p className="text-[10px] font-semibold text-sub">A에 입력한 상황 조건을 함께 사용합니다</p>
+        <p className="mt-1 text-[9px] leading-4 text-mut">
+          {sharedFromA.map((question) => `${question.label.replace(/\?$/, "")} ${answers[question.key]}`).join(" · ")}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -591,13 +658,22 @@ function ChoiceConditions({ side, intake, context, hints, onChange }) {
       </button>
       {open && (
         <div className="grid gap-3 border-t border-white/[.07] px-3.5 pb-3.5 pt-3 sm:grid-cols-2">
-          {intake.questions.map((question) => {
+          {/* questions 는 B에서 A가 이미 물은 상황 조건을 뺀 목록이다(위 sharedHandledByA).
+              intake.questions 를 그대로 돌면 B에 공통 질문이 다시 나타난다. */}
+          {questions.map((question) => {
             const hint = hints?.[question.key];
             const empty = !String(answers[question.key] || "").trim();
             return (
               <label key={question.key} className="block">
-                <span className="mb-1 block text-[10px] text-sub">{question.label}</span>
+                <span className="mb-1 block text-[10px] text-sub">
+                  {question.label}
+                  {/* 이 답이 반대편에도 함께 들어간다는 걸 입력 전에 알린다 */}
+                  {question.shared && side === "A" && (
+                    <span className="ml-1 text-[9px] text-mut">· A·B 공통</span>
+                  )}
+                </span>
                 <input value={answers[question.key] || ""} onChange={(event) => onChange(question.key, event.target.value)} placeholder={question.placeholder} className="w-full rounded-lg border border-white/15 bg-[#101A31] px-3 py-2.5 text-[11px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-mut focus:border-violet-400" />
+                {/* 체험 중인 인물의 조건 추천 — 비어 있을 때만 권한다 */}
                 {hint && empty && (
                   <button
                     type="button"
@@ -611,6 +687,11 @@ function ChoiceConditions({ side, intake, context, hints, onChange }) {
               </label>
             );
           })}
+          {sharedFromA.length > 0 && (
+            <p className="text-[9px] leading-4 text-mut sm:col-span-2">
+              상황 조건({sharedFromA.map((question) => question.label.replace(/\?$/, "")).join(" · ")})은 A에 입력한 값을 함께 씁니다.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -657,7 +738,7 @@ function JobField({ label, children }) {
   );
 }
 
-function ChoicePanel({ inputId, side, text, domains, domainAuto, intake, context, hints, active, suggestions, suggestionLabel, onFocus, onText, onSuggestion, onDomain, onRedetect, onConditionChange }) {
+function ChoicePanel({ inputId, side, text, domains, domainAuto, intake, context, hints, active, suggestions, suggestionLabel, onFocus, onText, onSuggestion, onDomain, onRedetect, onConditionChange, sharedHandledByA = false }) {
   const [editingDomains, setEditingDomains] = useState(false);
   const isA = side === "A";
   const accentText = isA ? "text-[#8B6CCF]" : "text-[#FFB85C]";
@@ -709,7 +790,7 @@ function ChoicePanel({ inputId, side, text, domains, domainAuto, intake, context
       )}
 
       {text.trim() && (
-        <ChoiceConditions side={side} intake={intake} context={context} hints={hints} onChange={onConditionChange} />
+        <ChoiceConditions side={side} intake={intake} context={context} hints={hints} onChange={onConditionChange} sharedHandledByA={sharedHandledByA} />
       )}
     </section>
   );
