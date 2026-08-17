@@ -221,7 +221,13 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
       {showCumulative && (
         <div className="border-white/[.07] px-4 py-3.5 [&:not(:last-child)]:border-b">
           <div className="flex items-baseline justify-between gap-2">
-            <h3 className="text-[11px] font-semibold text-sub">{futureYears}년 동안 손에 쥐는 돈</h3>
+            {/* '손에 쥐는 돈' 이라고 부르면 창업비가 **잃은 돈**으로 읽힌다.
+                성민(초기자금 1.2억)은 3년 누적이 357만원 vs 14,046만원, 40배
+                차이로 뜬다 — 계산은 맞지만 화면은 "창업하면 3년간 357만원밖에
+                못 번다"고 말하는 셈이다. 실제로는 회수 중인 상태고 가게·설비는
+                남아 있다. 그래서 이름을 '쌓이는 현금' 으로 바꾸고, 아래에
+                계산을 펼쳐 왜 낮은지가 보이게 한다. */}
+            <h3 className="text-[11px] font-semibold text-sub">{futureYears}년 동안 쌓이는 현금</h3>
             <span className="text-[8.5px] text-mut">공백·초기비용 반영</span>
           </div>
           <p className="mt-0.5 text-[9px] leading-4 text-mut">
@@ -229,18 +235,45 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
             {" "}같은 궤적을 {futureYears}년간 더하고 그 둘을 반영하면 이렇게 바뀝니다.
           </p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {["A", "B"].map((side) => (
-              <article key={side} className="rounded-xl border border-white/[.07] bg-white/[.025] px-3 py-2.5">
-                <div className="flex items-center gap-1.5">
-                  <b className="text-[9px] font-black" style={{ color: COLORS[side] }}>{side}</b>
-                  <span className="truncate text-[9.5px] text-mut">{labelOf((side === "A" ? a : b)?.choice)}</span>
-                </div>
-                <strong className="mt-1 block text-[15px] tabular-nums text-ink">
-                  {Math.round(cumulative[side].value).toLocaleString()}만원
-                </strong>
-              </article>
-            ))}
+            {["A", "B"].map((side) => {
+              const target = side === "A" ? a : b;
+              const cost = Number(target?.applied_conditions?.startup_cost_manwon) || 0;
+              const gapMonths = Number(target?.applied_conditions?.gap_months) || 0;
+              // 백엔드는 `total = -초기자금 + Σ월소득` 으로 계산한다.
+              // 되더하면 초기자금을 빼기 전 소득 합계가 그대로 나온다.
+              const gross = cumulative[side].value + cost;
+              return (
+                <article key={side} className="rounded-xl border border-white/[.07] bg-white/[.025] px-3 py-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <b className="text-[9px] font-black" style={{ color: COLORS[side] }}>{side}</b>
+                    <span className="truncate text-[9.5px] text-mut">{labelOf(target?.choice)}</span>
+                  </div>
+                  <strong className="mt-1 block text-[15px] tabular-nums text-ink">
+                    {Math.round(cumulative[side].value).toLocaleString()}만원
+                  </strong>
+                  {(cost > 0 || gapMonths > 0) && (
+                    <p className="mt-1 text-[8.5px] leading-3.5 tabular-nums text-mut">
+                      소득 {Math.round(gross).toLocaleString()}
+                      {cost > 0 && <> − 초기자금 {Math.round(cost).toLocaleString()}</>}
+                      {gapMonths > 0 && (
+                        <span className="ml-1 not-italic text-[8px]">
+                          (공백 {gapMonths}개월 반영)
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </article>
+              );
+            })}
           </div>
+          {[a, b].some((side) => Number(side?.applied_conditions?.startup_cost_manwon) > 0) && (
+            <p className="mt-2 rounded-lg bg-white/[.04] px-2.5 py-2 text-[9px] leading-4 text-mut">
+              <b className="font-semibold text-sub">초기 자금은 사라진 돈이 아닙니다.</b>
+              {" "}보증금·설비·권리금으로 바뀌어 남아 있고, 이 숫자에는 그 자산 가치가
+              들어 있지 않습니다. 낮게 나온 쪽은 <b className="font-semibold text-sub">손해가 아니라
+              아직 회수 중</b>이라는 뜻으로 읽어 주세요.
+            </p>
+          )}
         </div>
       )}
 
