@@ -5,7 +5,7 @@ import TabBar from "./TabBar.jsx";
 import UserGuide from "./UserGuide.jsx";
 import Tour from "./Tour.jsx";
 import GuideAdvice from "./GuideAdvice.jsx";
-import { startTour, takeGuideAsk } from "../data/tour.js";
+import { startTour } from "../data/tour.js";
 import ReminderBell from "./ReminderBell.jsx";
 import ReminderToast from "./ReminderToast.jsx";
 import { useResult } from "../data/ResultContext.jsx";
@@ -55,11 +55,6 @@ export default function Layout() {
     try { storage.setItem("pm.guide.seen.v1", "1"); } catch { /* 저장 불가 환경 */ }
     setGuideOpen(false);
   };
-  // 계정을 막 만들고 들어온 참이면 안내를 받을지 여기서 묻는다.
-  // 온보딩이 남긴 표시를 집어 간다(한 번만).
-  useEffect(() => {
-    if (takeGuideAsk()) setGuideOpen(true);
-  }, [pathname]);
   // 설정의 '안내 다시 보기' — 안내 첫 화면(소개)부터 다시 연다.
   useEffect(() => {
     const open = () => setGuideOpen(true);

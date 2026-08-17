@@ -57,6 +57,11 @@ export default function Tour() {
   const tipRef = useRef(null);
   const [tipH, setTipH] = useState(220);
   const timers = useRef([]);
+  // 조명이 마지막으로 앉았던 자리. 없으면 화면 밖으로 밀어 둔다(첫 프레임에 안 보이게).
+  const lastHoleRef = useRef({ top: -9999, left: -9999, width: 0, height: 0 });
+  // 조명이 직전 프레임에 보였는지. 안 보이다 나타나는 순간에는 자리를 '이동'시키면
+  // 안 된다 — 보이지 않는 곳에서 새 자리로 미끄러져 오는 게 눈에 띄기 때문이다.
+  const wasVisibleRef = useRef(false);
   // 자동 재생 — 영상 녹화용. 기본은 꺼둔다(혼자 읽는 사람에게는 재촉이 된다).
   const [auto, setAuto] = useState(false);
   // 코스 — 전체(20컷)가 기본이고, 급할 때 쓰는 짧은 코스가 하나 더 있다.
@@ -69,11 +74,10 @@ export default function Tour() {
 
   const clearTimers = () => { timers.current.forEach(clearInterval); timers.current = []; };
 
-  // 스스로 시작하지 않는다 — 사용자가 안내를 고른 표시가 있을 때만 열린다.
+  // 스스로 시작하지 않는다 — 설정에서 '안내 받기'를 누른 그 순간에만 열린다.
   //
-  // 랜딩에서 골랐다면 그때는 짚을 화면이 없다. 그래서 표시만 남겨 두고, 온보딩을
-  // 마치고 앱 화면에 들어오는 이 시점에 시작한다. 설정에서 눌렀다면 이미 앱
-  // 안이라 이벤트로 곧장 열린다.
+  // 예전에는 온보딩이 남긴 표시를 보고 앱에 들어오는 순간 저절로 떴다. 들어가자마자
+  // 설명이 시작되면 화면을 볼 틈이 없고, 중간에 창을 닫으면 다음에 또 떴다.
   useEffect(() => {
     const start = () => {
       if (!wantsTour() || !canRunTourAt(window.location.pathname)) return;
@@ -83,12 +87,6 @@ export default function Tour() {
     window.addEventListener("pm:tour-start", start);
     return () => { window.removeEventListener("pm:tour-start", start); clearTimers(); };
   }, []);
-
-  useEffect(() => {
-    if (open || !wantsTour() || !canRunTourAt(pathname)) return;
-    setAt(0);
-    setOpen(true);
-  }, [pathname, open]);
 
   const rawStep = open ? steps[at] : null;
   // 짧은 코스에서는 short 가 있으면 그걸 쓴다.
@@ -227,6 +225,9 @@ export default function Tour() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, next, prev, finish]);
 
+  // 조명이 보였는지 기록해 둔다 — 다음 렌더에서 '방금 나타났는지'를 알기 위해.
+  useEffect(() => { wasVisibleRef.current = Boolean(box); });
+
   // 말풍선 높이를 따라간다 — 줄 수가 달라 높이가 매번 다르다.
   //
   // 렌더 직후에 한 번만 재면 안 된다. 말풍선에 transition 이 걸려 있어서 그때 재면
@@ -325,28 +326,44 @@ export default function Tour() {
     }
   }
 
+  // 조명이 사라질 때 좌표가 0,0 으로 튀지 않도록 마지막 자리를 들고 있는다.
+  if (hole) lastHoleRef.current = hole;
+  const lastHole = hole || lastHoleRef.current;
+  const justAppeared = Boolean(hole) && !wasVisibleRef.current;
+
   const chapterAt = TOUR_CHAPTERS.indexOf(step.chapter) + 1;
 
   return (
     <div className="fixed inset-0 z-[200]" role="dialog" aria-label="사용 안내">
-      {/* 덮개 —
-          · 전체 화면 단계: 아무것도 덮지 않는다. 화면 자체를 보여주는 단계다.
-          · 캡쳐 단계: 불투명하게 덮는다. 반투명이면 뒤 화면 글자가 그림 위로 비쳐
-            두 화면이 겹쳐 읽힌다.
-          · 그 밖: 대상을 찾기 전까지만 덮어 둔다(빈 구멍이 번쩍이지 않게). */}
-      {!isFull && !hole && (
-        <div className={`absolute inset-0 ${isShot ? "bg-[#02050C]" : "bg-[#02050C]/82"}`} />
-      )}
-      {hole && (
-        <div
-          className="pointer-events-none absolute rounded-[14px] transition-all duration-[360ms] ease-out"
-          style={{
-            top: hole.top, left: hole.left, width: hole.width, height: hole.height,
-            boxShadow: "0 0 0 9999px rgba(2,5,12,.82)",
-            outline: "2px solid rgba(139,108,207,.9)",
-          }}
-        />
-      )}
+      {/* 덮개와 조명 —
+          단계가 바뀔 때마다 덮개를 붙였다 뗐다 하면 그 순간 화면이 번쩍인다.
+          그래서 **둘 다 항상 그려 두고 투명도만 바꾼다**. 조명도 마지막 자리를
+          기억해 두었다가 그 자리에서 사라져야 튀지 않는다.
+
+          · 전체 화면 단계 : 덮개 0, 조명 0 — 화면을 그대로 보여준다.
+          · 캡쳐 단계     : 덮개 1(불투명) — 반투명이면 뒤 글자가 그림 위로 비친다.
+          · 그 밖         : 조명이 어둡게 덮고 대상만 뚫는다. 대상을 찾기 전에는
+                            덮개로 가려 둔다(빈 구멍이 번쩍이지 않게). */}
+      <div
+        className="pointer-events-none absolute inset-0 transition-opacity duration-[320ms] ease-out"
+        style={{
+          background: isShot ? "#02050C" : "rgba(2,5,12,.82)",
+          opacity: isFull ? 0 : hole ? 0 : 1,
+        }}
+      />
+      <div
+        className="pointer-events-none absolute rounded-[14px] transition-all duration-[360ms] ease-out"
+        style={{
+          top: lastHole.top, left: lastHole.left,
+          width: lastHole.width, height: lastHole.height,
+          boxShadow: "0 0 0 9999px rgba(2,5,12,.82)",
+          outline: "2px solid rgba(139,108,207,.9)",
+          opacity: hole ? 1 : 0,
+          // 나타나는 순간에는 자리를 옮기지 않고 밝기만 올린다. 같은 화면에서
+          // 자리만 바뀔 때는 그대로 미끄러진다.
+          transitionProperty: justAppeared ? "opacity" : "top, left, width, height, opacity",
+        }}
+      />
 
       {/* 배경 아무 데나 눌러도 다음으로 */}
       <button onClick={next} className="absolute inset-0 h-full w-full cursor-default" aria-label="다음" />

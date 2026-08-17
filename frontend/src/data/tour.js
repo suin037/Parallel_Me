@@ -34,7 +34,6 @@ import storage from "./safeStorage.js";
 
 const KEY = "pm.tour.v1";
 const WANT = "pm.tour.want.v1";
-const ASK = "pm.guide.ask.v1";
 
 /** 안내가 의미 있는 화면인가 — 랜딩·페르소나 고르기 중엔 짚을 대상이 없다. */
 const NOT_YET = ["/", "/personas", "/onboarding", "/resume"];
@@ -301,17 +300,6 @@ export function markTourSeen() {
 /** 다시 볼 수 있게 표시만 지운다(바로 띄우지는 않는다). */
 export function resetTour() {
   storage.removeItem(KEY);
-}
-
-export function askGuideOnEnter() {
-  storage.setItem(ASK, "1");
-}
-
-/** 한 번만 묻는다 — 읽으면서 표시를 지운다. */
-export function takeGuideAsk() {
-  if (storage.getItem(ASK) !== "1") return false;
-  storage.removeItem(ASK);
-  return true;
 }
 
 /** 안내 첫 화면(소개 모달)을 다시 연다 — 설정의 '안내 받기'. */
