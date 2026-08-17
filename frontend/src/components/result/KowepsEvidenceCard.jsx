@@ -18,6 +18,7 @@ const LABELS = {
   health_satisfaction: "건강 만족도",
   housing_satisfaction: "주거 만족도",
   family_satisfaction: "가족관계 만족도",
+  social_satisfaction: "사회적 친분관계 만족도",
   leisure_satisfaction: "여가 만족도",
   overall_satisfaction: "전반적 만족도",
 };
@@ -26,7 +27,9 @@ function preferredOutcomes(scenario) {
   if (scenario?.startsWith("finance.")) return ["installment_savings", "financial_loan", "living_expenses"];
   if (scenario?.startsWith("lifestyle.")) return ["weekly_work_hours", "leisure_satisfaction", "overall_satisfaction"];
   if (scenario?.startsWith("housing.")) return ["disposable_income", "housing_satisfaction", "overall_satisfaction"];
-  if (scenario?.startsWith("relationship.")) return ["disposable_income", "family_satisfaction", "overall_satisfaction"];
+  // 관계 시나리오에서 사회적 친분관계가 빠져 있었다. 데이터는 이미 있는데
+  // 목록에 없어서 화면까지 못 갔다 — 가족 밖 관계를 재는 유일한 축이라 넣는다.
+  if (scenario?.startsWith("relationship.")) return ["family_satisfaction", "social_satisfaction", "overall_satisfaction"];
   if (scenario?.startsWith("career.")) return ["disposable_income", "job_satisfaction", "overall_satisfaction"];
   if (scenario?.startsWith("education.")) return ["disposable_income", "job_satisfaction", "overall_satisfaction"];
   return ["disposable_income", "health_satisfaction", "overall_satisfaction"];
@@ -94,7 +97,20 @@ export default function KowepsEvidenceCard({ a, b, domains }) {
       </div>
     );
   }
-  if (state.error || !state.data?.available) return null;
+  if (state.error) return null;
+  if (!state.data?.available) {
+    // 검증된 KOWEPS 사건과 연결되지 않는 선택(예: 관계의 행동 실험형 선택지)은
+    // 카드를 그냥 지우지 않고 "왜 수치가 없는지"를 남긴다 — 기획안 4장의
+    // "켤 수 없는 레이어는 켜지 않았다는 사실을 화면에 표시" 원칙.
+    return (
+      <div className="mb-3 rounded-2xl border border-dashed border-white/10 bg-card/60 p-4 text-[11px] leading-relaxed text-mut">
+        <div className="flex items-center gap-1.5 text-[12px] font-semibold text-sub">
+          <Info size={14} /> 이 선택은 수치로 예측하지 않아요
+        </div>
+        <p className="mt-1.5">{state.data?.reason || "검증된 관측 데이터와 연결되는 구체적 사건이 아니에요."}</p>
+      </div>
+    );
+  }
   return <CompactObservation data={state.data} />;
 }
 

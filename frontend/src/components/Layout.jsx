@@ -72,7 +72,11 @@ export default function Layout() {
 
   return (
     <div
-      className={`flex min-h-screen items-center justify-center bg-[#111827] p-0 ${isLanding ? "sm:p-0 lg:block lg:p-0" : `sm:p-6 ${useFullDesktop ? "lg:block lg:p-0" : "lg:p-8"}`}`}
+      className={`flex min-h-screen items-center justify-center bg-[#111827] p-0 ${
+        // 바깥 여백도 같이 없앤다 — 프레임을 벗겨도 이 패딩이 남으면 화면 둘레에
+        // 회색 띠가 생겨 여전히 '기기 안에 든 화면'처럼 보인다.
+        isLanding || isSimulationFlow ? "sm:p-0 lg:block lg:p-0" : `sm:p-6 ${useFullDesktop ? "lg:block lg:p-0" : "lg:p-8"}`
+      }`}
       style={{
         backgroundImage:
           "radial-gradient(circle at 50% 12%, rgba(73,112,171,.22), transparent 36%), linear-gradient(145deg, #172033 0%, #0D1422 48%, #182235 100%)",
@@ -86,7 +90,15 @@ export default function Layout() {
                md:aspect-[16/10] md:h-auto md:max-h-[calc(100vh-48px)] md:max-w-[calc((100vh-48px)*1.6)] md:rounded-[32px]
                lg:max-w-[1240px] sm:ring-1 sm:ring-white/10
                sm:shadow-[0_30px_90px_rgba(0,0,0,.65),0_0_45px_rgba(65,118,190,.18)]`
-        } ${useFullDesktop ? "lg:aspect-auto lg:h-auto lg:min-h-screen lg:max-h-none lg:max-w-none lg:overflow-visible lg:rounded-none lg:border-0 lg:ring-0 lg:shadow-none" : ""} ${isLanding ? "sm:h-screen sm:max-h-none sm:max-w-none sm:rounded-none sm:border-0 sm:ring-0 sm:shadow-none md:aspect-auto md:h-screen md:max-h-none md:max-w-none md:rounded-none lg:max-w-none" : ""}`}
+        } ${useFullDesktop ? "lg:aspect-auto lg:h-auto lg:min-h-screen lg:max-h-none lg:max-w-none lg:overflow-visible lg:rounded-none lg:border-0 lg:ring-0 lg:shadow-none" : ""} ${
+          // 랜딩과 시뮬 로딩은 **모든 구간에서** 기기 프레임을 벗는다.
+          // useFullDesktop 은 lg(1024px) 이상에서만 프레임을 걷어서, 창이 그보다
+          // 좁으면 md 의 16:10 비율·둥근 모서리가 그대로 남아 태블릿처럼 보였다.
+          // 이 두 화면은 전체 화면을 쓰는 연출이라 중간 구간에도 테두리가 없어야 한다.
+          isLanding || isSimulationFlow
+            ? "sm:h-screen sm:max-h-none sm:max-w-none sm:rounded-none sm:border-0 sm:ring-0 sm:shadow-none md:aspect-auto md:h-screen md:max-h-none md:max-w-none md:rounded-none lg:max-w-none"
+            : ""
+        }`}
         style={{ backgroundImage: "radial-gradient(circle at 85% 8%, rgba(47,111,232,.12), transparent 32%), linear-gradient(180deg, #0B1423 0%, #08101D 100%)" }}
       >
         {/* 서비스 헤더 */}

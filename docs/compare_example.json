@@ -344,17 +344,17 @@
       "confidence": {
         "survival_c_index": {
           "metric": "5-fold C-index",
-          "c_index_test": 0.75,
-          "c_index_train": 0.79,
-          "overfit_gap": 0.04,
+          "c_index_test": 0.754,
+          "c_index_train": 0.755,
+          "overfit_gap": 0.001,
           "n_spells": 10173,
           "source": "YP2021 스펠",
           "max_horizon_years": 5
         },
         "causal_effect_ci": {
-          "ate": 27.8,
-          "ci95_low": 21.0,
-          "ci95_high": 34.6,
+          "ate": 27.9,
+          "ci95_low": 20.9,
+          "ci95_high": 34.8,
           "unit": "만원",
           "method": "LinearDML (analytic 95% CI)",
           "source": "YP2021 청년패널 종단"

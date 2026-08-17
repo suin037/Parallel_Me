@@ -155,6 +155,12 @@ function buildSide(scenario, choice, detail, profile, evidence, domainCov, domai
     // 집단의 1·3·5·10년 뒤 실제 분포이며 변화 흐름·상세 분석에서 사용한다.
     koweps_evidence: kowepsEvidence?.available ? kowepsEvidence : null,
     koweps_role: kowepsEvidence?.event_side === side ? "event" : "comparison",
+    // 관계 영역 개인단위 인과효과(ATE + 95% CI). 위 koweps_evidence 가 '집단 관측'인
+    // 것과 달리 이건 처치효과라 근거 강도가 다르다. 비유의 항목도 그대로 실려 오며
+    // (significant=false), 화면이 막대를 그릴지 말지를 그 플래그로 판단한다.
+    relationship_effects: raw.relationship_effects?.available ? raw.relationship_effects : null,
+    relationship_effects_reason: raw.relationship_effects?.available
+      ? null : raw.relationship_effects?.reason || null,
   };
 }
 
@@ -192,6 +198,10 @@ export function mapSimulateToPair(sim, { choiceA, choiceB, detailA = "", detailB
   };
   a.indicator_scores = measuredScores("A");
   b.indicator_scores = measuredScores("B");
+  // 걸러낸 축을 이름으로도 남긴다. 값을 빼는 것만으로는 '데이터가 없다'와
+  // '이 축은 잰 적이 없다'가 구분되지 않아, 화면이 이유를 말할 수 없다.
+  a.indicator_unmeasured = sim.indicator_detail?.A?.unmeasured || [];
+  b.indicator_unmeasured = sim.indicator_detail?.B?.unmeasured || [];
   // 장기 가치는 별도 미래점수가 아니라 어떤 결과를 먼저 읽을지 정하는 개인화 축이다.
   // /compare 미리보기에는 없고 /simulate 최종 응답부터 적용된다.
   a.personalization = sim.personalization || null;

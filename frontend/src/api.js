@@ -37,7 +37,10 @@ function shareBelow(median, p25, p75, baseline) {
   return Math.round(normCdf((baseline - median) / sigma) * 100);
 }
 
-function toOption(scen, label, baseline, ind) {
+// 지표 축 정본 — backend indicators.INDICATOR_KEYS 및 온보딩 가치축과 같은 순서.
+export const AXES = ["경제", "성장", "관계", "자기실현", "안정"];
+
+function toOption(scen, label, baseline, ind, detail) {
   const inc = availPts(scen.income);
   const first = inc.length ? inc[0].value : null;
   const last = inc.length ? inc[inc.length - 1].value : null;
@@ -52,19 +55,27 @@ function toOption(scen, label, baseline, ind) {
   const down = shareBelow(last, lastPt.p25, lastPt.p75, base) ?? Math.max(0, Math.round(30 - change));
   const n = inc.length ? Math.max(...inc.map((p) => p.sample_n || 0)) : scen.satisfaction_summary?.sample_n || 0;
 
-  // 레이더 3지표(0~100). 백엔드 indicators(0~1) 정본 사용, 없으면 파생 폴백.
+  // 레이더 5축(0~100). 백엔드 indicators(0~1) 정본 사용, 없으면 파생 폴백.
+  // 축 이름은 온보딩 가치축(경제·성장·관계·자기실현·안정)과 같다 — 사용자가 정렬한
+  // 답과 결과 화면이 같은 어휘를 쓴다.
   const scores = ind
-    ? {
-        경제: clamp(Math.round((ind["경제적안정도"] ?? 0.5) * 100), 8, 100),
-        성장: clamp(Math.round((ind["성장가능성"] ?? 0.5) * 100), 8, 100),
-        삶의질: clamp(Math.round((ind["삶의질"] ?? 0.5) * 100), 8, 100),
-      }
+    ? Object.fromEntries(
+        AXES.map((ax) => [ax, clamp(Math.round((ind[ax] ?? 0.5) * 100), 8, 100)]),
+      )
     : {
         경제: clamp(Math.round(35 + change * 1.4 + (last ? (last - 300) / 8 : 0)), 8, 100),
         성장: clamp(Math.round(45 + growth * 1.5), 8, 100),
-        삶의질: clamp(Math.round(satis * 20 - regret * 0.25), 8, 100),
+        관계: 50,
+        자기실현: 50,
+        안정: clamp(Math.round(satis * 20 - regret * 0.25), 8, 100),
       };
-  return { label, n: n || 30, income_change_med: change, income_down_pct: down, scores };
+  // 근거가 없어 중립값(0.5)만 채워진 축. 화면은 이걸 보고 '측정 근거 없음'으로
+  // 표시한다 — 0.5 를 측정값처럼 그리면 없는 근거를 있는 것처럼 만든다.
+  const unmeasured = detail?.unmeasured ?? (ind ? [] : ["관계", "자기실현"]);
+  return {
+    label, n: n || 30, income_change_med: change, income_down_pct: down,
+    scores, unmeasured,
+  };
 }
 
 // 이직(A) 인과: 겉보기(관측) vs 순수효과(EconML). 만원 → % 변환.
@@ -98,8 +109,8 @@ export function mapSimulateToResult(sim) {
   const B = cmp.scenarios.B;
   const baseline = prof.monthly_wage || (availPts(A.income)[0]?.value) || 300;
 
-  const optA = toOption(A, cmp.choice_a, baseline, sim.indicators?.A);
-  const optB = toOption(B, cmp.choice_b, baseline, sim.indicators?.B);
+  const optA = toOption(A, cmp.choice_a, baseline, sim.indicators?.A, sim.indicator_detail?.A);
+  const optB = toOption(B, cmp.choice_b, baseline, sim.indicators?.B, sim.indicator_detail?.B);
 
   const incYears = availPts(A.income).map((p) => p.year);
   const nSample = Math.max(optA.n, optB.n);
@@ -262,7 +273,11 @@ export async function runSimulate(args) {
   return mapSimulateToResult(await runSimulateRaw(args));
 }
 
-export async function generateSceneImages({ avatarBlob, avatarSpec, choiceA, choiceB, futureYears = 3, narrative, timeoutMs = 60000 }) {
+// 타임아웃은 백엔드의 실제 상한보다 넉넉해야 한다. 예전엔 60초였는데 백엔드는
+// 한 장에 최대 90초(재시도 포함 그 이상)를 쓸 수 있어, 프론트가 먼저 끊고 나면
+// 백엔드는 아직 그리는 중인 어긋난 상태가 됐다 — 그때 뜬 게 'Failed to fetch' 다.
+// 정상 생성은 두 장 동시에 12초대라 이 값이 실제로 쓰일 일은 드물다.
+export async function generateSceneImages({ avatarBlob, avatarSpec, choiceA, choiceB, futureYears = 3, narrative, timeoutMs = 150000 }) {
   const storyText = (story) => {
     if (typeof story === "string") return story;
     const detail = story?.detail || {};

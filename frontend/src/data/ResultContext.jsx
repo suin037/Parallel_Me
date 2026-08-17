@@ -142,10 +142,18 @@ export function ResultProvider({ children }) {
   // 실행 세대 번호. 늦게 도착한 응답이 이미 지나간 화면을 덮어쓰지 못하게 막는다.
   // resetSession() 이 이 값을 올리므로 인물을 바꾸면 진행 중이던 호출은 버려진다.
   const simulationRunRef = useRef(0);
+  // 대화·공고 분석은 시뮬레이션 시작과 동시에 백그라운드로 돈다 — startComparison()이
+  // analyzeTalks/analyzePostings를 부르자마자 navigate("/simulate")로 넘어가고, 그 화면이
+  // 마운트되며 runSimulation()이 simulationRunRef를 올린다. 같은 ref를 같이 쓰면 이 값이
+  // 늘 그 사이에 바뀌어 있어서, 응답이 왔을 때 "지나간 세대"로 오판해 결과를 통째로
+  // 버렸다(관계·공고 탭이 "읽고 있어요"에서 영원히 멈춤). 인물 전환 때만 버리면 되므로
+  // 별도 ref를 두고 resetSession()에서만 같이 올린다.
+  const talksRunRef = useRef(0);
+  const postingsRunRef = useRef(0);
 
   async function analyzeTalks(list = talks) {
     if (!list.length) { setRelResults([]); return; }
-    const runId = simulationRunRef.current;
+    const runId = talksRunRef.current;
     setRelBusy(true);
     try {
       const { analyzeRelationship } = await import("./relationshipApi.js");
@@ -154,12 +162,12 @@ export function ResultProvider({ children }) {
       for (const t of list) {
         // eslint-disable-next-line no-await-in-loop
         const data = await analyzeRelationship(t).catch(() => ({ error: "network", label: t.label }));
-        if (simulationRunRef.current !== runId) return;
+        if (talksRunRef.current !== runId) return;
         results.push({ ...data, label: t.label, tag: t.tag });
         setRelResults([...results]);
       }
     } finally {
-      if (simulationRunRef.current === runId) setRelBusy(false);
+      if (talksRunRef.current === runId) setRelBusy(false);
     }
   }
 
@@ -171,7 +179,7 @@ export function ResultProvider({ children }) {
   /** 담아둔 공고들을 한꺼번에 분석한다 — 시뮬레이션 시작과 함께 백그라운드로 돌린다. */
   async function analyzePostings(list = postings, choice = null) {
     if (!list.length) { setJobAnalyses([]); return; }
-    const runId = simulationRunRef.current;
+    const runId = postingsRunRef.current;
     setJobBusy(true);
     try {
       const { analyzeJobPosting } = await import("./jobAnalysis.js");
@@ -182,10 +190,10 @@ export function ResultProvider({ children }) {
             .catch(() => ({ ok: false, label: p.label, reason: "network" })),
         ),
       );
-      if (simulationRunRef.current !== runId) return;
+      if (postingsRunRef.current !== runId) return;
       setJobAnalyses(results);
     } finally {
-      if (simulationRunRef.current === runId) setJobBusy(false);
+      if (postingsRunRef.current === runId) setJobBusy(false);
     }
   }
 
@@ -425,6 +433,8 @@ export function ResultProvider({ children }) {
    */
   function resetSession() {
     simulationRunRef.current += 1;
+    talksRunRef.current += 1;
+    postingsRunRef.current += 1;
     setChoices({ a: "이직", b: "유지" });
     setScenarioTexts({ a: "", b: "" });
     setScenarioDomains({ a: [], b: [] });

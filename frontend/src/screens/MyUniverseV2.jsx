@@ -878,10 +878,7 @@ function MentionChart({ mentions, accent, label }) {
           : mentions.rising
             ? `최근 4주(${mentions.recent}번)가 그 앞 4주(${mentions.before}번)보다 늘었어요. 요즘 더 자주 떠오르고 있어요.`
             : `최근 4주(${mentions.recent}번)가 그 앞 4주(${mentions.before}번)보다 줄었어요.`}
-      </p>
-      <p className="mt-1 text-[9px] leading-relaxed text-mut">
-        많이 적혔다고 나쁜 건 아니에요. 신경 쓰고 있다는 뜻이에요.
-      </p>
+      </p>  
     </>
   );
 }
