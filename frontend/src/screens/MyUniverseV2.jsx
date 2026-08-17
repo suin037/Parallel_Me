@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Archive, CalendarDays, ChevronRight, Plus, X } from "lucide-react";
 import UniverseMap from "../components/UniverseMap.jsx";
-import Constellation from "../components/Constellation.jsx";
+import Constellation, { MoodLegend } from "../components/Constellation.jsx";
 import { announceSurface } from "../data/guideAdvice.js";
 import { domainScore, domainMentions, relationMix, metricOf, skillMix, MIN_FOR_SCORE } from "../data/domainScore.js";
 import { PLANETS } from "../data/result.js";
@@ -16,6 +16,22 @@ import { loadSpeech } from "../data/dispositionApi.js";
 import { planetSkin } from "../data/petShop.js";
 import { PLANET_TEXTURES } from "../data/planetSurface.js";
 import { josa, hasFinalConsonant } from "../lib/josa.js";
+import { MOOD_COLORS as MOOD_RAMP } from "../data/moodColors.js";
+
+// 오른쪽에 열리는 패널 폭. 예전엔 50vw 였는데, 1920px 짜리 화면에서 960px —
+// 지도(주인공)와 창이 정확히 반반이 되면서 읽을 것도 없는 패널이 화면을 삼켰다.
+// 글줄 길이가 편한 420~460px 로 고정하고, 지도 여백(PANEL_PUSH)도 같은 값으로 민다.
+const PANEL_W = "w-[min(430px,calc(100%-16px))] lg:w-[500px] xl:w-[560px]";
+const PANEL_PUSH = "md:mr-[400px] lg:mr-[532px] xl:mr-[592px]";
+
+// 패널 안에서 쓰는 강조색 — 별빛과 같은 계열(톤온톤)로 묶는다.
+// 원래는 '아직 안 가본 길'이 초록(#5DCAA5), 'N년 뒤'가 파랑(#4E7FD9)이라 한 패널에
+// 초록·파랑·보라가 같이 떠서 각 색이 뜻을 갖는 것처럼 보였다. 실제로는 둘 다 그냥
+// '앞으로'에 관한 카드다. 계열을 하나로 두고 밝기로만 갈라 놓는다 —
+// 가까운 것(탐험)은 밝게, 먼 것(N년 뒤)은 가라앉게.
+const TONE_PATH = "#A99CF0";   // 아직 안 가본 길 — 밝은 라벤더
+const TONE_FUTURE = "#7C86CC"; // 이 영역의 N년 뒤 — 가라앉은 남보라
+const TONE_NOTE = "#C9BCF6";   // 두 카드 안의 '다시 해보세요' 같은 안내
 
 const DESCRIPTIONS = {
   career: "나의 진로와 커리어에 대한 고민, 선택, 방향성을 기록해요.",
@@ -111,9 +127,8 @@ export default function MyUniverseV2() {
       <div className="absolute right-6 top-5 z-30">
         <button type="button" onClick={() => navigate("/archive")} className="tap flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3 text-[10px] text-sub backdrop-blur"><Archive size={13} /> 보관함</button>
       </div>
-      {/* 패널이 열리면 지도를 왼쪽 절반으로 민다 — 패널 폭(50vw)과 같은 값이라야
-          지도가 창 뒤로 숨지 않고 정확히 반반이 된다. */}
-      <div data-tour="universe-map" className={`transition-[margin] duration-300 ease-out ${planet?"md:mr-[420px] lg:mr-[50vw] xl:mr-[50vw]":""}`}>
+      {/* 패널이 열리면 지도를 왼쪽으로 민다 — 패널 폭보다 조금 더 밀어야 지도가 창 뒤로 안 숨는다. */}
+      <div data-tour="universe-map" className={`transition-[margin] duration-300 ease-out ${planet?PANEL_PUSH:""}`}>
         <UniverseMap planets={PLANETS} groups={orbitGroups} skin={skin} scenarios={state.scenarios || []} selectedKey={planet?.key} onPlanetSelect={(key)=>key ? openPlanet(key) : (setPlanet(null),setCluster(null))} onConstellationOpen={(group,key)=>{
           // 기록 별자리를 누르면 그 별자리를 펼친다(행성 전체는 패널 안에서 열 수 있다).
           if (key) setPlanet(PLANETS.find((item) => item.key === key));
@@ -130,7 +145,7 @@ export default function MyUniverseV2() {
           비어 있어 "세부 예측 결과가 아직 저장되지 않았습니다"만 뜨는 빈 화면이었다.
           행성 모달이 그 영역의 기록·기회·N년 뒤를 실제 데이터로 다 보여준다. */}
       {cluster && <ClusterPanel group={cluster} planet={planet} onClose={()=>setCluster(null)} onWhole={()=>setCluster(null)} />}
-      {planet && !cluster && <PlanetModal planet={planet} state={state} onClose={() => setPlanet(null)} onSimulate={() => {
+      {planet && !cluster && <PlanetModal planet={planet} state={state} profile={profile} onPickOpportunity={pickOpportunity} onClose={() => setPlanet(null)} onSimulate={() => {
         setScenarioDomains({ a: [planet.key], b: [planet.key] });
         setPlanet(null);
         navigate("/input");
@@ -158,7 +173,7 @@ function ClusterPanel({ group, planet, onClose, onWhole }) {
 
   return (
     // 행성 패널과 같은 비율로 — 여기만 좁으면 별자리를 열 때마다 창 크기가 널뛴다.
-    <aside className="absolute inset-y-5 right-5 z-[60] w-[min(420px,calc(100%-28px))] lg:w-[calc(50vw-2.5rem)] xl:w-[calc(50vw-2.5rem)] overflow-y-auto rounded-[24px] border border-white/10 bg-[#09111F]/95 p-5 shadow-[0_30px_90px_rgba(0,0,0,.62)] backdrop-blur-xl">
+    <aside className={`absolute inset-y-5 right-5 z-[60] ${PANEL_W} overflow-y-auto rounded-[24px] border border-white/10 bg-[#09111F]/95 p-5 shadow-[0_30px_90px_rgba(0,0,0,.62)] backdrop-blur-xl`}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-[9px] tracking-[.15em] text-[#A88BE8]">RECORD CONSTELLATION</p>
@@ -176,6 +191,7 @@ function ClusterPanel({ group, planet, onClose, onWhole }) {
       <div className="mt-4 rounded-[20px] border border-white/[.07] bg-[#070D19] p-3">
         {/* seed 를 넘겨야 3D 우주에 떠 있던 그 별자리와 같은 모양이 나온다. */}
         <Constellation size={250} stars={stars} todayDate={todayKey()} seed={group?.weekStart} />
+        <MoodLegend className="mt-2 justify-center" />
       </div>
 
       {/* 상태 */}
@@ -223,7 +239,8 @@ function Close({ onClick }) { return <button type="button" onClick={onClick} cla
 
 // 그 행성(영역)으로 분류된 일기의 분석 — 기록 수·기분 흐름·자주 남긴 감정·월별 추이와
 // 실제로 그날 쓴 문장. 시나리오(미래)와 기록(과거)이 한 행성에서 만나게 하는 부분이다.
-const MOOD_COLORS = ["#E24B4A", "#D85A30", "#EDA100", "#5DCAA5", "#378ADD"];
+// 별자리·홈 캘린더와 같은 램프. 여기서 다시 정의하면 같은 5점이 화면마다 다른 색이 된다.
+const MOOD_COLORS = MOOD_RAMP;
 
 // 연속 기분 흐름 그래프 — 기록 순서대로 이어지는 SVG polyline (이미지 아님, 데이터로 그림).
 function Sparkline({ series = [], trend }) {
@@ -353,10 +370,12 @@ function DomainRecords({ planet, state, entries, recent }) {
 // 이 서비스가 하는 일은 하나를 맞히는 게 아니라 놓치고 있던 선택지를 여러 개 보이게
 // 하는 것이다. 기록을 읽어 아직 저울에 올려본 적 없는 갈림길을 내밀고, 누르면
 // 그 두 선택지가 채워진 채로 시뮬레이션이 열린다.
+// 준비 기간도 색이 아니라 밝기로 말한다 — 가까운 길일수록 밝다.
+// (초록·주황·파랑이면 세 색이 각각 다른 뜻을 가진 것처럼 보이는데, 실제로는 한 축이다.)
 const EFFORT_COLOR = {
-  "지금 바로": "#5DCAA5",
-  "몇 달 준비": "#EDA100",
-  "길게 준비": "#8FB4F0",
+  "지금 바로": "#D6CCFA",
+  "몇 달 준비": "#A99CF0",
+  "길게 준비": "#7C86CC",
 };
 
 function Opportunities({ planet, state, onPick, profile }) {
@@ -389,15 +408,14 @@ function Opportunities({ planet, state, onPick, profile }) {
   const stale = found?.ok && found.nRecords != null && mat.total > found.nRecords;
 
   return (
-    <div className="mt-4 rounded-[18px] border border-[#5DCAA5]/25 bg-[#5DCAA5]/[.06] p-4">
-      <div className="flex items-center justify-between">
-        <p className="text-[11px] font-bold">아직 안 가본 길</p>
-        {found?.ok && <span className="text-[9.5px] text-[#7FD9BB]">{found.items.length}개</span>}
+    <div className="mt-4 rounded-[18px] border p-4" style={{ borderColor: `${TONE_PATH}40`, background: `${TONE_PATH}0F` }}>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+        <p className="text-[11px] font-bold">
+          아직 안 가본 길
+          <span className="ml-2 text-[9.5px] font-normal text-mut">새로운 길을 탐험해서 나의 우주를 넓혀봐요</span>
+        </p>
+        {found?.ok && <span className="text-[9.5px]" style={{ color: TONE_NOTE }}>{found.items.length}개</span>}
       </div>
-      <p className="mt-1 text-[9.5px] leading-relaxed text-mut">
-        아는 두 갈래 사이에서만 고민하지 않도록, 기록에서 다른 길을 찾아봐요.
-      </p>
-
       {!mat.ready ? (
         <p className="mt-2 text-[10px] leading-relaxed text-mut">
           이 영역 일기가 3개는 모여야 길을 찾을 수 있어요. 지금 {mat.total}개예요.
@@ -432,7 +450,7 @@ function Opportunities({ planet, state, onPick, profile }) {
                         저울에 올릴 준비가 됐으면 바로 비교한다. */}
                     <div className="mt-2 flex gap-1.5">
                       {st === "done" ? (
-                        <span className="flex-1 rounded-lg bg-[#5DCAA5]/15 py-1.5 text-center text-[10px] text-[#7FD9BB]">
+                        <span className="flex-1 rounded-lg py-1.5 text-center text-[10px]" style={{background:`${TONE_PATH}26`,color:TONE_NOTE}}>
                           다녀온 길 ✓
                         </span>
                       ) : st === "going" ? (
@@ -445,7 +463,7 @@ function Opportunities({ planet, state, onPick, profile }) {
                             planet: planet.key, planetLabel: planet.label, title: it.title,
                             step: it.first, why: it.why, choiceA: it.choiceA, choiceB: it.choiceB,
                           })}
-                          className="tap flex-1 rounded-lg bg-[#3E9C7F] py-1.5 text-[10px] font-bold text-white"
+                          className="tap flex-1 rounded-lg py-1.5 text-[10px] font-bold text-[#0B1220]" style={{background:TONE_PATH}}
                         >
                           작은 탐험으로 다녀오기
                         </button>
@@ -470,20 +488,16 @@ function Opportunities({ planet, state, onPick, profile }) {
           <button
             onClick={scan}
             disabled={busy}
-            className={`tap mt-3 w-full rounded-xl text-[12px] font-bold ${
-              busy ? "bg-[#1E2740] text-mut" : "bg-[#3E9C7F] text-white"
-            }`}
+            className={`tap mt-3 w-full rounded-xl text-[12px] font-bold ${busy ? "bg-[#1E2740] text-mut" : "text-[#0B1220]"}`}
+            style={busy ? undefined : { background: TONE_PATH }}
           >
             {busy ? "기록에서 길을 찾는 중…" : found?.ok ? "다시 찾기" : "이 영역의 길 찾기"}
           </button>
           {stale && (
-            <p className="mt-1.5 text-[9px] text-[#EDA100]">
+            <p className="mt-1.5 text-[9px]" style={{color:TONE_NOTE}}>
               길을 찾은 뒤 기록이 {mat.total - found.nRecords}개 늘었어요. 다시 찾으면 반영돼요.
             </p>
           )}
-          <p className="mt-2 text-[8.5px] leading-relaxed text-mut">
-            기록에 있는 흐름에서만 끌어온 제안이에요. 눌러서 바로 비교해볼 수 있어요.
-          </p>
         </>
       )}
     </div>
@@ -549,10 +563,10 @@ function FutureYears({ planet, state, profile }) {
   const stale = story?.ok && story.nRecords != null && mat.total > story.nRecords;
 
   return (
-    <div className="mt-4 rounded-[18px] border border-[#4E7FD9]/25 bg-[#4E7FD9]/[.07] p-4">
+    <div className="mt-4 rounded-[18px] border p-4" style={{borderColor:`${TONE_FUTURE}45`,background:`${TONE_FUTURE}12`}}>
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-bold">이 영역의 N년 뒤</p>
-        <span className="text-[9.5px] text-[#8FB4F0]">
+        <span className="text-[9.5px]" style={{color:TONE_NOTE}}>
           일기 {mat.total}개{mat.sims.length ? ` · 시뮬 ${mat.sims.length}개` : ""}
           {mat.trips?.length ? ` · 탐험 ${mat.trips.length}개` : ""}{mat.reflections ? ` · 회고 ${mat.reflections}개` : ""}
         </span>
@@ -576,7 +590,7 @@ function FutureYears({ planet, state, profile }) {
                   !t.open
                     ? "border-white/[.05] text-[#4A5573]"
                     : years === t.years
-                      ? "border-[#4E7FD9] bg-[#4E7FD9]/20 text-[#B6D0FA]"
+                      ? "border-[#8E97D8] bg-[#8E97D8]/25 text-[#DCD2FB]"
                       : "border-white/[.07] text-mut"
                 }`}
               >
@@ -601,13 +615,13 @@ function FutureYears({ planet, state, profile }) {
                   <p className="mt-1 text-[10.5px] leading-relaxed text-sub">{story.now}</p>
                 </div>
               )}
-              <div className="rounded-xl border border-[#4E7FD9]/25 bg-black/25 p-3">
-                <p className="text-[9px] text-[#8FB4F0]">{story.years}년 뒤</p>
+              <div className="rounded-xl border bg-black/25 p-3" style={{borderColor:`${TONE_FUTURE}45`}}>
+                <p className="text-[9px]" style={{color:TONE_NOTE}}>{story.years}년 뒤</p>
                 <p className="mt-1 text-[11px] leading-relaxed text-ink">{story.future}</p>
               </div>
               {story.hinge && (
-                <div className="rounded-xl bg-[#EDA100]/[.08] p-3">
-                  <p className="text-[9px] text-[#EDA100]">이 미래를 가르는 갈림길</p>
+                <div className="rounded-xl p-3" style={{background:`${TONE_NOTE}14`}}>
+                  <p className="text-[9px]" style={{color:TONE_NOTE}}>이 미래를 가르는 갈림길</p>
                   <p className="mt-1 text-[10.5px] leading-relaxed text-sub">{story.hinge}</p>
                 </div>
               )}
@@ -629,20 +643,16 @@ function FutureYears({ planet, state, profile }) {
           <button
             onClick={write}
             disabled={busy}
-            className={`tap mt-3 w-full rounded-xl text-[12px] font-bold ${
-              busy ? "bg-[#1E2740] text-mut" : "bg-[#4E7FD9] text-white"
-            }`}
+            className={`tap mt-3 w-full rounded-xl text-[12px] font-bold ${busy ? "bg-[#1E2740] text-mut" : "text-white"}`}
+            style={busy ? undefined : { background: TONE_FUTURE }}
           >
             {busy ? "기록을 읽는 중…" : story?.ok ? "다시 쓰기" : `${years}년 뒤 이야기 쓰기`}
           </button>
           {stale && (
-            <p className="mt-1.5 text-[9px] text-[#EDA100]">
+            <p className="mt-1.5 text-[9px]" style={{color:TONE_NOTE}}>
               이야기를 쓴 뒤 기록이 {mat.total - story.nRecords}개 늘었어요. 다시 쓰면 반영돼요.
             </p>
           )}
-          <p className="mt-2 text-[8.5px] leading-relaxed text-mut">
-            예측이 아니라 내 기록에서 끌어온 이야기예요. 통계 예측치와는 무관합니다.
-          </p>
         </>
       )}
     </div>
@@ -735,6 +745,7 @@ function StarGroups({ groups, accent, onClose }) {
         {dated[0]?.slice(5)} ~ {dated[dated.length - 1]?.slice(5)}
         <span className="ml-2 text-mut">별 {g.filled}개{g.complete ? "" : " · 채우는 중"}</span>
       </p>
+      <MoodLegend className="mt-2 justify-center" />
 
       <div className="mt-3 space-y-1.5 border-t border-white/[.07] pt-2.5">
         {g.stars.map((s) => (
@@ -803,6 +814,9 @@ function RelationMixChart({ mix, accent }) {
 //
 // 좋고 나쁨이 아니라 '요즘 이게 얼마나 마음에 걸리는지'다. 기분 그래프와 달리
 // 왜곡될 여지가 없다 — 많이 적혔으면 실제로 많이 적힌 것이다.
+const MENTION_RECENT = 4;  // 아래 문장이 '최근 4주 vs 그 앞 4주'로 말한다 — 그래프도 같은 경계를 쓴다
+const MENTION_PLOT = 56;   // 줄기가 자랄 수 있는 높이(px)
+
 function MentionChart({ mentions, accent, label }) {
   if (!mentions || !mentions.total) {
     return (
@@ -816,23 +830,46 @@ function MentionChart({ mentions, accent, label }) {
     <>
       <div className="flex items-center justify-between">
         <h3 className="text-[14px] font-bold">얼마나 자주 떠올랐나</h3>
-        <span className="text-[9px] text-mut">최근 {mentions.weeks}주 · 주별 기록 수</span>
+        <span className="text-[9px] text-mut">주별 기록 수 · 진한 점이 최근 {MENTION_RECENT}주</span>
       </div>
 
-      <div className="mt-3 flex h-[76px] items-end gap-1.5">
-        {mentions.bins.map((b) => (
-          <div key={b.from} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <span className="text-[8px] tabular-nums text-mut">{b.count || ""}</span>
-            <span
-              className="w-full rounded-t-[3px] transition-[height] duration-500"
-              style={{
-                height: `${Math.max(2, (b.count / mentions.max) * 52)}px`,
-                background: b.count ? accent : "rgba(255,255,255,.08)",
-              }}
-            />
-            <span className="truncate text-[7.5px] text-mut">{b.label}</span>
-          </div>
-        ))}
+      {/* 막대를 flex-1 로 늘리면 패널이 넓어질수록 칸이 통째로 살쪄서, 주 8개짜리 데이터가
+          벽돌 여덟 장처럼 보인다. 눈금 자체는 시간축이 맞으니 형태는 그대로 두되
+          표식만 얇게 — 줄기 2px + 머리 점 7px 로 고정한다. 폭이 변해도 두께는 그대로다.
+          최근 4주는 진하게, 그 앞 4주는 흐리게 — 아래 문장이 비교하는 두 구간과 같다. */}
+      <div className="mt-3">
+        <div className="flex items-end gap-1.5 border-b border-white/[.08]">
+          {mentions.bins.map((b, i) => {
+            const recent = i >= mentions.bins.length - MENTION_RECENT;
+            const stem = b.count ? Math.max(4, (b.count / mentions.max) * MENTION_PLOT) : 0;
+            return (
+              <div key={b.from} className="flex min-w-0 flex-1 flex-col items-center">
+                <span className="mb-1 h-[10px] text-[8px] tabular-nums text-mut">{b.count || ""}</span>
+                <span className="flex flex-col items-center justify-end" style={{ height: MENTION_PLOT + 7 }}>
+                  <span
+                    className="h-[7px] w-[7px] shrink-0 rounded-full"
+                    style={
+                      b.count
+                        ? { background: accent, opacity: recent ? 1 : 0.45 }
+                        : { border: "1px solid rgba(255,255,255,.18)" }
+                    }
+                  />
+                  <span
+                    className="w-[2px] rounded-full transition-[height] duration-500"
+                    style={{ height: stem, background: accent, opacity: recent ? 0.55 : 0.24 }}
+                  />
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-1.5 flex gap-1.5">
+          {mentions.bins.map((b) => (
+            <span key={b.from} className="min-w-0 flex-1 truncate text-center text-[7.5px] text-mut">
+              {b.label}
+            </span>
+          ))}
+        </div>
       </div>
 
       <p className="mt-2.5 text-[10px] leading-relaxed text-sub">
@@ -905,7 +942,7 @@ function SkillMixChart({ mix, accent, why }) {
   );
 }
 
-function PlanetModal({ planet, state, onClose, onSimulate }) {
+function PlanetModal({ planet, state, profile, onClose, onSimulate, onPickOpportunity }) {
   const entries = useMemo(() => planetEntries(state, planet.key), [state, planet.key]);
   const recent = useMemo(() => entries.slice(-3).reverse(), [entries]);
   const analysis = useMemo(() => domainAnalysis(planet.key, state), [planet.key, state]);
@@ -957,9 +994,8 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
   const factors = analysis?.topEmotions?.slice(0, 3) || KEYWORDS[planet.key].slice(0, 3);
   const changeText = trend == null ? "—" : `${trend >= 0 ? "+" : ""}${trend.toFixed(1)}`;
 
-  // PC 에서는 화면을 반으로 나눈다 — 왼쪽 지도, 오른쪽 이 창.
-  // (아래 지도 쪽 여백도 같은 폭으로 밀어야 실제로 반반이 된다.)
-  return <aside className="absolute inset-y-2 right-2 z-40 w-[min(430px,calc(100%-16px))] overflow-y-auto rounded-[26px] border border-white/10 bg-[#070E1B]/95 shadow-[0_30px_100px_rgba(0,0,0,.72)] backdrop-blur-2xl lg:inset-y-4 lg:right-4 lg:w-[calc(50vw-1.5rem)] xl:w-[calc(50vw-1.5rem)]">
+  // PC 에서는 지도 오른쪽에 붙는 기둥 하나 — 지도가 주인공이라 폭을 고정한다(PANEL_W).
+  return <aside className={`absolute inset-y-2 right-2 z-40 ${PANEL_W} overflow-y-auto rounded-[26px] border border-white/10 bg-[#070E1B]/95 shadow-[0_30px_100px_rgba(0,0,0,.72)] backdrop-blur-2xl lg:inset-y-4 lg:right-4`}>
     <div className="p-5 lg:p-6">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4"><PlanetOrb planet={planet} /><div><p className="text-[9px] font-semibold tracking-[.2em]" style={{color:accent}}>FUTURE PLANET</p>
@@ -1046,11 +1082,17 @@ function PlanetModal({ planet, state, onClose, onSimulate }) {
         </div>
       </section>
 
+      {/* 여기까지가 '지나온 것'이고, 아래 둘이 '앞으로'다.
+          아직 안 가본 길 — 아는 두 갈래 밖의 선택지를 기록에서 찾아 내민다.
+          이 영역의 N년 뒤 — 쌓인 기록·시뮬·탐험으로 그 영역의 앞날을 서사로 쓴다.
+          둘 다 그 영역 기록이 3개는 있어야 열리고, 모자라면 안에서 그렇게 말한다. */}
+      <Opportunities planet={planet} state={state} profile={profile} onPick={onPickOpportunity} />
+      <FutureYears planet={planet} state={state} profile={profile} />
+
       <section className="relative mt-6 overflow-hidden rounded-[20px] border p-5" style={{borderColor:`${accent}70`,background:`linear-gradient(135deg,${accent}1F,rgba(11,17,31,.72))`,boxShadow:`0 0 32px ${accent}12`}}>
         <span className="pointer-events-none absolute -left-10 -top-16 h-36 w-36 rounded-full blur-2xl" style={{background:`${accent}25`}}/>
         <div className="relative"><h3 className="text-[14px] font-bold">{josa(planet.label, "을", "를")} 높이면 어떤 미래가 펼쳐질까요?</h3>
           <button onClick={onSimulate} className="tap mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[13px] font-bold text-white shadow-lg" style={{background:`linear-gradient(100deg,${accent},#E84E68)`}}>{planet.label} 미래 보기 <ChevronRight size={16}/></button>
-          <p className="mt-2 text-center text-[9px] text-mut">이 영역을 중심으로 미래 시뮬레이션을 시작합니다.</p>
         </div>
       </section>
 
@@ -1101,7 +1143,7 @@ function FutureScenarioPanel({ planet, future, onClose, onCompare }) {
     "1년":"생활 패턴과 만족도, 성장 방향이 자리 잡는 시점입니다.",
     "3년":"선택이 장기적인 경로와 기회에 만든 차이를 확인합니다.",
   };
-  return <aside className="absolute inset-y-5 right-5 z-[60] w-[min(430px,calc(100%-40px))] lg:w-[calc(50vw-2.5rem)] xl:w-[calc(50vw-2.5rem)] overflow-y-auto rounded-[24px] border border-white/10 bg-[#09111F]/95 p-5 shadow-[0_30px_90px_rgba(0,0,0,.62)] backdrop-blur-xl">
+  return <aside className={`absolute inset-y-5 right-5 z-[60] ${PANEL_W} overflow-y-auto rounded-[24px] border border-white/10 bg-[#09111F]/95 p-5 shadow-[0_30px_90px_rgba(0,0,0,.62)] backdrop-blur-xl`}>
     <div className="flex items-start justify-between"><div><p className="text-[9px] tracking-[.15em] text-[#A88BE8]">FUTURE CONSTELLATION</p><h2 className="mt-1 text-[20px] font-bold">{scenario.title || `${planet?.label || "미래"} 시나리오`}</h2><p className="mt-1 text-[10px] text-mut">{planet?.label} · {scenario.date || "저장된 미래"}</p></div><Close onClick={onClose}/></div>
     <div className="mt-5"><p className="text-[10px] font-semibold text-sub">미래 시점</p><div className="mt-2 grid grid-cols-4 gap-1.5">{["현재","3개월","1년","3년"].map((item)=><button key={item} onClick={()=>setHorizon(item)} className={`tap rounded-xl border py-2 text-[10px] font-semibold ${horizon===item?"border-[#8B6CCF] bg-[#8B6CCF]/20 text-[#CDBDF3]":"border-white/[.07] text-mut"}`}>{item}</button>)}</div></div>
     <div className="mt-4 rounded-[18px] border border-[#8B6CCF]/25 bg-[#8B6CCF]/[.07] p-4"><p className="text-[10px] font-bold text-[#BBA4ED]">{horizon}의 나</p><p className="mt-2 text-[12px] leading-relaxed text-sub">{horizonCopy[horizon]}</p>{branches.length?<div className="mt-3 space-y-2">{branches.map((text,i)=><div key={i} className="rounded-xl bg-black/20 p-3 text-[10px] leading-relaxed text-sub"><b className="mr-2 text-[#A88BE8]">미래 {String.fromCharCode(65+i)}</b>{text}</div>)}</div>:<p className="mt-3 text-[10px] text-mut">세부 예측 결과가 아직 저장되지 않았습니다. 다시 시뮬레이션하면 이 시점의 변화가 채워집니다.</p>}</div>
@@ -1113,7 +1155,7 @@ function FutureScenarioPanel({ planet, future, onClose, onCompare }) {
 
 function WeekModal({ planet, group, picked, onPick, onClose, onReport }) {
   if (!group) return null;
-  return <aside className="absolute inset-y-5 right-5 z-[60] w-[min(430px,calc(100%-40px))] lg:w-[calc(50vw-2.5rem)] xl:w-[calc(50vw-2.5rem)] overflow-y-auto rounded-[24px] border border-white/10 bg-[#09111F]/95 p-5 shadow-[0_30px_90px_rgba(0,0,0,.62)] backdrop-blur-xl">
+  return <aside className={`absolute inset-y-5 right-5 z-[60] ${PANEL_W} overflow-y-auto rounded-[24px] border border-white/10 bg-[#09111F]/95 p-5 shadow-[0_30px_90px_rgba(0,0,0,.62)] backdrop-blur-xl`}>
     <div className="flex items-start justify-between"><div><p className="text-[9px] tracking-[.15em] text-[#A88BE8]">ORBITING CONSTELLATION</p><h2 className="mt-1 text-[20px] font-bold">{planet?.label || "나의 우주"} · 별자리</h2><p className="mt-1 text-[11px] text-mut">{dateLabel(group.weekStart)} — {dateLabel(group.weekEnd)}</p></div><Close onClick={onClose}/></div>
     <div className="mt-4 rounded-[20px] border border-white/[.07] bg-[#070D19] p-3"><Constellation size={250} stars={group.stars} todayDate={todayKey()} selectedDate={picked?.date} onSelect={(star)=>!star.future&&onPick(star)}/></div>
     <p className="mt-2 text-[9px] leading-relaxed text-mut">별을 선택하면 해당 날짜의 기록이 아래에 열립니다.</p>
