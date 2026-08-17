@@ -4,7 +4,7 @@
 **사이트(입력·화면)와 일기 모듈이 이 문서만 보고 붙일 수 있도록** 입력/출력/선택지별 동작을 정리했습니다.
 
 레이어 구성:
-- **L1** 룰베이스 생활지표(경제·삶의질·건강·창업·진학) · **L2** KNN 유사사례(GOMS+청년 YP) · **L3** EconML 인과효과 · **L4** lifelines 생존 · **L5** 종단 궤적(10년 소득 경로 + 청년 만족도 궤적 + 선택지 평행우주)
+- **L1** 룰베이스 생활지표(경제·삶의질·건강·창업·진학) · **L2** KNN 유사사례(GOMS+청년 YP) · **L3** EconML 인과효과 · **L4** lifelines 생존 · **L5** 종단 궤적(최대 15년 소득 경로 + 청년 만족도 궤적 + 선택지 평행우주)
 - 서버: FastAPI. 로컬 실행 시 기본 `http://localhost:8000`, 자동 문서 `http://localhost:8000/docs`
 - 프론트 CORS 허용: `http://localhost:5173`
 
@@ -57,7 +57,7 @@
 | `neighbor_changed_ratio` | float \| **null** | 유사집단 중 실제 이직 비율. 이직만 |
 | `risk_timeline` | `{연차: 확률}` | 이직=이직확률(L4) / 창업=폐업확률 / 진학=`{}` |
 | `life_indicators` | `LifeIndicator[]` | Layer1 생활지표 패널 — **선택지 무관 항상 제공** |
-| `trajectory` | `TrajectoryPoint[]` | **L5 종단 소득 궤적** — 비슷한 사람들의 향후 N년(≈10년, KLIPS) 소득·이직 실제 분포 |
+| `trajectory` | `TrajectoryPoint[]` | **L5 종단 소득 궤적** — 비슷한 사람들의 향후 N년(최대 15년, KLIPS 12~27차) 소득·이직 실제 분포. 연차마다 `sample_n` 이 붙고, 표본이 `min_n`(15) 미달인 연차는 아예 만들지 않는다 |
 | `wellbeing_trajectory` | `WellbeingPoint[]` | **만족도 궤적** — 종합 만족도(1~5)의 시간 변화(청년·YP, ≈4년). 소득 궤적과 짝지어 해석. **청년 범위 밖이면 `[]`** |
 | `scenario_trajectories` | `{시나리오: TrajectoryPoint[]}` | **선택지 평행우주** — `{"유지":…, "이직":…}`. **이직 choice에서만** |
 | `narrative` | string | 설명 문장 (**3번 팀원 RAG가 생성**. 미설정 시 `""`) |
@@ -157,7 +157,8 @@
 형태 예시 파일: `docs/compare_example.json` (숫자는 placeholder, 필드 구조는 실제와 동일).
 
 > **시점은 데이터가 지지하는 데까지만.** 우리 패널은 방대하지 않아 만족도(YP)는 약 4년, 소득(KLIPS)·후회도
-> 관측범위까지만 값이 있고 나머지 시점은 `available:false`. "10년 그리드를 강제로 채우지 않는다"가 원칙입니다.
+> 관측범위까지만 값이 있고 나머지 시점은 `available:false`. "그리드를 강제로 채우지 않는다"가 원칙입니다.
+> `effect_extrapolated:true` 인 연차는 값은 있으나 L3 효과가 관측 밖(프로파일 1~5년)이라 마지막 관측값을 이어 붙인 것입니다.
 
 ### 입력 — `POST /compare`
 ```json
@@ -228,15 +229,36 @@
 ### `confidence` (신뢰지표 — '정직한 불확실성' 차별점)
 ```json
 "confidence": {
-  "survival_c_index": { "metric": "5-fold C-index", "c_index_test": 0.75, "c_index_train": 0.79,
-                        "overfit_gap": 0.04, "n_spells": 10173, "source": "YP2021 스펠", "max_horizon_years": 5 },
-  "causal_effect_ci": { "ate": 27.8, "ci95_low": 21.0, "ci95_high": 34.6, "unit": "만원",
-                        "method": "LinearDML (analytic 95% CI)", "source": "YP2021 청년패널 종단" }
+  "survival_c_index": { "metric": "5-fold C-index", "c_index_test": 0.754, "c_index_train": 0.755,
+                        "overfit_gap": 0.001, "n_spells": 10173, "treatment": "move",
+                        "event_label": "일자리 이탈(이직)", "source": "YP2021 스펠", "max_horizon_years": 5 },
+  "causal_effect_ci": { "ate": 27.9, "ci95_low": 20.9, "ci95_high": 34.8, "unit": "만원",
+                        "method": "LinearDML (analytic 95% CI)", "treatment": "move",
+                        "n": null, "n_treated": null, "source": "YP2021 청년패널 종단", "caveat": null },
+  "causal_effect_by_year": {
+    "by_year": { "1": { "ate": 5.8,  "ci_low": 0.52, "ci_high": 11.08, "n_treated": 5498 },
+                 "3": { "ate": 10.58, "ci_low": 3.89, "ci_high": 17.28, "n_treated": 3894 } }
+  },
+  "choice_classification": { "kind": "이직", "confidence": 0.91 }
 }
 ```
-> `causal_effect_ci` 는 **LinearDML 의 analytic 95% CI** 를 노출한다. (CausalForestDML 의 ATE 구간은
-> 표본 분산이 커서 0을 포함할 만큼 넓게 나오지만, 같은 데이터 LinearDML CI 는 정밀하며 점추정은 동일 ≈+27만.)
-> 소득 격차를 "확실한 효과"로 말할 수 있는지는 이 CI 로 판단 — YP 이직 효과는 +21~+35만으로 **0을 넘어 유의**.
+> 값은 **런타임에 아티팩트 매니페스트에서 그대로 읽어 내보낸다** — 여기 적힌 숫자는 하드코딩이 아니라
+> `backend/models/artifacts/manifest.json` 기준 예시다(`choice_classification.confidence` 는 입력마다 달라지는 예시값).
+> 재학습하면 응답도 같이 바뀐다. `n`/`n_treated` 는 아티팩트가 들고 있을 때만 채워진다 —
+> YP 이직 모델은 없어서 `null` 이고, KLIPS 로 학습한 창업(703)·쉬어가기(1,344)에는 값이 들어간다.
+
+| 필드 | 의미 |
+|---|---|
+| `survival_c_index` | 이 입력에 **실제로 쓰인** L4 모델의 5-fold C-index. 모델마다 다르다 — 청년(YP) 이직 0.754 / KLIPS 이직 0.58 / 창업 0.638 / 쉬어가기 0.565 |
+| `causal_effect_ci` | L3 인과효과 ATE 와 95% CI. `treatment`·`n_treated` 로 어느 모델·표본인지 식별 |
+| `causal_effect_ci.caveat` | 결과변수 개념이 대조군과 다른 경우 채워진다(창업=임금 vs 사업소득·생존편의, 쉬어가기=복귀자만 관측). **채워져 있으면 UI 에 반드시 함께 띄울 것** |
+| `causal_effect_by_year` | 상대시간별 동적 처치효과. `{by_year: {h: {ate, ci_low, ci_high, n_treated}}}` 형태(t+1~t+5). 궤적 밴드를 연차별 CI 폭으로 벌리는 데 쓴다 |
+| `choice_classification` | 선택 유형 분류 결과와 확신도. 0.6 미만이면 `notes` 에 경고가 붙는다 |
+
+> `causal_effect_ci` 는 **LinearDML 의 analytic 95% CI** 를 노출한다. (같은 YP 데이터에서 CausalForestDML 은
+> ATE +27.5·CI −21.2~+76.2 로 0을 포함할 만큼 넓지만, LinearDML CI 는 +20.9~+34.8 로 정밀하고 점추정은 사실상 동일.)
+> 소득 격차를 "확실한 효과"로 말할 수 있는지는 이 CI 로 판단 — YP 이직 효과는 **0을 넘어 유의**.
+> `ci95_low` 는 원값 20.95 를 소수 1자리로 반올림한 20.9 다(발표 자료의 +21.0 과 같은 값).
 
 ### 선택 유형별로 채워지는 것
 | 카드/필드 | 이직 | 창업 | 진학 |

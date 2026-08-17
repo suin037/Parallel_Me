@@ -8,6 +8,7 @@ import { loadUniverse, hasRecord, todayKey } from "./myUniverse.js";
 import { localPersonaBlock } from "./jobAnalysis.js";
 import { DOMAIN_LABEL } from "./diarySignals.js";
 import storage from "./safeStorage.js";
+import { maskRecords, maskText } from "./outbound.js";
 
 // 진로 계열은 예측 수치가 실제로 있으니 그대로 둔다. 나머지가 이 화면의 대상이다.
 const SOFT_PLANETS = ["relation", "health", "life", "growth"];
@@ -49,11 +50,12 @@ function domainRecords(planet, s, limit = 20) {
   const all = s.checkins.filter(hasRecord).sort((a, b) => b.date.localeCompare(a.date));
   const tagged = all.filter((c) => Array.isArray(c.domains) && c.domains.includes(planet));
   const pool = tagged.length >= 4 ? tagged : all;
-  return pool.slice(0, limit).map((c) => ({
+  // 일기 본문이 그대로 나가는 자리 — 외부 AI 로 보내기 전에 가린다.
+  return maskRecords(pool.slice(0, limit).map((c) => ({
     date: c.date,
     text: (c.text || c.note || "").slice(0, 200),
     mood: c.mood ?? null,
-  }));
+  })));
 }
 
 export async function fetchSoftCompare(planet, choiceA, choiceB, { speech = "polite", profile = null } = {}) {
@@ -65,7 +67,7 @@ export async function fetchSoftCompare(planet, choiceA, choiceB, { speech = "pol
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        choiceA, choiceB,
+        choiceA: maskText(choiceA), choiceB: maskText(choiceB),
         domain: planet,
         label: DOMAIN_LABEL[planet] || "",
         records: domainRecords(planet, s),

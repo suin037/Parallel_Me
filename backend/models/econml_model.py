@@ -141,7 +141,7 @@ def effect_confidence(features: dict, treatment: str = "move") -> dict | None:
     **LinearDML 의 analytic 95% CI 를 우선 노출**한다.
     CausalForestDML 의 ATE 구간(ate_ci)은 표본 분산이 커서 0을 포함할 만큼 넓게 나오는데,
     같은 데이터의 LinearDML CI(linear_ci)는 훨씬 정밀하다(점추정은 둘이 사실상 동일).
-    예) YP: CForest ATE +27.1 (CI -20.7~+75.0) vs LinearDML +27.8 (CI +21.0~+34.6).
+    예) YP: CForest ATE +27.5 (CI -21.2~+76.2) vs LinearDML +27.9 (CI +20.9~+34.8).
     → '인과효과가 0과 구분되는가'는 LinearDML CI 로 판단하는 게 정직·정확.
 
     `caveat` 가 있으면 그대로 실어 보낸다(창업처럼 결과변수 개념이 대조군과 다른 경우).

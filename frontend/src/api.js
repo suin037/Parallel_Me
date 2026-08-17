@@ -5,6 +5,7 @@ import { occupationGroupLabel } from "./data/occupationGroups.js";
 // ─────────────────────────────────────────────────────────────
 
 import { buildDisposition } from "./data/psychQuestions.js";
+import { maskAnswers, maskFunctional, maskText } from "./data/outbound.js";
 
 // 기본은 Vite의 same-origin /api 프록시. 외부 임시 터널에서도 프론트 URL
 // 하나만 열면 되며, 배포 API가 따로 있을 때만 VITE_API_BASE로 덮어쓴다.
@@ -37,7 +38,10 @@ function shareBelow(median, p25, p75, baseline) {
   return Math.round(normCdf((baseline - median) / sigma) * 100);
 }
 
-function toOption(scen, label, baseline, ind) {
+// 지표 축 정본 — backend indicators.INDICATOR_KEYS 및 온보딩 가치축과 같은 순서.
+export const AXES = ["경제", "성장", "관계", "자기실현", "안정"];
+
+function toOption(scen, label, baseline, ind, detail) {
   const inc = availPts(scen.income);
   const first = inc.length ? inc[0].value : null;
   const last = inc.length ? inc[inc.length - 1].value : null;
@@ -52,19 +56,27 @@ function toOption(scen, label, baseline, ind) {
   const down = shareBelow(last, lastPt.p25, lastPt.p75, base) ?? Math.max(0, Math.round(30 - change));
   const n = inc.length ? Math.max(...inc.map((p) => p.sample_n || 0)) : scen.satisfaction_summary?.sample_n || 0;
 
-  // 레이더 3지표(0~100). 백엔드 indicators(0~1) 정본 사용, 없으면 파생 폴백.
+  // 레이더 5축(0~100). 백엔드 indicators(0~1) 정본 사용, 없으면 파생 폴백.
+  // 축 이름은 온보딩 가치축(경제·성장·관계·자기실현·안정)과 같다 — 사용자가 정렬한
+  // 답과 결과 화면이 같은 어휘를 쓴다.
   const scores = ind
-    ? {
-        경제: clamp(Math.round((ind["경제적안정도"] ?? 0.5) * 100), 8, 100),
-        성장: clamp(Math.round((ind["성장가능성"] ?? 0.5) * 100), 8, 100),
-        삶의질: clamp(Math.round((ind["삶의질"] ?? 0.5) * 100), 8, 100),
-      }
+    ? Object.fromEntries(
+        AXES.map((ax) => [ax, clamp(Math.round((ind[ax] ?? 0.5) * 100), 8, 100)]),
+      )
     : {
         경제: clamp(Math.round(35 + change * 1.4 + (last ? (last - 300) / 8 : 0)), 8, 100),
         성장: clamp(Math.round(45 + growth * 1.5), 8, 100),
-        삶의질: clamp(Math.round(satis * 20 - regret * 0.25), 8, 100),
+        관계: 50,
+        자기실현: 50,
+        안정: clamp(Math.round(satis * 20 - regret * 0.25), 8, 100),
       };
-  return { label, n: n || 30, income_change_med: change, income_down_pct: down, scores };
+  // 근거가 없어 중립값(0.5)만 채워진 축. 화면은 이걸 보고 '측정 근거 없음'으로
+  // 표시한다 — 0.5 를 측정값처럼 그리면 없는 근거를 있는 것처럼 만든다.
+  const unmeasured = detail?.unmeasured ?? (ind ? [] : ["관계", "자기실현"]);
+  return {
+    label, n: n || 30, income_change_med: change, income_down_pct: down,
+    scores, unmeasured,
+  };
 }
 
 // 이직(A) 인과: 겉보기(관측) vs 순수효과(EconML). 만원 → % 변환.
@@ -98,8 +110,8 @@ export function mapSimulateToResult(sim) {
   const B = cmp.scenarios.B;
   const baseline = prof.monthly_wage || (availPts(A.income)[0]?.value) || 300;
 
-  const optA = toOption(A, cmp.choice_a, baseline, sim.indicators?.A);
-  const optB = toOption(B, cmp.choice_b, baseline, sim.indicators?.B);
+  const optA = toOption(A, cmp.choice_a, baseline, sim.indicators?.A, sim.indicator_detail?.A);
+  const optB = toOption(B, cmp.choice_b, baseline, sim.indicators?.B, sim.indicator_detail?.B);
 
   const incYears = availPts(A.income).map((p) => p.year);
   const nSample = Math.max(optA.n, optB.n);
@@ -159,19 +171,23 @@ function buildSimulateBody({ profile, choiceA, choiceB, choiceADetail, choiceBDe
       // 백엔드가 qmode.value_ranking.axis_weights 로 가중치 변환 → 강조·초점·서사 개인화.
       ...(profile.value_ranking?.length ? { value_ranking: profile.value_ranking } : {}),
     },
-    choice_a: choiceA,
-    choice_b: choiceB,
+    // 두 갈림길 문장도 사용자가 직접 쓴 자유서술이다. 다만 여기 적힌 금액·회사명은
+    // 분류·계산에 쓰이므로(choice_classifier, scenarioIntake) 기능 입력 정책으로 가린다.
+    choice_a: maskFunctional(choiceA),
+    choice_b: maskFunctional(choiceB),
     future_years: futureYears,
   };
   if (profile.value_ranking?.length) body.value_ranking = profile.value_ranking;
-  if (choiceADetail?.trim()) body.choice_a_detail = choiceADetail.trim();
-  if (choiceBDetail?.trim()) body.choice_b_detail = choiceBDetail.trim();
+  // 상세·조건은 금액이 계산에 쓰이므로(origin 의 '사용자가 적은 조건을 수치에 반영') 금액은
+  // 남기고 이름·연락처만 가린다. 반대로 diary 는 순수 자유서술이라 전부 가린다.
+  if (choiceADetail?.trim()) body.choice_a_detail = maskFunctional(choiceADetail.trim());
+  if (choiceBDetail?.trim()) body.choice_b_detail = maskFunctional(choiceBDetail.trim());
   // 새 삶의 영역 계약용 필드. 현재 백엔드는 extra 필드를 무시하므로 기존 API와 호환된다.
   if (choiceADomains?.length) body.choice_a_domains = choiceADomains;
   if (choiceBDomains?.length) body.choice_b_domains = choiceBDomains;
-  if (choiceAContext && Object.keys(choiceAContext).length) body.choice_a_context = choiceAContext;
-  if (choiceBContext && Object.keys(choiceBContext).length) body.choice_b_context = choiceBContext;
-  if (diary) body.diary = diary;
+  if (choiceAContext && Object.keys(choiceAContext).length) body.choice_a_context = maskAnswers(choiceAContext);
+  if (choiceBContext && Object.keys(choiceBContext).length) body.choice_b_context = maskAnswers(choiceBContext);
+  if (diary) body.diary = maskText(diary);
 
   // 심리 성향 서술(MBTI + 서술형 답변) → disposition_block + 답변 수(확신도).
   // 백엔드가 서사 프롬프트에 주입 → 개인화 심화.
@@ -224,8 +240,8 @@ export async function classifyChoicePair({ choiceA, choiceB, domainsA = [], doma
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      choice_a: choiceA,
-      choice_b: choiceB,
+      choice_a: maskFunctional(choiceA),
+      choice_b: maskFunctional(choiceB),
       choice_a_domain_hints: domainsA,
       choice_b_domain_hints: domainsB,
     }),
@@ -262,7 +278,11 @@ export async function runSimulate(args) {
   return mapSimulateToResult(await runSimulateRaw(args));
 }
 
-export async function generateSceneImages({ avatarBlob, avatarSpec, choiceA, choiceB, futureYears = 3, narrative, timeoutMs = 60000 }) {
+// 타임아웃은 백엔드의 실제 상한보다 넉넉해야 한다. 예전엔 60초였는데 백엔드는
+// 한 장에 최대 90초(재시도 포함 그 이상)를 쓸 수 있어, 프론트가 먼저 끊고 나면
+// 백엔드는 아직 그리는 중인 어긋난 상태가 됐다 — 그때 뜬 게 'Failed to fetch' 다.
+// 정상 생성은 두 장 동시에 12초대라 이 값이 실제로 쓰일 일은 드물다.
+export async function generateSceneImages({ avatarBlob, avatarSpec, choiceA, choiceB, futureYears = 3, narrative, timeoutMs = 150000 }) {
   const storyText = (story) => {
     if (typeof story === "string") return story;
     const detail = story?.detail || {};

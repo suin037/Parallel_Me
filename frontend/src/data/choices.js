@@ -87,6 +87,28 @@ const RELATED_ALTERNATIVES = {
   long_term_values: ["지금의 안정을 유지하며 가능성을 더 확인하기", "지금 상태를 그대로 두고 판단 기준부터 분명히 하기", "가장 중요한 가치 하나만 우선해보기", "되돌릴 수 있는 작은 선택으로 먼저 시험하기"],
 };
 
+// 일기에서 뽑은 말(예: "팀장")을 끼우는 문형. 고정 사전이 못 하는 걸 여기서 한다 —
+// COMPARE_PROMPTS 는 영역당 문장이 하나라 "새로운 회사나 역할로 옮기기" 라는 총칭만
+// 내놓는데, 정작 그 사람 일기에 스무 번 나온 말은 담지 못한다.
+//
+// 조사가 붙는 자리를 만들지 않는다. {k} 에는 사용자가 쓴 아무 명사가 들어오는데
+// 은/는·이/가 는 받침에 따라 갈리므로 미리 고를 수 없다("팀장은" vs "야근은").
+// 그래서 뒤에 조사 없이 붙는 표현만 쓴다 — '때문에', '그대로 두고', '중심으로'.
+//
+// COMPARE_PROMPTS 와 같은 규칙: 각 문구에는 그 영역의 detectLifeDomains 키워드가
+// 반드시 하나 들어 있어야 한다. 누르면 그대로 입력칸에 들어가 분류를 다시 통과한다.
+const KEYWORD_PROMPTS = {
+  career: { a: (k) => `${k} 때문에 회사를 옮기기`, b: (k) => `${k} 그대로 두고 지금 회사에 남기` },
+  education: { a: (k) => `${k} 공부를 본격적으로 시작하기`, b: (k) => `${k} 그대로 두고 지금 공부 방식 유지하기` },
+  business: { a: (k) => `${k} 쪽으로 작게 사업 시작해보기`, b: (k) => `${k} 그대로 두고 창업은 미루기` },
+  finance: { a: (k) => `${k} 중심으로 돈 계획 바꾸기`, b: (k) => `${k} 그대로 두고 생활비부터 줄이기` },
+  health: { a: (k) => `${k} 회복을 가장 앞에 두기`, b: (k) => `${k} 그대로 두고 지금 건강 관리 이어가기` },
+  housing: { a: (k) => `${k} 때문에 이사하기`, b: (k) => `${k} 그대로 두고 지금 집에 머물기` },
+  relationship: { a: (k) => `${k} 관계를 두고 먼저 대화 꺼내기`, b: (k) => `${k} 그대로 두고 관계에 거리를 두기` },
+  lifestyle: { a: (k) => `${k} 중심으로 생활 방식 바꾸기`, b: (k) => `${k} 그대로 두고 루틴만 조금 바꾸기` },
+  long_term_values: { a: (k) => `${k} 기준으로 장기 방향 정하기`, b: (k) => `${k} 그대로 두고 지금 가치 유지하기` },
+};
+
 const VALUE_TO_DOMAINS = {
   money: ["finance"], status: ["career"], family: ["relationship"], friends: ["relationship"],
   growth: ["education", "career"], freedom: ["lifestyle"], meaning: ["long_term_values"],
@@ -146,8 +168,44 @@ export function detectPrimaryLifeDomain(text) {
   return ranked.length ? [ranked[0].key] : [];
 }
 
+/**
+ * 추출 키워드 하나 → 어느 영역의 말인가.
+ *
+ * 단어만 보면 대개 못 정한다("팀장"은 어느 영역 사전에도 없다). 그래서 그 말이
+ * 나온 일기 발췌(samples)를 함께 넣고 판정한다 — 영역 정본은 여기 하나뿐이라
+ * 서버는 명사만 뽑고 분류는 하지 않는다(compare_keywords.py 참고).
+ */
+function keywordDomain(item) {
+  const text = `${item?.word || ""} ${(item?.samples || []).join(" ")}`;
+  const primary = detectPrimaryLifeDomain(text)[0];
+  if (primary && KEYWORD_PROMPTS[primary]) return primary;
+  return detectLifeDomains(text).find((key) => KEYWORD_PROMPTS[key]) || null;
+}
+
+/**
+ * 일기에서 뽑은 말로 만든 칩. 만들 수 없으면 빈 배열이고, 그때 호출부는 고정
+ * 사전만 쓴다. `allow` 를 주면 그 영역들로만 제한한다(B는 A의 영역을 따른다).
+ *
+ * limit 를 2로 두는 이유: 네 칸을 전부 일기 키워드로 채우면 사용자가 최근에 쓴
+ * 주제 밖으로 나갈 길이 화면에서 사라진다. 절반은 늘 열어 둔다.
+ */
+function keywordPrompts({ keywords = [], side = "a", allow = null, limit = 2 } = {}) {
+  const out = [];
+  for (const item of keywords || []) {
+    if (out.length >= limit) break;
+    const word = String(item?.word || "").trim();
+    if (!word) continue;
+    const domain = keywordDomain(item);
+    if (!domain || (allow && !allow.has(domain))) continue;
+    const text = KEYWORD_PROMPTS[domain][side === "b" ? "b" : "a"](word);
+    if (out.some((chip) => chip.text === text)) continue;
+    out.push({ key: `kw-${domain}-${word}`, text, word, domain, score: 100 - out.length, fromDiary: true });
+  }
+  return out;
+}
+
 /** 최근 기록·가치·반대편 입력을 반영하고, 서로 다른 영역 후보를 반환한다. */
-export function suggestComparePrompts({ side = "a", recentDomains = [], valueRanking = [], otherText = "", limit = 4 } = {}) {
+export function suggestComparePrompts({ side = "a", recentDomains = [], valueRanking = [], otherText = "", keywords = [], limit = 4 } = {}) {
   const otherDomains = new Set(detectLifeDomains(otherText));
   const recentScore = new Map(
     (recentDomains || [])
@@ -162,38 +220,48 @@ export function suggestComparePrompts({ side = "a", recentDomains = [], valueRan
     ? ["career", "relationship", "education", "health", "housing", "lifestyle", "finance", "business", "long_term_values"]
     : ["lifestyle", "health", "relationship", "housing", "finance", "education", "career", "long_term_values", "business"];
 
+  // 일기에서 뽑은 말이 먼저 자리를 잡고, 남는 칸을 고정 사전이 채운다.
+  // B에 A가 이미 적혀 있으면 A의 영역으로만 제한한다 — 안 그러면 A와 무관한
+  // 최근 관심사가 '비교할 다른 길' 자리에 끼어든다.
+  const restrictTo = side === "b" && otherText.trim() && otherDomains.size ? otherDomains : null;
+  const fromDiary = keywordPrompts({ keywords, side, allow: restrictTo });
+  const remaining = Math.max(0, limit - fromDiary.length);
+  const isNew = (text) => !fromDiary.some((chip) => chip.text === text);
+
   // B는 A의 감지 영역을 최우선으로 사용한다. 복수 영역이면 각 영역 후보를 번갈아
   // 구성해 A와 무관한 인기 키워드가 끼어들지 않게 한다.
-  if (side === "b" && otherText.trim() && otherDomains.size) {
+  if (restrictTo) {
     const rankedDomains = [...otherDomains].sort((left, right) => {
       const leftScore = (recentScore.get(left) || 0) * 2 + (valueScore.get(left) || 0);
       const rightScore = (recentScore.get(right) || 0) * 2 + (valueScore.get(right) || 0);
       return rightScore - leftScore;
     });
     const related = [];
-    for (let optionIndex = 0; related.length < limit; optionIndex += 1) {
+    for (let optionIndex = 0; related.length < remaining; optionIndex += 1) {
       let added = false;
       for (const key of rankedDomains) {
         const text = RELATED_ALTERNATIVES[key]?.[optionIndex];
-        if (text && !related.some((item) => item.text === text)) {
+        if (text && isNew(text) && !related.some((item) => item.text === text)) {
           related.push({ key: `${key}-${optionIndex}`, text, score: 10 - optionIndex });
           added = true;
-          if (related.length === limit) break;
+          if (related.length === remaining) break;
         }
       }
       if (!added) break;
     }
-    if (related.length) return related;
+    if (related.length || fromDiary.length) return [...fromDiary, ...related];
   }
 
-  return fallbackOrder
+  const fallback = fallbackOrder
     .map((key, fallbackIndex) => ({
       key,
       text: COMPARE_PROMPTS[key][side === "b" ? "b" : "a"],
       score: (recentScore.get(key) || 0) * 4 + (valueScore.get(key) || 0) * 2 + (otherDomains.has(key) ? 1.5 : 0) - fallbackIndex * .01,
     }))
+    .filter((item) => isNew(item.text))
     .sort((left, right) => right.score - left.score)
-    .slice(0, limit);
+    .slice(0, remaining);
+  return [...fromDiary, ...fallback];
 }
 
 export function domainLabel(key) {

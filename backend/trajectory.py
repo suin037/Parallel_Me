@@ -192,7 +192,7 @@ def matched_features(features: dict) -> list[str]:
     return sorted(_query_vector(features, P)) if P else []
 
 
-def project_trajectory(features: dict, horizon: int = 10, k: int = 300,
+def project_trajectory(features: dict, horizon: int = 15, k: int = 300,
                        min_n: int = 15) -> list[dict]:
     """프로필 → 향후 `horizon`년 소득·이직 궤적(분위수)."""
     P = _panel()

@@ -52,6 +52,11 @@ OUTCOMES = [
     "happiness_t1", "health_score_t1", "wellbeing_index_t1",
     "health_current_change", "life_satisfaction_change", "happiness_change",
     "health_score_change", "wellbeing_index_change",
+    # 영역별 만족 변화 — 파생은 되고 있었으나 커버리지 보고에서 빠져 있었다.
+    "satisfaction_family_income_change", "satisfaction_leisure_change",
+    "satisfaction_housing_change", "satisfaction_family_relationship_change",
+    "satisfaction_kin_relationship_change", "satisfaction_social_relationship_change",
+    "satisfaction_overall_change",
 ]
 
 # The raw KLIPS domain-satisfaction items use 1=most satisfied and
@@ -62,9 +67,18 @@ SATISFACTION_DOMAINS = {
     "satisfaction_leisure": "\ub9cc\uc871_\uc5ec\uac00\ud65c\ub3d9",
     "satisfaction_housing": "\ub9cc\uc871_\uc8fc\uac70\ud658\uacbd",
     "satisfaction_family_relationship": "\ub9cc\uc871_\uac00\uc871\uad00\uacc4",
+    "satisfaction_kin_relationship": "\ub9cc\uc871_\uce5c\uc778\ucc99\uad00\uacc4",
     "satisfaction_social_relationship": "\ub9cc\uc871_\uc0ac\ud68c\uc801\uce5c\ubd84",
     "satisfaction_overall": "\ub9cc\uc871_\uc804\ubc18\uc801",
 }
+
+# \uad00\uacc4 \uc601\uc5ed \uacb0\uacfc\ubcc0\uc218. \uc774\uc9c1\u00b7\ucc3d\uc5c5\u00b7\uc26c\uc5b4\uac00\uae30\uc758 '\uad00\uacc4 \ube44\uc6a9'\uc744 \uc7ac\ub294 \ucd95\uc774\uba70,
+# KOWEPS p03_8/p03_10 \uacfc \uc11c\ub85c \ub2e4\ub978 \ud328\ub110\ub85c \uad50\ucc28\uac80\uc99d\ud558\ub294 \ub300\uc0c1\uc774\uae30\ub3c4 \ud558\ub2e4.
+RELATIONSHIP_OUTCOMES = [
+    "satisfaction_family_relationship_change",
+    "satisfaction_kin_relationship_change",
+    "satisfaction_social_relationship_change",
+]
 
 
 def _read_csv(path: Path) -> pd.DataFrame:
@@ -200,6 +214,35 @@ def _coverage(df: pd.DataFrame, columns: list[str]) -> dict[str, dict[str, float
     return result
 
 
+def _relationship_gap(panel: pd.DataFrame) -> dict:
+    """이직군 - 유지군의 관계 만족 변화 격차(양수 = 이직군이 더 개선).
+
+    인과효과가 아니라 원자료 평균 차이다. 자기선택을 보정하지 않았으므로
+    DML 로 넘기기 전 '볼 만한 신호가 있는지' 확인하는 용도로만 쓴다.
+    """
+    out = {}
+    for col in RELATIONSHIP_OUTCOMES:
+        if col not in panel.columns:
+            continue
+        sub = panel.dropna(subset=[col])
+        treated = sub.loc[sub["moved_t1"].eq(1), col]
+        control = sub.loc[sub["moved_t1"].eq(0), col]
+        if treated.empty or control.empty:
+            continue
+        # 두 표본 평균차의 표준오차 — 격차가 표본 흔들림 수준인지 가늠한다.
+        se = float(np.sqrt(treated.var(ddof=1) / len(treated)
+                           + control.var(ddof=1) / len(control)))
+        gap = float(treated.mean() - control.mean())
+        out[col] = {
+            "n_treated": int(len(treated)), "n_control": int(len(control)),
+            "mean_treated": round(float(treated.mean()), 4),
+            "mean_control": round(float(control.mean()), 4),
+            "gap": round(gap, 4), "se": round(se, 4),
+            "gap_over_se": round(gap / se, 2) if se else None,
+        }
+    return out
+
+
 def build_report(
     panel: pd.DataFrame,
     base_rows: int,
@@ -221,6 +264,7 @@ def build_report(
         for col in (
             "life_satisfaction_change", "happiness_change", "health_current_change",
             "health_score_change", "wellbeing_index_change",
+            "satisfaction_overall_change", *RELATIONSHIP_OUTCOMES,
         ):
             values = group[col].dropna() if col in group else pd.Series(dtype=float)
             summary[col] = {
@@ -233,6 +277,7 @@ def build_report(
     outcome_cols = [c for c in OUTCOMES if c in panel.columns]
     outcome_cols += [c for c in panel if c.endswith("_t1") and c.startswith("work_")]
     return {
+        "relationship_gap": _relationship_gap(panel),
         "definition": "입력=t, 처치(moved_t1)와 결과=t+1; 연속 조사(wave/year gap=1)만 포함",
         "age_range": [age_min, age_max],
         "base_rows": base_rows,

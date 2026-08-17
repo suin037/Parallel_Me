@@ -55,6 +55,27 @@ def safety_check(text: str) -> dict:
             "support": crisis.support_message(r.level) if r.attach_support else ""}
 
 
+def signals_text(signals) -> str:
+    """추출된 신호에서 위기 탐지에 걸 텍스트만 모은다.
+
+    스크린샷만 올라온 경우 transcript 가 비어 있어 1차 게이트가 아무것도 못 본다.
+    비전이 읽어낸 대사 인용·정서 톤을 여기 모아 2차 게이트에 다시 건다.
+    """
+    if not isinstance(signals, dict):
+        return ""
+    parts = [signals.get("interaction_pattern", ""), signals.get("emotional_tone", "")]
+    for key in ("my_behavior", "other_behavior", "recurring_themes", "evidence"):
+        v = signals.get(key)
+        if isinstance(v, list):
+            parts.extend(str(x) for x in v)
+    return "\n".join(p for p in parts if p)
+
+
+def safety_check_signals(signals) -> dict:
+    """이미지 경로용 2차 안전 게이트 — 추출된 신호 텍스트에 crisis 규칙을 적용."""
+    return safety_check(signals_text(signals))
+
+
 # ── LLM 호출 (disposition_llm 과 동일 패턴: 재시도·백오프) ───────────────
 def _client():
     try:
@@ -99,10 +120,17 @@ def _call(system, content, *, model=None, max_tokens=1200):
 
 
 def _parse_json(txt):
-    """코드펜스 방어 후 JSON 파싱."""
-    if txt.startswith("```"):
-        txt = txt.strip("`")
-        txt = txt[txt.find("{"):txt.rfind("}") + 1]
+    """코드펜스 방어 후 JSON 파싱.
+
+    화질이 낮거나 애매한 이미지에서는 모델이 JSON 앞뒤로 안내문을 덧붙인다
+    (예: "해상도가 낮아..." 다음에 ```json{...}``` 다음에 "더 선명한 이미지를..").
+    앞부분만 코드펜스인지 보던 예전 방식은 이 경우를 못 잡아 전체 텍스트를
+    json.loads 에 넘겨 파싱이 통째로 실패했다. 위치와 무관하게 첫 '{'~마지막 '}' 를
+    잘라내 파싱한다.
+    """
+    start, end = txt.find("{"), txt.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        txt = txt[start:end + 1]
     return json.loads(txt)
 
 
@@ -174,6 +202,8 @@ def extract_signals(images=None, transcript=None, *, relation_tag=None, model=No
 # rag_local/심리학_논문 의 모든 청크 파일을 합쳐 읽는다.
 #   · rag_wellbeing_papers_chunks_v2.json — 웰빙(Ryff·김명소2001), sohyun 논문RAG 복사본
 #   · rag_papers_relationship_v1.json     — 관계 전용(indicator="관계"), 한국관계심리 Tier1
+#   이 디렉터리가 없으면 근거 없이(프레임워크 이름만) 서사가 나간다.
+#   그 경우 generate_narrative 가 paper_grounded=False 로 표시한다.
 _PAPERS_DIR = HERE / "rag_local" / "심리학_논문"
 # 관계 서사에 직결되는 토픽(웰빙 코퍼스 쪽). 관계 전용 청크는 indicator로 가중.
 _REL_TOPICS = ("긍정적대인관계", "문화적맥락", "한국타당화", "자율성",
@@ -261,8 +291,12 @@ def paper_evidence(signals=None, k=4):
     return out
 
 
-def _paper_block(signals=None, k=4):
-    ev = paper_evidence(signals=signals, k=k)
+def papers_available() -> bool:
+    """관계 논문 코퍼스가 실제로 로드되는지. False 면 서사는 근거 없이 생성된다."""
+    return bool(_load_papers())
+
+
+def _paper_block(ev):
     if not ev:
         return ""
     lines = ["\n[심리학 논문 근거 — 한국인 정서 맥락 우선. 관련되면 이 출처를 branches.basis 에 인용하라]"]
@@ -330,13 +364,14 @@ def generate_narrative(signals, disposition=None, history=None, *, model=None):
     """관계 신호 × 성향 (+히스토리) → 선택지형 분기 서사 dict. (dict, None)|(None, 사유)."""
     if not signals:
         return None, "signals 없음"
+    ev = paper_evidence(signals=signals)
     prompt = "\n".join([
         _disposition_block(disposition),
         "",
         "[대화에서 읽은 신호]",
         json.dumps(signals, ensure_ascii=False, indent=2),
         _history_block(history),
-        _paper_block(signals=signals),
+        _paper_block(ev),
         "",
         _NARR_SCHEMA,
     ])
@@ -349,6 +384,10 @@ def generate_narrative(signals, disposition=None, history=None, *, model=None):
         return None, f"서사 파싱 실패: {e}"
     obj.setdefault("branches", [])
     obj.setdefault("change_note", "")
+    # 코퍼스가 없으면 프롬프트가 '프레임워크 이름만' 폴백으로 돌아간다.
+    # 조용히 넘어가면 근거 없는 서사를 '논문 기반'으로 오인하게 되므로 응답에 남긴다.
+    obj["paper_grounded"] = bool(ev)
+    obj["paper_sources"] = [e["source"] for e in ev]
     obj["text"] = render_text(obj)
     return obj, None
 

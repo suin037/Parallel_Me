@@ -209,6 +209,12 @@ function buildSide(scenario, choice, detail, profile, evidence, domainCov, domai
     // 집단의 1·3·5·10년 뒤 실제 분포이며 변화 흐름·상세 분석에서 사용한다.
     koweps_evidence: kowepsEvidence?.available ? kowepsEvidence : null,
     koweps_role: kowepsEvidence?.event_side === side ? "event" : "comparison",
+    // 관계 영역 개인단위 인과효과(ATE + 95% CI). 위 koweps_evidence 가 '집단 관측'인
+    // 것과 달리 이건 처치효과라 근거 강도가 다르다. 비유의 항목도 그대로 실려 오며
+    // (significant=false), 화면이 막대를 그릴지 말지를 그 플래그로 판단한다.
+    relationship_effects: raw.relationship_effects?.available ? raw.relationship_effects : null,
+    relationship_effects_reason: raw.relationship_effects?.available
+      ? null : raw.relationship_effects?.reason || null,
   };
 }
 

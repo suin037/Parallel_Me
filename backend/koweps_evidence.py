@@ -20,83 +20,78 @@ PANEL_DIR = ROOT / "data" / "clean" / "koweps"
 MIN_MATCHED_PER_SIDE = 40
 TARGET_MATCHED_PER_SIDE = 250
 
-# 선택 사건(삶의 영역) → 공통 3지표 → 실제 KOWEPS 결과변수.
+# 선택 사건(삶의 영역) → 5축(indicators.INDICATOR_KEYS) → 실제 KOWEPS 결과변수.
 # strength는 수치를 새로 만드는 가중치가 아니라 근거의 직접성을 나타낸다.
-# direct: 지표를 직접 구성하는 결과, proxy: 일부 측면만 관측, unavailable: 미측정.
-_COMMON = {
-    "경제적안정도": ["disposable_income", "bank_deposits", "installment_savings",
-                  "stocks_bonds", "financial_loan", "card_debt", "living_expenses",
-                  "housing_tenure"],
-    "삶의질": ["health_satisfaction", "family_satisfaction", "social_satisfaction",
-              "housing_satisfaction", "leisure_satisfaction", "overall_satisfaction",
-              "depressive_feeling"],
+# direct: 축을 직접 구성하는 결과, proxy: 일부 측면만 관측, unavailable: 미측정.
+#
+# 예전엔 축이 3개(경제적안정도·성장가능성·삶의질)라 가족만족·사회관계만족·여가만족·
+# 건강·우울감이 전부 '삶의질' 한 칸에 들어갔다. 서로 다른 삶의 영역이 한 덩어리가
+# 되어, 어떤 선택이 관계를 바꾸는지 건강을 바꾸는지 구분되지 않았다.
+#
+# ⚠ 한 결과변수는 **정확히 한 축에만** 넣는다. 두 축에 넣으면 같은 근거를 두 번
+#   세는 것이고, 그게 예전 지표 설계가 무너진 원인이었다(indicators.py v3 주석 참고).
+_AXIS_OUTCOMES = {
+    "경제": ["disposable_income", "bank_deposits", "installment_savings",
+            "stocks_bonds", "financial_loan", "card_debt", "living_expenses",
+            "housing_tenure"],
+    "성장": ["job_satisfaction"],
+    "관계": ["family_satisfaction", "social_satisfaction"],
+    # 자율성의 부분 대리 — '의미·나다움' 쪽은 KOWEPS에 대응 문항이 없다.
+    "자기실현": ["leisure_satisfaction", "weekly_work_hours"],
+    "안정": ["health_satisfaction", "housing_satisfaction",
+            "overall_satisfaction", "depressive_feeling"],
+}
+
+# 생활사건 공통 기본형 — 소득·자산은 직접, 일자리만족과 자율성 대리는 부분 관측.
+_LIFE_DEFAULT = {
+    "경제": ("direct", _AXIS_OUTCOMES["경제"]),
+    "성장": ("proxy", _AXIS_OUTCOMES["성장"]),
+    "관계": ("direct", _AXIS_OUTCOMES["관계"]),
+    "자기실현": ("proxy", _AXIS_OUTCOMES["자기실현"]),
+    "안정": ("direct", _AXIS_OUTCOMES["안정"]),
 }
 
 SCENARIO_INDICATOR_MAP = {
+    # 재무 사건은 일자리·관계를 직접 건드리지 않는다.
     "finance.savings_increase": {
-        "경제적안정도": ("direct", _COMMON["경제적안정도"]),
-        "성장가능성": ("unavailable", []),
-        "삶의질": ("direct", _COMMON["삶의질"]),
+        **_LIFE_DEFAULT,
+        "성장": ("unavailable", []),
+        "자기실현": ("unavailable", []),
     },
     "finance.debt_start": {
-        "경제적안정도": ("direct", _COMMON["경제적안정도"]),
-        "성장가능성": ("unavailable", []),
-        "삶의질": ("direct", _COMMON["삶의질"]),
+        **_LIFE_DEFAULT,
+        "성장": ("unavailable", []),
+        "자기실현": ("unavailable", []),
     },
+    # 근로시간 감소는 자율성(시간)에 가장 직접적이다.
     "lifestyle.work_hours_decrease": {
-        "경제적안정도": ("direct", ["disposable_income", "living_expenses"]),
-        "성장가능성": ("proxy", ["job_satisfaction"]),
-        "삶의질": ("direct", ["weekly_work_hours", "leisure_satisfaction",
-                             "health_satisfaction", "family_satisfaction",
-                             "overall_satisfaction", "depressive_feeling"]),
+        **_LIFE_DEFAULT,
+        "경제": ("direct", ["disposable_income", "living_expenses"]),
+        "자기실현": ("direct", _AXIS_OUTCOMES["자기실현"]),
     },
-    "career.occupation_change": {
-        "경제적안정도": ("direct", _COMMON["경제적안정도"]),
-        "성장가능성": ("direct", ["job_satisfaction"]),
-        "삶의질": ("direct", _COMMON["삶의질"]),
-    },
-    "education.level_increase": {
-        "경제적안정도": ("direct", _COMMON["경제적안정도"]),
-        "성장가능성": ("direct", ["job_satisfaction"]),
-        "삶의질": ("direct", _COMMON["삶의질"]),
-    },
-    "business.self_employment_start": {
-        "경제적안정도": ("direct", _COMMON["경제적안정도"]),
-        "성장가능성": ("proxy", ["job_satisfaction"]),
-        "삶의질": ("direct", ["job_satisfaction", "health_satisfaction",
-                             "family_satisfaction", "social_satisfaction",
-                             "leisure_satisfaction", "overall_satisfaction",
-                             "depressive_feeling"]),
-    },
+    # 직종 전환·학력 상승은 성장 축의 정면 사건.
+    "career.occupation_change": {**_LIFE_DEFAULT, "성장": ("direct", _AXIS_OUTCOMES["성장"])},
+    "education.level_increase": {**_LIFE_DEFAULT, "성장": ("direct", _AXIS_OUTCOMES["성장"])},
+    "business.self_employment_start": _LIFE_DEFAULT,
+    # 주거 사건은 주거만족이 안정 축에 들어간다. 관계·성장은 직접 근거가 없다.
     "housing.move": {
-        "경제적안정도": ("direct", _COMMON["경제적안정도"]),
-        "성장가능성": ("unavailable", []),
-        "삶의질": ("direct", ["housing_satisfaction", "health_satisfaction",
-                             "overall_satisfaction", "depressive_feeling"]),
+        **_LIFE_DEFAULT,
+        "성장": ("unavailable", []),
+        "관계": ("unavailable", []),
+        "안정": ("direct", ["housing_satisfaction", "health_satisfaction",
+                           "overall_satisfaction", "depressive_feeling"]),
     },
     "housing.homeownership_start": {
-        "경제적안정도": ("direct", _COMMON["경제적안정도"]),
-        "성장가능성": ("unavailable", []),
-        "삶의질": ("direct", ["housing_satisfaction", "health_satisfaction",
-                             "overall_satisfaction", "depressive_feeling"]),
+        **_LIFE_DEFAULT,
+        "성장": ("unavailable", []),
+        "관계": ("unavailable", []),
+        "안정": ("direct", ["housing_satisfaction", "health_satisfaction",
+                           "overall_satisfaction", "depressive_feeling"]),
     },
-    "relationship.marriage_start": {
-        "경제적안정도": ("direct", _COMMON["경제적안정도"]),
-        "성장가능성": ("proxy", ["job_satisfaction"]),
-        "삶의질": ("direct", ["family_satisfaction", "social_satisfaction",
-                             "health_satisfaction", "overall_satisfaction",
-                             "depressive_feeling"]),
-    },
-    "relationship.household_increase": {
-        "경제적안정도": ("direct", _COMMON["경제적안정도"]),
-        "성장가능성": ("proxy", ["job_satisfaction"]),
-        "삶의질": ("direct", _COMMON["삶의질"]),
-    },
-    "relationship.household_decrease": {
-        "경제적안정도": ("direct", _COMMON["경제적안정도"]),
-        "성장가능성": ("proxy", ["job_satisfaction"]),
-        "삶의질": ("direct", _COMMON["삶의질"]),
-    },
+    # 결혼·가구변화는 관계 축의 정면 사건.
+    "relationship.marriage_start": _LIFE_DEFAULT,
+    "relationship.household_increase": _LIFE_DEFAULT,
+    "relationship.household_decrease": _LIFE_DEFAULT,
 }
 
 
@@ -379,7 +374,7 @@ def evidence_for_request(payload: dict) -> dict:
 
 
 def indicator_statuses(evidence: dict, side: str) -> dict:
-    """KOWEPS 영역 사건의 결과변수 매핑을 공통 3지표 근거 계약으로 변환."""
+    """KOWEPS 영역 사건의 결과변수 매핑을 공통 5축 근거 계약으로 변환."""
     if not evidence.get("available"):
         return {}
     if evidence.get("comparison_mode") == "independent_events":
@@ -389,7 +384,7 @@ def indicator_statuses(evidence: dict, side: str) -> dict:
     labels = {"direct": "matched_observation" if personalized else "observed_group", "proxy": "proxy_observation",
               "unavailable": "insufficient_evidence"}
     result = {}
-    for indicator in ("경제적안정도", "성장가능성", "삶의질"):
+    for indicator in _AXIS_OUTCOMES:
         mapping = (evidence.get("indicator_mapping") or {}).get(indicator, {})
         strength = mapping.get("strength", "unavailable")
         keys = mapping.get("outcome_keys", [])

@@ -28,13 +28,20 @@ def test_marriage_evidence_maps_event_and_comparison_to_ab_choices():
     assert {outcome["key"] for outcome in result["outcomes"]} >= {
         "disposable_income", "family_satisfaction", "overall_satisfaction",
     }
-    assert result["indicator_mapping"]["경제적안정도"]["strength"] == "direct"
-    assert result["indicator_mapping"]["성장가능성"]["strength"] == "proxy"
-    assert result["indicator_mapping"]["삶의질"]["strength"] == "direct"
+    assert result["indicator_mapping"]["경제"]["strength"] == "direct"
+    assert result["indicator_mapping"]["성장"]["strength"] == "proxy"
+    # ★결혼은 관계 축의 정면 사건이다. 예전엔 가족·사회관계 만족이 건강·여가와 함께
+    #   '삶의질' 한 칸에 뭉쳐 있어 어떤 영역이 바뀌는지 구분되지 않았다.
+    assert result["indicator_mapping"]["관계"]["strength"] == "direct"
+    assert set(result["indicator_mapping"]["관계"]["outcome_keys"]) <= {
+        "family_satisfaction", "social_satisfaction",
+    }
+    assert result["indicator_mapping"]["안정"]["strength"] == "direct"
     statuses = indicator_statuses(result, "B")
-    assert statuses["경제적안정도"]["status"] == "observed_group"
-    assert statuses["성장가능성"]["status"] == "proxy_observation"
-    assert statuses["삶의질"]["status"] == "observed_group"
+    assert statuses["경제"]["status"] == "observed_group"
+    assert statuses["성장"]["status"] == "proxy_observation"
+    assert statuses["관계"]["status"] == "observed_group"
+    assert statuses["안정"]["status"] == "observed_group"
 
 
 def test_startup_uses_official_employment_transition_and_maps_quality_of_life():
@@ -49,9 +56,10 @@ def test_startup_uses_official_employment_transition_and_maps_quality_of_life():
     assert result["event_side"] == "B"
     assert result["event_people"] == 308
     statuses = indicator_statuses(result, "B")
-    assert statuses["경제적안정도"]["status"] == "observed_group"
-    assert statuses["성장가능성"]["status"] == "proxy_observation"
-    assert statuses["삶의질"]["status"] == "observed_group"
+    assert statuses["경제"]["status"] == "observed_group"
+    assert statuses["성장"]["status"] == "proxy_observation"
+    assert statuses["관계"]["status"] == "observed_group"
+    assert statuses["안정"]["status"] == "observed_group"
 
 
 def test_profile_returns_personalized_matched_observation_without_diary_score_adjustment():
@@ -72,7 +80,7 @@ def test_profile_returns_personalized_matched_observation_without_diary_score_ad
     assert "나이" in result["personalization"]["applied_features"]
     assert "일기 성향은 결과 수치를 바꾸지 않고" in result["personalization"]["diary_policy"]
     statuses = indicator_statuses(result, "B")
-    assert statuses["경제적안정도"]["status"] == "matched_observation"
+    assert statuses["경제"]["status"] == "matched_observation"
 
 
 def test_finance_and_lifestyle_choices_route_to_concrete_events():
@@ -98,8 +106,8 @@ def test_two_active_choices_keep_independent_comparison_cohorts():
     assert result["side_evidence"]["B"]["event_side"] == "B"
     assert result["side_evidence"]["A"]["comparison_side"] is None
     assert result["side_evidence"]["B"]["comparison_side"] is None
-    assert indicator_statuses(result, "A")["경제적안정도"]["status"] == "matched_observation"
-    assert indicator_statuses(result, "B")["삶의질"]["status"] == "matched_observation"
+    assert indicator_statuses(result, "A")["경제"]["status"] == "matched_observation"
+    assert indicator_statuses(result, "B")["안정"]["status"] == "matched_observation"
 
 
 def test_structured_event_context_routes_without_keyword_guessing():

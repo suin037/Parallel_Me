@@ -3,6 +3,7 @@
 import { loadUniverse, hasRecord, todayKey } from "./myUniverse.js";
 import { API_BASE } from "./apiBase.js";
 import storage from "./safeStorage.js";
+import { maskRecords } from "./outbound.js";
 
 const BASE = API_BASE;
 
@@ -25,7 +26,7 @@ function save(value) {
 // 최근 2주 기록(최신순). 그 이상 거슬러 올라가면 '오늘'의 제안이 아니게 된다.
 function recentRecords(s, days = 14) {
   const from = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
-  return s.checkins
+  const rows = s.checkins
     .filter((c) => hasRecord(c) && c.date >= from)
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 14)
@@ -35,6 +36,8 @@ function recentRecords(s, days = 14) {
       mood: c.mood ?? null,
       emotion: c.keyword || "",
     }));
+  // 오늘의 제안·추천곡 둘 다 이 배열을 외부 AI 로 보낸다.
+  return maskRecords(rows);
 }
 
 export function suggestMaterials(s = loadUniverse()) {

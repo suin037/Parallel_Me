@@ -1,5 +1,5 @@
 {
-  "built_at": "2026-08-16T11:39:06.812969+00:00",
+  "built_at": "2026-08-16T22:39:50.391235+00:00",
   "decision": "blocked_pending_true_enrollment_event",
   "serving_policy": "do_not_train_or_serve_choice_specific_enroll_income_effect",
   "minimum_treated_policy": {
@@ -9,53 +9,55 @@
   },
   "klips": {
     "path": "data\\raw\\klips\\klips_base.pkl",
-    "rows": 205601,
+    "rows": 289154,
     "columns": [
       "pid",
       "wave",
-      "조사연도",
+      "year",
       "성별",
       "나이",
       "학력",
-      "종사상지위",
       "직종",
-      "jobtype",
-      "월임금_세전",
-      "월임금_세후",
-      "초임",
+      "산업",
+      "산업대분류",
       "종업원규모",
-      "월임금_c",
-      "임금백분위",
-      "보정계수",
+      "종사상지위",
+      "자영여부",
+      "월임금_명목",
       "월임금_실질",
-      "초임_실질",
-      "이직",
-      "jobcens",
+      "자영소득_실질",
+      "월소득_명목",
+      "월소득_실질",
+      "직무만족",
+      "생활만족",
+      "건강",
+      "근무환경만족",
+      "근로시간만족",
+      "가족관계만족",
+      "친인척관계만족",
+      "사회관계만족",
       "근속기간",
-      "event"
+      "이직"
     ],
     "true_enrollment_columns": [],
-    "training_required_columns_missing": [
-      "월소득_실질",
-      "자영여부"
-    ],
+    "training_required_columns_missing": [],
     "current_proxy": "next-wave education level > current education level",
     "proxy_limitation": "입학·재학이 아니라 학력 단계 완료를 포착하며 대학원 재학생을 누락할 수 있음",
     "horizon_counts": {
       "1": {
-        "education_level_increase_rows": 336,
-        "with_current_and_future_income": 94,
-        "with_positive_current_and_future_income": 94
+        "education_level_increase_rows": 546,
+        "with_current_and_future_income": 158,
+        "with_positive_current_and_future_income": 158
       },
       "3": {
-        "education_level_increase_rows": 203,
-        "with_current_and_future_income": 79,
-        "with_positive_current_and_future_income": 79
+        "education_level_increase_rows": 366,
+        "with_current_and_future_income": 139,
+        "with_positive_current_and_future_income": 139
       },
       "5": {
-        "education_level_increase_rows": 116,
-        "with_current_and_future_income": 49,
-        "with_positive_current_and_future_income": 49
+        "education_level_increase_rows": 255,
+        "with_current_and_future_income": 89,
+        "with_positive_current_and_future_income": 89
       }
     }
   },
@@ -109,7 +111,7 @@
   ],
   "artifact_consistency": {
     "stored_treatment_report_n_treated": 178,
-    "current_h1_positive_income_n_treated": 94,
+    "current_h1_positive_income_n_treated": 158,
     "matches": false,
     "note": "불일치하면 저장 리포트와 현재 전처리 입력이 같은 스냅샷이 아님"
   }

@@ -25,18 +25,17 @@
 
 from __future__ import annotations
 
-# ── 가치축 → 3지표 계약 (지윤 value_ranking.AXIS_TO_INDICATOR 정본과 동일) ──
+# ── 가치축 → 지표 계약 (지윤 value_ranking.AXIS_TO_INDICATOR 정본과 동일) ──
 # qmode 가 사이패스에 있으면 그걸 정본으로 쓰고, 없으면 이 사본으로 폴백.
-_FALLBACK_AXIS_TO_INDICATOR = {
-    "경제": "경제적안정도", "성장": "성장가능성",
-    "관계": "삶의질", "자기실현": "삶의질", "안정": "삶의질",
-}
+# v3 부터 지표 키가 가치축과 같아져 이 매핑은 **항등**이다.
+_FALLBACK_AXIS_TO_INDICATOR = {ax: ax for ax in
+                               ("경제", "관계", "성장", "자기실현", "안정")}
 try:  # 지윤 모듈이 병합돼 있으면 정본을 import (계약 드리프트 방지)
     from qmode.value_ranking import AXIS_TO_INDICATOR as _AXIS_TO_INDICATOR  # type: ignore
 except Exception:
     _AXIS_TO_INDICATOR = _FALLBACK_AXIS_TO_INDICATOR
 
-INDICATORS = ["경제적안정도", "성장가능성", "삶의질"]
+INDICATORS = ["경제", "성장", "관계", "자기실현", "안정"]
 
 
 def mbti_narrative_directive(mbti_value: str | None) -> str:
@@ -71,21 +70,19 @@ def mbti_narrative_directive(mbti_value: str | None) -> str:
 
 # ── 가중치 변환 ──────────────────────────────────────────────────────
 def indicator_weights(value_weights: dict | None) -> dict | None:
-    """5축 가중치 → 3지표 가중치(합=1).
+    """5축 가중치 → 지표 가중치(합=1).
 
-    [집계 = 평균(mean)]  ★2026-07-30 변경: 기존 '합산(sum)' → '평균(mean)'.
+    매핑이 항등이라 집계는 사실상 정규화뿐이다. 그래도 버킷 구조를 유지하는 건
+    AXIS_TO_INDICATOR 가 다시 1:N 이 되더라도 여기서 조용히 깨지지 않게 하기 위함이다.
+
+    [집계 = 평균(mean)]  ★2026-07-30 도입, v3(5축)에서도 유지.
       각 지표 가중치 = 그 지표로 매핑되는 축들의 '평균'.
-        · 경제적안정도 = mean(경제)            = 경제
-        · 성장가능성   = mean(성장)            = 성장
-        · 삶의질       = mean(관계, 자기실현, 안정)   ← 3축을 흡수하지만 평균이라 과대대표 X
-      마지막에 세 지표 합이 1이 되도록 정규화.
 
-    왜 sum → mean 인가 (상세: docs/DECISION_lifequality_mean_2026-07-30.md):
-      AXIS_TO_INDICATOR 가 5축 중 3축(관계·자기실현·안정)을 삶의질로 접는다.
-      '합산'이면 삶의질이 축 개수 때문에 구조적으로 과대대표되어,
-      사용자가 성장을 1순위로 꼽아도 삶의질이 서술 우선순위 맨 앞에 오는 문제가 있었다.
-      '평균'은 지표별 '평균 중요도'라 사용자의 실제 우선순위를 더 정직하게 반영한다.
-      (지윤 value_ranking.AXIS_TO_INDICATOR 매핑 자체는 손대지 않음 — 우리 쪽 집계만 변경.)
+    왜 sum 이 아니라 mean 인가 (상세: docs/DECISION_lifequality_mean_2026-07-30.md):
+      예전엔 5축 중 3축(관계·자기실현·안정)이 '삶의질' 하나로 접혀서, '합산'이면
+      삶의질이 축 개수 때문에 구조적으로 과대대표됐다 — 사용자가 성장을 1순위로
+      꼽아도 삶의질이 서술 우선순위 맨 앞에 왔다. v3 에서 축이 1:1 로 풀리며 그
+      왜곡 자체는 사라졌지만, 매핑이 다시 접힐 때를 대비해 평균 집계를 남겨둔다.
     """
     if not value_weights:
         return None
@@ -98,15 +95,6 @@ def indicator_weights(value_weights: dict | None) -> dict | None:
     w = {k: (sum(v) / len(v) if v else 0.0) for k, v in buckets.items()}
     tot = sum(w.values()) or 1.0
     return {k: round(v / tot, 4) for k, v in w.items()}
-
-    # ── [이전 코드: 합산(sum) 방식] 2026-07-30 이전. 삶의질 과대대표 이슈로 mean 으로 교체. ──
-    # w = {k: 0.0 for k in INDICATORS}
-    # for ax, wt in value_weights.items():
-    #     ind = _AXIS_TO_INDICATOR.get(ax)
-    #     if ind in w:
-    #         w[ind] += float(wt or 0)          # ← 합산: 삶의질이 3축을 다 더해 과대대표됨
-    # tot = sum(w.values()) or 1.0
-    # return {k: round(v / tot, 4) for k, v in w.items()}
 
 
 def priority_order(value_weights: dict | None) -> list[str]:

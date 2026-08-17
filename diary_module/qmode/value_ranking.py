@@ -35,10 +35,14 @@ CARDS = [
     {"id": "stability", "label": "건강·안정",     "desc": "몸과 삶이 안정적인 것",           "axis": "안정"},
 ]
 AXES = ["경제", "관계", "성장", "자기실현", "안정"]
-AXIS_TO_INDICATOR = {          # 예측 비교축 → backend 지표(서술 연결용)
-    "경제": "경제적안정도", "성장": "성장가능성",
-    "관계": "삶의질", "자기실현": "삶의질", "안정": "삶의질",
-}
+
+# 예측 비교축 → backend 지표(서술 연결용).
+#
+# 예전엔 backend 지표가 3개(경제적안정도·성장가능성·삶의질)뿐이라 관계·자기실현·안정
+# 세 축이 전부 '삶의질' 하나로 접혔다. 온보딩에서 '가족·사랑' 을 1순위로 골라도
+# '자유·자율' 을 골라도 같은 지표로 매핑돼, 사용자가 정렬한 답이 결과에 남지 않았다.
+# backend 가 5축으로 바뀌면서(indicators.INDICATOR_KEYS) 이제 **항등 매핑**이다.
+AXIS_TO_INDICATOR = {ax: ax for ax in AXES}
 _BY_ID = {c["id"]: c for c in CARDS}
 _LABEL_TO_ID = {c["label"]: c["id"] for c in CARDS}
 

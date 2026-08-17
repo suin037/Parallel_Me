@@ -84,35 +84,34 @@ export default function ActionView({ a, b, domains = { a: [], b: [] } }) {
             </div>
             <p className="mt-1 text-[13px] font-semibold leading-relaxed text-ink">{action.text}</p>
             <p className="mt-2 text-[11px] leading-relaxed text-sub"><b>추천 이유</b> · {action.purpose}</p>
-            <p className="mt-1 text-[9px] leading-4 text-violet-300/80">행동설계 근거 · {action.source}</p>
 
             {/* 여기 적으면 → 완료 기록 + 그날 일기에 반영되어 다음 분석에 들어감 */}
             <div className="mt-2.5">
-              <textarea
-                value={resp[action.id] || ""}
-                onChange={(e) => setResp((r) => ({ ...r, [action.id]: e.target.value }))}
-                rows={2}
-                placeholder="여기에 적어보세요 — 적으면 오늘 기록에 반영돼요"
-                className="w-full resize-none rounded-xl border border-line bg-[#0E1424] px-3 py-2 text-[12px] leading-relaxed text-ink outline-none focus:border-cyan"
-              />
-              <div className="mt-1.5 flex items-center gap-2">
+              {/* 저장 버튼은 입력칸 오른쪽에 나란히 둔다. 아래에 있으면 다 적고
+                  시선을 한 번 더 내려야 하고, 실험 카드가 여러 장일 때 버튼 줄이
+                  카드마다 반복돼 세로로 길어진다. */}
+              <div className="flex items-start gap-2">
+                <textarea
+                  value={resp[action.id] || ""}
+                  onChange={(e) => setResp((r) => ({ ...r, [action.id]: e.target.value }))}
+                  rows={2}
+                  placeholder="여기에 적어보세요 — 적으면 오늘 기록에 반영돼요"
+                  className="min-w-0 flex-1 resize-none rounded-xl border border-line bg-[#0E1424] px-3 py-2 text-[12px] leading-relaxed text-ink outline-none focus:border-cyan"
+                />
                 <button
                   onClick={() => saveResp(action)}
                   disabled={!(resp[action.id] || "").trim() && !savedIds.has(action.id)}
-                  className="tap rounded-lg bg-cyan px-3 py-1 text-[11px] font-bold text-[#04203a] disabled:opacity-50"
+                  className="tap shrink-0 self-stretch rounded-lg bg-cyan px-3.5 text-[11px] font-bold text-[#04203a] disabled:opacity-50"
                 >
                   {savedIds.has(action.id) ? "다시 저장" : "저장"}
                 </button>
+              </div>
+              <div className="mt-1.5 flex items-center gap-2">
                 {savedIds.has(action.id) && (
                   <span className="text-[10px] text-[#5DCAA5]">✓ 완료 · 오늘 일기에 반영됨</span>
                 )}
               </div>
             </div>
-
-            <details className="mt-2 text-[10px] leading-relaxed text-mut">
-              <summary className="cursor-pointer text-sub">행동설계 근거 보기</summary>
-              <p className="mt-1">{action.basis}</p><p className="mt-1">출처: {action.source}</p>
-            </details>
           </Card>
         ))}
       </div>

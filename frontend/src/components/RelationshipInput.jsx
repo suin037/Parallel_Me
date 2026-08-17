@@ -46,7 +46,10 @@ export default function RelationshipInput({ talks, setTalks }) {
         id: Date.now(),
         tag,
         // 보내기 전에 개인정보를 지운다 — 이름·번호가 서버로 가지 않게.
-        transcript: redactPII(text.trim()),
+        // redactPII 는 {masked, hits} 를 돌려준다. 객체를 통째로 넣으면 서버의
+        // transcript: str 검증에서 422로 튕겨나가 관계 분석이 텍스트든 이미지든
+        // 전부 실패했다 — masked 문자열만 꺼내 보낸다.
+        transcript: redactPII(text.trim()).masked,
         images,
         label: `${tag} · ${images.length ? `캡처 ${images.length}장` : `대화 ${text.trim().length}자`}`,
       },

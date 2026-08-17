@@ -3,6 +3,7 @@ import { Caption } from "../ui.jsx";
 import ObservedIndicators from "./ObservedIndicators.jsx";
 import IndicatorGapChart from "./IndicatorGapChart.jsx";
 import { SIDE_COLORS } from "./DivergingBar.jsx";
+import { AXES } from "../../api.js";
 
 // 숫자가 먼저, 근거는 그 다음. 전에는 '예측 근거 신뢰도'가 맨 위에 있어서
 // 첫 화면이 통째로 "이 숫자를 믿어도 되는가"였고, 정작 A와 B가 뭐가 다른지는
@@ -117,12 +118,14 @@ const domainStrength = (item) =>
   (item?.status === "available" ? DOMAIN_STRENGTH[item.evidence] ?? 1 : 0);
 
 function EvidenceSummary({ a, b, domains }) {
-  const defaultOrder = ["경제적안정도", "성장가능성", "삶의질"];
+  const defaultOrder = AXES;
   const preferred = a.personalization?.narrate_order || b.personalization?.narrate_order || [];
   const keys = [...new Set([...preferred, ...defaultOrder])].filter((key) => {
     if (!defaultOrder.includes(key)) return false;
     const statuses = [a.indicator_evidence?.[key]?.status, b.indicator_evidence?.[key]?.status].filter(Boolean);
-    return statuses.some((status) => status !== "insufficient_evidence");
+    // 근거가 없는 축은 여기서 뺀다. 'unmeasured'(자기실현처럼 아예 측정 문항이
+    // 없는 축)도 같이 빠진다 — 없는 근거를 근거 요약에 올릴 수는 없다.
+    return statuses.some((status) => status !== "insufficient_evidence" && status !== "unmeasured");
   });
   const selectedDomains = [...new Set([...(domains?.a || []), ...(domains?.b || [])])];
   const domainEvidence = selectedDomains.map((domain) => {

@@ -60,7 +60,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-RAW = Path("data/raw/koweps/long/koweps_hp01_20_long_260331.dta")
+_RAW_NAME = "koweps_hp01_20_long_260331.dta"
+# 배포자가 받은 위치가 갈린다(zip 을 풀면 long/ 이 생기고, 개별 파일로 받으면 안 생긴다).
+# 원본을 옮기게 하지 않고 양쪽을 다 본다 — 1.4GB 를 사람이 나르게 할 이유가 없다.
+_RAW_CANDIDATES = [
+    Path("data/raw/koweps/long") / _RAW_NAME,
+    Path("data/raw/koweps") / _RAW_NAME,
+]
+RAW = next((p for p in _RAW_CANDIDATES if p.exists()), _RAW_CANDIDATES[0])
 CACHE = Path("data/clean/koweps/_startup_cols.pkl")
 ARTIFACTS = Path("backend/models/artifacts")
 OUT_PATH = ARTIFACTS / "koweps_startup_effects.json"
@@ -120,7 +127,7 @@ COLUMNS = [
     "h_eco9", "h_eco6",                           # 직종·근로시간형태
     "h_din",                                      # 가구 가처분소득
     "h_med2", "p05_11",                           # 건강·우울
-    "p03_7", "p03_8", "p03_12",                   # 주거·가족·전반 만족
+    "p03_7", "p03_8", "p03_10", "p03_12",         # 주거·가족·사회관계·전반 만족
 ]
 
 

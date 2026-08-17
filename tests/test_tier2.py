@@ -103,7 +103,7 @@ def test_indicators() -> None:
     det = I.compute_indicators_detail(s, 320, 29)
     check(det["method"].startswith("percentile-rank"), "백분위 방식으로 산출",
           det["method"])
-    check(set(det["scores"]) == set(I.INDICATOR_KEYS), "계약 키 3개 유지")
+    check(set(det["scores"]) == set(I.INDICATOR_KEYS), "계약 키 5축 유지")
     check(all(isinstance(v, float) for v in det["scores"].values()),
           "compute_indicators 는 float 만 반환(min() 비교가 터지지 않게)")
     check(any(v is not None for v in det["components"].values()),
@@ -119,14 +119,27 @@ def test_indicators() -> None:
           "소득이 높으면 소득 백분위도 높다(단조)",
           f"{lo['components']['income_level']} → {hi['components']['income_level']}")
 
-    # 구공식은 성장가능성이 상한(1.0)에 붙어 지표로 못 쓰였다 → 포화 해소 확인
-    old = [I._legacy(scen_for(a, w), w)["성장가능성"]
+    # 구공식은 성장 축이 상한(1.0)에 붙어 지표로 못 쓰였다 → 포화 해소 확인
+    old = [I._legacy(scen_for(a, w), w)["성장"]
            for a, w in ((26, 200), (29, 250), (33, 300))]
-    new = [I.compute_indicators_detail(scen_for(a, w), w, a)["scores"]["성장가능성"]
+    new = [I.compute_indicators_detail(scen_for(a, w), w, a)["scores"]["성장"]
            for a, w in ((26, 200), (29, 250), (33, 300))]
     check(any(v >= 0.999 for v in old) and all(v < 0.99 for v in new),
-          "구공식의 성장가능성 포화(1.0)가 해소됨",
+          "구공식의 성장 축 포화(1.0)가 해소됨",
           f"구식 {old} → 신규 {new}")
+
+    # ★v3 회귀: 한 구성요소가 두 축에 들어가면 같은 근거를 두 번 세는 것이다.
+    #   예전엔 income_growth 가 경제적안정도·성장가능성에, low_exit_risk 가
+    #   경제적안정도·삶의질에 중복 투입돼 '성장가능성' 이 경제의 부분집합이었다.
+    seen: dict = {}
+    dup = [f"{c}({seen[c]}·{ax})" for ax, mix in I.WEIGHTS.items()
+           for c in mix if (c in seen) or seen.setdefault(c, ax) and False]
+    check(not dup, "축 간 구성요소 중복 투입 없음", str(dup or "없음"))
+
+    # 가치축(온보딩)과 지표 키가 같아야 사용자의 정렬 답이 결과까지 살아남는다.
+    from personalize import INDICATORS
+    check(set(INDICATORS) == set(I.INDICATOR_KEYS),
+          "온보딩 가치축 ↔ 지표 키 항등", f"{INDICATORS}")
 
     # 기준 분포가 없으면 조용히 이상한 값을 내지 말고 폴백을 밝힌다
     I._reference.cache_clear()

@@ -39,6 +39,7 @@ import avatar_gen
 from core import run_prediction
 from compare import build_comparison
 from choice_classifier import classify, classification_stats
+from choice_llm import classify_pair as classify_pair_llm
 
 import stat_evidence
 import usage_guard
@@ -216,7 +217,7 @@ def _warmup() -> None:
         __import__("models.lifelines_model", fromlist=["_load_all"])._load_all()))
     # 가장 무거운 것 — 임베딩 모델 + 벡터DB
     step("psych_rag", lambda: get_psych_evidence(
-        {"경제적안정도": 0.5, "성장가능성": 0.5, "삶의질": 0.5}, decision_type="이직"))
+        {k: 0.5 for k in indicators_mod.INDICATOR_KEYS}, decision_type="이직"))
     # 서사의 구조화 출력 스키마는 처음 쓸 때 한 번 컴파일 비용을 낸다(이후 24h 캐시).
     # 그 비용도 첫 사용자에게서 기동 쪽으로 옮긴다. 키가 없으면 조용히 건너뛴다.
     step("narrative_schema", warm_narrative_schema)
@@ -446,18 +447,52 @@ def koweps_evidence(payload: dict = Body(...)) -> dict:
     return koweps_evidence_for_request(payload)
 
 
+# 이 아래면 키워드가 "모르겠다"고 말한 것으로 본다. 실측에서 확신도는 정답
+# 여부와 거의 완벽히 갈렸다 — 0.4 이상 13개는 전부 정답, 오답 4개는 전부 0.00.
+# 그래서 임계값 자체는 예민하지 않다(0.1 이든 0.4 든 같은 문장이 넘어간다).
+LLM_ASSIST_THRESHOLD = 0.4
+
+
+def _assist_with_llm(req: ChoiceClassifyPairRequest, left, right):
+    """확신도가 낮은 쪽만 LLM 분류로 바꿔치기한다.
+
+    키워드가 확신한 쪽은 건드리지 않는다 — 그 구간은 이미 정확하고, 덮으면
+    결정적이던 결과가 호출마다 흔들려 회귀 테스트가 무의미해진다.
+    LLM 이 실패하면 두 값 모두 원래대로다(예외는 choice_llm 이 삼킨다).
+    """
+    low = [side for side, r in (("A", left), ("B", right))
+           if r.confidence < LLM_ASSIST_THRESHOLD]
+    if not low:
+        return left, right, {}
+    verdict = classify_pair_llm(req.choice_a, req.choice_b) or {}
+    domains: dict[str, str] = {}
+    for side, result in (("A", left), ("B", right)):
+        got = verdict.get(side)
+        if side not in low or not got:
+            continue
+        result.kind = got["kind"]
+        result.method = "llm"
+        # 유형이 '기타' 로 남아도 영역은 살린다. _choice_contract 는 그때
+        # hints 에서 영역을 고르므로, LLM 이 고른 영역을 hints 맨 앞에 꽂는다.
+        domains[side] = got["domain"]
+    return left, right, domains
+
+
 @app.post("/choices/classify-pair")
 def classify_choice_pair(req: ChoiceClassifyPairRequest) -> dict:
     """프론트·예측·근거 라우팅이 공유할 A/B 선택 분류 정본을 반환한다."""
     left = classify(req.choice_a)
     right = classify(req.choice_b)
+    left, right, llm_domains = _assist_with_llm(req, left, right)
+    hints_a = ([llm_domains["A"]] if "A" in llm_domains else []) + list(req.choice_a_domain_hints)
+    hints_b = ([llm_domains["B"]] if "B" in llm_domains else []) + list(req.choice_b_domain_hints)
     left_known = CHOICE_TAXONOMY.get(left.kind)
     right_known = CHOICE_TAXONOMY.get(right.kind)
     left_counterpart = right_known[0] if right_known and right.kind != "유지" else None
     right_counterpart = left_known[0] if left_known and left.kind != "유지" else None
     return {
-        "A": {"text": req.choice_a, **_choice_contract(left, req.choice_a_domain_hints, left_counterpart)},
-        "B": {"text": req.choice_b, **_choice_contract(right, req.choice_b_domain_hints, right_counterpart)},
+        "A": {"text": req.choice_a, **_choice_contract(left, hints_a, left_counterpart)},
+        "B": {"text": req.choice_b, **_choice_contract(right, hints_b, right_counterpart)},
     }
 
 
@@ -656,16 +691,20 @@ def simulate(req: SimulateRequest) -> dict:
     scen_b = cmp["scenarios"]["B"]
     baseline = getattr(req.profile, "monthly_wage", None)
 
-    # 1) 3지표 산출(엔진 → 0~1). 요청 override 가 있으면 그걸 사용.
+    # 1) 5축 산출(엔진 → 0~1). 요청 override 가 있으면 그걸 사용.
     #    나이를 넘기는 건 백분위를 **같은 나이대 안에서** 재기 위해서다
     #    ("29살 320만원" 이 잘 버는 건지는 나이대 없이 판정할 수 없다).
+    #    관측경로(validated_*)를 먼저 만드는 건 '성장' 축이 KLIPS 관측 전환율을 쓰고
+    #    관계·안정 축이 KOWEPS 생활효과 수준값을 쓰기 때문 — 둘 다 scen 밖에 있다.
     age = getattr(req.profile, "age", None)
-    det_a = indicators_mod.compute_indicators_detail(scen_a, baseline, age)
-    det_b = indicators_mod.compute_indicators_detail(scen_b, baseline, age)
-    ind_a = req.indicator_scores or det_a["scores"]
-    ind_b = req.indicator_scores or det_b["scores"]
     validated_a = _validated_prediction(scen_a["kind"], cmp["profile"])
     validated_b = _validated_prediction(scen_b["kind"], cmp["profile"])
+    det_a = indicators_mod.compute_indicators_detail(
+        scen_a, baseline, age, validated_a, indicators_mod.life_levels(scen_a["kind"]))
+    det_b = indicators_mod.compute_indicators_detail(
+        scen_b, baseline, age, validated_b, indicators_mod.life_levels(scen_b["kind"]))
+    ind_a = req.indicator_scores or det_a["scores"]
+    ind_b = req.indicator_scores or det_b["scores"]
     status_a = indicators_mod.evidence_statuses(scen_a["kind"], validated_a, req.indicator_scores, scen_a)
     status_b = indicators_mod.evidence_statuses(scen_b["kind"], validated_b, req.indicator_scores, scen_b)
     koweps = koweps_evidence_for_request(req.model_dump())

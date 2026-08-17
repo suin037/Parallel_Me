@@ -59,6 +59,29 @@ function horizonGaps(a, b, futureYears) {
   }).filter(Boolean);
 }
 
+// 선택이 소득에 미치는 효과(L3)는 **관측 프로파일이 1~5년뿐**이다
+// (artifacts/dynamic_effects.json 의 horizons). 그 밖 연차는 마지막 관측값을 그대로
+// 끌고 오면서 백엔드가 effect_extrapolated=true 를 붙여 보내는데, 화면이 이 값을
+// 한 번도 안 읽고 있었다. 그래서 6년차 이후 소득선이 실측과 똑같이 보였다.
+//
+// 위 horizonGaps 와 다른 문제다 — 저기는 '값이 아예 없는' 구간이고, 여기는
+// '값은 있는데 관측이 아니라 이어 붙인' 구간이다. 후자가 더 헷갈린다.
+function extrapolatedSpan(a, b, futureYears) {
+  const rows = [a, b].flatMap((side) => side?.trajectory || []);
+  const yearOf = (p) => Number(p?.year);
+  const extrapYears = rows.filter((p) => p?.effect_extrapolated === true).map(yearOf).filter(Number.isFinite);
+  if (!extrapYears.length) return null;
+  // 효과가 실제로 붙은 연차 중 외삽이 아닌 것 = 관측 범위의 끝.
+  const observedYears = rows
+    .filter((p) => p?.effect_applied != null && p?.effect_extrapolated === false)
+    .map(yearOf)
+    .filter(Number.isFinite);
+  const from = Math.min(...extrapYears);
+  const lastObserved = observedYears.length ? Math.max(...observedYears) : from - 1;
+  // 지금 보고 있는 기준 시점이 그 구간 안이면 배경 설명이 아니라 경고가 된다.
+  return { from, lastObserved, active: futureYears >= from };
+}
+
 // 인과(L3)가 붙는 선택 유형. '유지'는 기준선 그 자체라 붙지 않는다.
 const CAUSAL_KINDS = new Set(["이직", "창업", "휴식"]);
 
@@ -109,6 +132,7 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
   // 그래서 화면만 보면 반년을 쉬었는데 1년차 소득이 남는 쪽보다 높게 보인다.
   // 숫자를 고치는 건 재학습이 필요한 일이라, 무엇이 빠졌는지를 밝힌다.
   const breakSide = [a, b].find((side) => side?.kind === "휴식");
+  const extrap = quantitativeOk ? extrapolatedSpan(a, b, futureYears) : null;
   // 값이 비어 있는 쪽은 반드시 이유를 말해야 한다. 말하지 않으면 관람객은
   // '아직 로딩 중' 이거나 '0' 이라고 읽는다.
   const scopeSides = ["A", "B"]
@@ -132,7 +156,7 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
   // 그릴 게 하나도 없으면 카드 자체를 내보내지 않는다. 여기에 렌더하지 않는
   // 값(건강 실측 등)을 조건에 남겨두면 제목만 있는 빈 카드가 뜬다.
   if (!hasGrowth && !gaps.length && !breakSide && !conditions.length
-      && !asym && !showCumulative && !scopeSides.length) return null;
+      && !asym && !showCumulative && !scopeSides.length && !extrap) return null;
 
   return (
     <section className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0B1220]/85" aria-labelledby="data-notes-title">
@@ -221,7 +245,13 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
       {showCumulative && (
         <div className="border-white/[.07] px-4 py-3.5 [&:not(:last-child)]:border-b">
           <div className="flex items-baseline justify-between gap-2">
-            <h3 className="text-[11px] font-semibold text-sub">{futureYears}년 동안 손에 쥐는 돈</h3>
+            {/* '손에 쥐는 돈' 이라고 부르면 창업비가 **잃은 돈**으로 읽힌다.
+                성민(초기자금 1.2억)은 3년 누적이 357만원 vs 14,046만원, 40배
+                차이로 뜬다 — 계산은 맞지만 화면은 "창업하면 3년간 357만원밖에
+                못 번다"고 말하는 셈이다. 실제로는 회수 중인 상태고 가게·설비는
+                남아 있다. 그래서 이름을 '쌓이는 현금' 으로 바꾸고, 아래에
+                계산을 펼쳐 왜 낮은지가 보이게 한다. */}
+            <h3 className="text-[11px] font-semibold text-sub">{futureYears}년 동안 쌓이는 현금</h3>
             <span className="text-[8.5px] text-mut">공백·초기비용 반영</span>
           </div>
           <p className="mt-0.5 text-[9px] leading-4 text-mut">
@@ -229,18 +259,45 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
             {" "}같은 궤적을 {futureYears}년간 더하고 그 둘을 반영하면 이렇게 바뀝니다.
           </p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {["A", "B"].map((side) => (
-              <article key={side} className="rounded-xl border border-white/[.07] bg-white/[.025] px-3 py-2.5">
-                <div className="flex items-center gap-1.5">
-                  <b className="text-[9px] font-black" style={{ color: COLORS[side] }}>{side}</b>
-                  <span className="truncate text-[9.5px] text-mut">{labelOf((side === "A" ? a : b)?.choice)}</span>
-                </div>
-                <strong className="mt-1 block text-[15px] tabular-nums text-ink">
-                  {Math.round(cumulative[side].value).toLocaleString()}만원
-                </strong>
-              </article>
-            ))}
+            {["A", "B"].map((side) => {
+              const target = side === "A" ? a : b;
+              const cost = Number(target?.applied_conditions?.startup_cost_manwon) || 0;
+              const gapMonths = Number(target?.applied_conditions?.gap_months) || 0;
+              // 백엔드는 `total = -초기자금 + Σ월소득` 으로 계산한다.
+              // 되더하면 초기자금을 빼기 전 소득 합계가 그대로 나온다.
+              const gross = cumulative[side].value + cost;
+              return (
+                <article key={side} className="rounded-xl border border-white/[.07] bg-white/[.025] px-3 py-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <b className="text-[9px] font-black" style={{ color: COLORS[side] }}>{side}</b>
+                    <span className="truncate text-[9.5px] text-mut">{labelOf(target?.choice)}</span>
+                  </div>
+                  <strong className="mt-1 block text-[15px] tabular-nums text-ink">
+                    {Math.round(cumulative[side].value).toLocaleString()}만원
+                  </strong>
+                  {(cost > 0 || gapMonths > 0) && (
+                    <p className="mt-1 text-[8.5px] leading-3.5 tabular-nums text-mut">
+                      소득 {Math.round(gross).toLocaleString()}
+                      {cost > 0 && <> − 초기자금 {Math.round(cost).toLocaleString()}</>}
+                      {gapMonths > 0 && (
+                        <span className="ml-1 not-italic text-[8px]">
+                          (공백 {gapMonths}개월 반영)
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </article>
+              );
+            })}
           </div>
+          {[a, b].some((side) => Number(side?.applied_conditions?.startup_cost_manwon) > 0) && (
+            <p className="mt-2 rounded-lg bg-white/[.04] px-2.5 py-2 text-[9px] leading-4 text-mut">
+              <b className="font-semibold text-sub">초기 자금은 사라진 돈이 아닙니다.</b>
+              {" "}보증금·설비·권리금으로 바뀌어 남아 있고, 이 숫자에는 그 자산 가치가
+              들어 있지 않습니다. 낮게 나온 쪽은 <b className="font-semibold text-sub">손해가 아니라
+              아직 회수 중</b>이라는 뜻으로 읽어 주세요.
+            </p>
+          )}
         </div>
       )}
 
@@ -251,6 +308,33 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
             쉬어가기 수치는 <b className="font-semibold text-sub">복귀한 뒤의 임금</b>을 견준 값입니다(KLIPS 공백 스펠).
             쉬는 동안 못 번 소득은 결과변수에 들어가 있지 않아, 소득 줄에는 그 공백이 나타나지 않습니다.
             <b className="font-semibold text-sub"> 쉬는 기간의 생활비는 따로 계산해 보셔야 합니다.</b>
+          </p>
+        </div>
+      )}
+
+      {extrap && (
+        <div className="border-white/[.07] px-4 py-3.5 [&:not(:last-child)]:border-b">
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="text-[11px] font-semibold text-sub">
+              {extrap.lastObserved}년 뒤부터는 소득 효과가 <span className="text-[#F5C86B]">이어 붙인 값</span>입니다
+            </h3>
+            {extrap.active && (
+              <span className="shrink-0 rounded-full bg-[#F5C86B]/15 px-2 py-0.5 text-[8.5px] font-semibold text-[#F5C86B]">
+                지금 보는 {futureYears}년이 여기
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-[9px] leading-4 text-mut">
+            선택이 소득에 미치는 효과는 <b className="font-semibold text-sub">{extrap.lastObserved}년까지 관측</b>됐습니다.
+            {extrap.from}년차부터의 소득선은 {extrap.lastObserved}년차 효과를 그대로 이어 붙인 것이라,
+            실제로 그 차이가 계속된다는 관측은 아닙니다.
+            {extrap.active
+              ? " 지금 고른 기준 시점이 그 구간이라, 두 선택의 소득 차이는 특히 폭넓게 보셔야 합니다."
+              : " 표에서 그 뒤 연차를 볼 때 함께 감안해 주세요."}
+          </p>
+          <p className="mt-1.5 text-[8.5px] leading-4 text-mut">
+            비슷한 사람을 실제로 추적한 <b className="font-semibold text-sub">소득 궤적 자체</b>는 그 뒤로도 관측값입니다 —
+            이어 붙인 건 거기에 더해지는 <b className="font-semibold text-sub">선택의 효과</b> 부분입니다.
           </p>
         </div>
       )}

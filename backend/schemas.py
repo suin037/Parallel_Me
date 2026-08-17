@@ -80,8 +80,13 @@ class CompareRequest(BaseModel):
 
     profile: Profile
     future_years: int = Field(
-        3, ge=1, le=10,
-        description="결과 서사와 이미지가 초점을 맞출 미래 시점(1/3/5/10년)",
+        3, ge=1, le=15,
+        description=(
+            "결과 서사와 이미지가 초점을 맞출 미래 시점(1~15년). "
+            "모델 계층에는 도달하지 않는다 — 궤적은 horizon 이 따로 만들고, 이 값은 "
+            "서사·이미지 프롬프트와 '화면이 어느 연차 점을 강조할지'에만 쓰인다. "
+            "상한 15 는 KLIPS 12~27차(16웨이브)로 한 사람을 최대 15년 추적할 수 있어서다."
+        ),
     )
     choice_a: str = Field(..., description="선택지 A (예: 이직)")
     choice_b: str = Field(..., description="선택지 B (예: 대학원 진학)")
@@ -120,7 +125,7 @@ class SimulateRequest(CompareRequest):
     )
     indicator_scores: Optional[dict[str, float]] = Field(
         None,
-        description="3지표(경제적안정도/성장가능성/삶의질) 0~1 override(선택). 미지정 시 엔진에서 산출",
+        description="5축(경제/성장/관계/자기실현/안정) 0~1 override(선택). 미지정 시 엔진에서 산출",
     )
 
     # --- 성향 개인화 재료 (선택) — 지윤 qmode 산출물. 없으면 개인화는 건너뛴다 ---
@@ -268,6 +273,12 @@ class PredictResponse(BaseModel):
         description="만족도 세부 facet별 궤적 {facet_key: [{year,age,sample_n,p50}]} — 직무·자기발전·소득·고용안정·장래성")
     scenario_trajectories: dict[str, list[TrajectoryPoint]] = Field(default_factory=dict,
         description="선택지 평행우주 — {'유지': 기준경로, '이직': 기준+L3인과효과}. 이직 choice에서만 제공")
+    relationship_effects: dict = Field(default_factory=dict,
+        description="관계 영역 개인단위 인과효과 {available, effects[], significant[], "
+                    "indistinguishable[], estimator, source, note} — 이직·창업·휴식은 KLIPS, "
+                    "결혼·이사는 KOWEPS. 신뢰구간이 0을 포함하면 significant=false 로 실려 오고, "
+                    "화면은 그 경우 막대를 그리지 않고 '구분되지 않음'으로 표시한다. "
+                    "available=false 면 reason 에 왜 없는지가 담긴다(진학은 처치 정의 불가로 차단)")
     narrative: str = Field("", description="Claude 가 생성한 설명")
 
 

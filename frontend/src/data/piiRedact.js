@@ -23,22 +23,33 @@ const PATTERNS = [
 /**
  * @param {string} text
  * @param {{name?:string, company?:string}} known  프로필에서 온 알려진 PII
+ * @param {{amounts?:boolean, company?:boolean}} opts
+ *   amounts=false  금액을 남긴다. 채용공고·기업 분석처럼 **금액이 곧 분석 대상**인
+ *                  요청에서 [금액] 으로 가리면 그 요청 자체가 무의미해진다.
+ *                  (그런 요청도 이름·연락처·주민번호는 그대로 가린다.)
+ *   company=false  회사명을 남긴다. 기업 조회는 회사명이 조회 키다.
  * @returns {{masked:string, hits:string[]}}
  */
-export function redactPII(text, known = {}) {
+export function redactPII(text, known = {}, opts = {}) {
+  const { amounts = true, company = true } = opts;
   if (!text) return { masked: text || "", hits: [] };
   let s = String(text);
   const hits = [];
 
   // 금액(연봉·월급 등 구체 숫자) → [금액]
-  s = s.replace(/\d[\d,]*\s*(만원|원|만\s?원|억)/g, () => { hits.push("금액"); return "[금액]"; });
+  if (amounts) {
+    s = s.replace(/\d[\d,]*\s*(만원|원|만\s?원|억)/g, () => { hits.push("금액"); return "[금액]"; });
+  }
 
   for (const [re, tok] of PATTERNS) {
     s = s.replace(re, () => { hits.push(tok); return tok; });
   }
 
   // 알려진 PII(정확 일치) — 이름·회사명
-  for (const [val, tok] of [[known.name, "[이름]"], [known.company, "[회사]"]]) {
+  const pairs = company
+    ? [[known.name, "[이름]"], [known.company, "[회사]"]]
+    : [[known.name, "[이름]"]];
+  for (const [val, tok] of pairs) {
     const v = (val || "").trim();
     if (v.length >= 2) {
       s = s.replace(new RegExp(escapeRegExp(v), "g"), () => { hits.push(tok); return tok; });

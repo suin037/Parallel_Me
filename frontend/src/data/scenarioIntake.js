@@ -28,16 +28,25 @@ export const DOMAIN_OUTCOMES = {
   long_term_values: ["경제적 감당 가능성", "가치와 선택의 정합성", "장기 만족·후회 신호"],
 };
 
+// 네 번째 값 shared=true 는 **선택이 아니라 상황을 묻는 질문**이라는 뜻이다.
+//
+// 관계가 이 구분을 드러냈다. '연인과 솔직하게 대화하기' vs '잠시 거리를 두기'는
+// 같은 관계에 대한 두 접근이라 "누구와의 관계인가", "현재 관계 상태는"의 답이
+// A와 B에서 달라질 수 없다. 그런데 질문은 양쪽에 따로 떠서 같은 문장을 두 번
+// 쓰게 했다. 반대로 "예상 월소득 변화"는 선택마다 다른 게 당연하다.
+//
+// shared 질문은 A·B의 영역이 같을 때만 하나로 합친다 — 영역이 다르면(A는 진로,
+// B는 관계) 같은 key 라도 서로 다른 상황을 가리키므로 합치면 안 된다.
 const DOMAIN_QUESTIONS = {
   career: [["time_horizon", "이 선택을 언제 실행할 예정인가요?", "예: 3개월 안"], ["income_change", "예상 월소득 변화가 있나요?", "예: 50만원 증가"]],
   education: [["duration", "교육 기간은 어느 정도인가요?", "예: 2년"], ["cost", "학비와 준비 비용은 얼마인가요?", "예: 총 2,000만원"]],
-  business: [["runway", "소득 없이 버틸 수 있는 기간은?", "예: 8개월"], ["startup_cost", "초기 필요 자금은?", "예: 3,000만원"]],
-  finance: [["monthly_budget", "매달 감당 가능한 금액은?", "예: 40만원"], ["time_horizon", "얼마 동안 유지할 계획인가요?", "예: 3년"]],
-  health: [["current_level", "현재 불편 정도는?", "예: 수면 5시간, 스트레스 높음"], ["frequency", "변화를 얼마나 자주 실천할 건가요?", "예: 주 3회"]],
+  business: [["runway", "소득 없이 버틸 수 있는 기간은?", "예: 8개월", true], ["startup_cost", "초기 필요 자금은?", "예: 3,000만원"]],
+  finance: [["monthly_budget", "매달 감당 가능한 금액은?", "예: 40만원", true], ["time_horizon", "얼마 동안 유지할 계획인가요?", "예: 3년"]],
+  health: [["current_level", "현재 불편 정도는?", "예: 수면 5시간, 스트레스 높음", true], ["frequency", "변화를 얼마나 자주 실천할 건가요?", "예: 주 3회"]],
   housing: [["housing_cost", "예상 보증금·월 주거비는?", "예: 보증금 1천/월 70"], ["commute", "통근시간은 어떻게 달라지나요?", "예: 20분 감소"]],
-  relationship: [["relation_type", "누구와의 관계인가요?", "예: 연인·가족·친구·동료"], ["current_state", "현재 관계 상태는 어떤가요?", "예: 갈등이 잦고 연락은 매일"]],
+  relationship: [["relation_type", "누구와의 관계인가요?", "예: 연인·가족·친구·동료", true], ["current_state", "현재 관계 상태는 어떤가요?", "예: 갈등이 잦고 연락은 매일", true]],
   lifestyle: [["weekly_change", "일주일 기준 무엇이 얼마나 달라지나요?", "예: 근무 8시간 감소"], ["duration", "얼마 동안 시도할 계획인가요?", "예: 3개월"]],
-  long_term_values: [["priority", "이 선택에서 가장 지키고 싶은 가치는?", "예: 안정·성장·관계"], ["review_point", "언제 다시 판단할까요?", "예: 6개월 후"]],
+  long_term_values: [["priority", "이 선택에서 가장 지키고 싶은 가치는?", "예: 안정·성장·관계", true], ["review_point", "언제 다시 판단할까요?", "예: 6개월 후"]],
 };
 
 export function interpretChoice(text, domains = []) {
@@ -66,13 +75,16 @@ export function questionsForChoice(text, domains = []) {
     ? [interpreted.domain]
     : [eventDomain, interpreted.domain];
 
+  //
+  // shared 는 네 번째 자리에 있는 '상황 조건' 표시다(A 에서 물으면 B 에는 다시 안 묻는다).
+  // 영역을 합치면서 이 값을 떨어뜨리면 B 카드에 공통 질문이 되살아난다.
   const seen = new Set();
   const questions = [];
   for (const key of order) {
-    for (const [qKey, label, placeholder] of DOMAIN_QUESTIONS[key] || []) {
+    for (const [qKey, label, placeholder, shared = false] of DOMAIN_QUESTIONS[key] || []) {
       if (seen.has(qKey)) continue;
       seen.add(qKey);
-      questions.push({ key: qKey, label, placeholder });
+      questions.push({ key: qKey, label, placeholder, shared });
     }
   }
   return { ...interpreted, questions };

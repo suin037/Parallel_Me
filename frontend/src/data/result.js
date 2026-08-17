@@ -13,14 +13,14 @@ export const MOCK_RESULT = {
   },
   option_a: {
     label: "이직",
-    scores: { 경제: 62, 성장: 71, 삶의질: 58 },
+    scores: { 경제: 62, 성장: 71, 관계: 54, 자기실현: 50, 안정: 58 },
     income_change_med: 11.1,
     income_down_pct: 26.0,
     n: 43,
   },
   option_b: {
     label: "현직 유지",
-    scores: { 경제: 58, 성장: 49, 삶의질: 61 },
+    scores: { 경제: 58, 성장: 49, 관계: 57, 자기실현: 50, 안정: 61 },
     income_change_med: 0.0,
     income_down_pct: 34.0,
     n: 157,

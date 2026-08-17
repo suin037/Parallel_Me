@@ -123,7 +123,6 @@ function sampleInsight(a, b) {
     body: `시작 ${worst.first.toLocaleString()}명 중 ${worst.year}년 차까지 남은 사람은 `
       + `${worst.last.toLocaleString()}명입니다 — 100명이면 ${per100}명. `
       + `그 시점 수치는 이 ${worst.last.toLocaleString()}명의 중앙값입니다.`,
-    note: `${worst.source} · 뒤 시점으로 갈수록 표본이 얇아 한 사람의 값이 결과를 크게 움직입니다.`,
   };
 }
 
@@ -383,8 +382,7 @@ export default function DetailedInsights({ a, b, futureYears = 3 }) {
   const education = [...educationRows(a, "A"), ...educationRows(b, "B")]
     .filter((item, index, rows) => rows.findIndex((candidate) => candidate.tag === item.tag && candidate.indicator === item.indicator) === index);
   const insights = [comparisonInsight(a, b, futureYears), spreadInsight(a, b, futureYears), sampleInsight(a, b)].filter(Boolean);
-  const matched = [...new Set([...(a.matched_on || []), ...(b.matched_on || [])])];
-  if (!facets.length && !education.length && !insights.length && !matched.length) return null;
+  if (!facets.length && !education.length && !insights.length) return null;
 
   return (
     <section className="mb-5 overflow-hidden rounded-[22px] border border-white/10 bg-[#0B1424]/90" aria-labelledby="detailed-insights-title">
@@ -443,16 +441,6 @@ export default function DetailedInsights({ a, b, futureYears = 3 }) {
           </div>
         )}
 
-        {matched.length > 0 && (
-          <div className="border-t border-white/[.07] pt-3">
-            <p className="text-[9px] text-mut">실제 유사사례 매칭에 반영된 조건</p>
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {matched.map((condition) => (
-                <span key={condition} className="rounded-md bg-white/[.05] px-2 py-1 text-[9px] text-sub">{condition}</span>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );

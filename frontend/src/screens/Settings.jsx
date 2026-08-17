@@ -260,7 +260,6 @@ export default function Settings() {
             <SettingsNav active={activeSection === "notifications"} onClick={() => setActiveSection("notifications")} icon={Bell}>알림 · 가이드</SettingsNav>
           </nav>
           <button type="button" onClick={resetToStart} className="tap mt-3 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-mut transition-colors hover:bg-danger/10 hover:text-danger"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[.04]"><LogOut size={15}/></span>로그아웃</button>
-          <p className="mt-3 px-3 text-[10px] leading-relaxed text-mut">변경한 설정은 이 기기의 사용자 환경에 바로 반영됩니다.</p>
         </aside>
 
         <div className="min-w-0 lg:[&_.bg-card]:rounded-[22px] lg:[&_.bg-card]:border lg:[&_.bg-card]:border-white/[.06] lg:[&_.bg-card]:bg-[#0D1828]/80 lg:[&_.bg-card]:p-5 lg:[&_.bg-card]:shadow-[0_18px_45px_rgba(0,0,0,.18)]">

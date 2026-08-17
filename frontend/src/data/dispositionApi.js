@@ -6,6 +6,7 @@ import storage from "./safeStorage.js";
 // 주간 리포트는 '완성된 주'에만 만든다. 한 번 만들면 DB(week_reports)에 저장되고,
 // 지난 주는 재생성 없이 저장본(getSavedReport)을 즉시 불러온다.
 const BASE = API_BASE;
+import { maskMessages, maskRecords, maskText } from "./outbound.js";
 export const REPORT_UID = "me";
 
 // 저장된 주간 리포트 조회 → { found, report, actions, ... }
@@ -32,7 +33,7 @@ export async function tagDomain(text) {
     const res = await fetch(`${BASE}/tag`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text: maskText(text) }),
     });
     if (!res.ok) return null;
     return res.json();
@@ -61,7 +62,7 @@ export async function chatTurn(messages, opts = {}) {
     const res = await fetch(`${BASE}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages, persona, context, speech, role }),
+      body: JSON.stringify({ messages: maskMessages(messages), persona, context, speech, role }),
     });
     if (!res.ok) throw new Error();
     return await res.json();
@@ -80,7 +81,7 @@ export async function weeklyComfort(entries, { persona = "lumi", speech = "polit
     const res = await fetch(`${BASE}/chat/comfort`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ entries, persona, speech }),
+      body: JSON.stringify({ entries: maskRecords(entries), persona, speech }),
     });
     if (!res.ok) throw new Error();
     return ((await res.json()).text || "").trim() || null;
@@ -96,7 +97,7 @@ export async function analyzeEmotion(text) {
     const res = await fetch(`${BASE}/emotion`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text: maskText(text) }),
     });
     if (!res.ok) return null;
     const j = await res.json();
@@ -112,7 +113,7 @@ export async function composeDiary(messages) {
     const res = await fetch(`${BASE}/diary/compose`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages: maskMessages(messages) }),
     });
     if (!res.ok) throw new Error();
     return await res.json();
@@ -127,7 +128,7 @@ export async function analyzeDisposition({ ranked_cards, mbti, entries, uid, wee
   const res = await fetch(`${BASE}/analyze`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ranked_cards, mbti, entries, uid, week_key }),
+    body: JSON.stringify({ ranked_cards, mbti, entries: maskRecords(entries), uid, week_key }),
   });
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json();

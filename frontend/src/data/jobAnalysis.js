@@ -7,6 +7,7 @@ import { computeDiarySignals } from "./diarySignals.js";
 import { CARD_BY_ID } from "./valueCards.js";
 import { valueRankingLine } from "./careerNet.js";
 import { API_BASE } from "./apiBase.js";
+import { maskPosting } from "./outbound.js";
 
 const BASE = API_BASE;
 
@@ -55,7 +56,8 @@ export async function analyzeJobPosting({ posting, choice = null, uid = "me", pr
   const res = await fetch(`${BASE}/job/analyze`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ posting, choice, uid, persona_block: persona_block || null }),
+    // 공고는 금액·회사명이 곧 분석 대상이라 그대로 두고, 이름·연락처만 가린다.
+    body: JSON.stringify({ posting: maskPosting(posting), choice, uid, persona_block: persona_block || null }),
   });
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json();

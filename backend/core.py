@@ -28,6 +28,7 @@ from rulebase import (query_choice_indicators, query_life_indicators,
 from trajectory import project_trajectory, yp_satisfaction, matched_features
 from utils.scoring import build_feature_vector
 from utils.claude_api import generate_narrative
+from causal_effects import summary as relationship_causal_summary
 
 # 선택 유형 → 학습된 treatment 키(train_treatments.py / klips_train.py 와 동일 명명).
 # 매핑이 없으면 개인단위 인과·생존을 붙이지 않는다.
@@ -196,8 +197,15 @@ def run_prediction(req: PredictRequest, with_narrative: bool = True,
         # L4 자영 스펠 모델이 없을 때만 집단통계(KOSIS 기업생멸)로 후퇴
         timeline = startup_closure_timeline(features)
 
+    # 관계 영역 인과효과(소득 외 Y). 커리어 3종은 KLIPS, 생활사건 2종은 KOWEPS 에서
+    # 오며 없으면 조용히 비운다 — 값이 없다는 사실은 coverage 문구가 대신 말한다.
+    relationship_summary = relationship_causal_summary(kind)
+    if relationship_summary.get("available"):
+        available_layers.append("관계 인과(L3)")
+
     coverage = _coverage(kind, available_layers, survival, effect, wellbeing_meta,
-                         startup_context_meta(features) if kind == "창업" else {})
+                         startup_context_meta(features) if kind == "창업" else {},
+                         relationship_summary)
 
     # narrative 는 3번 팀원 RAG/Claude API 담당. 키 미설정·호출 실패 시에도
     # 예측(L1~L4)은 정상 반환되도록 방어.
@@ -234,12 +242,35 @@ def run_prediction(req: PredictRequest, with_narrative: bool = True,
         wellbeing_branch=wellbeing_meta,
         satisfaction_facets=satisfaction_facets,
         scenario_trajectories=scenario_trajectories,
+        relationship_effects=relationship_summary,
         narrative=narrative,
     )
 
 
+def _relationship_note(rel: dict | None) -> str | None:
+    """관계 인과효과를 한 줄로. 유의/비유의를 뭉뚱그리지 않고 갈라 적는다."""
+    if not rel:
+        return None
+    if not rel.get("available"):
+        return f"관계 인과 미적용 — {rel.get('reason', '')}" if rel.get("reason") else None
+    hit = rel.get("significant") or []
+    miss = rel.get("indistinguishable") or []
+    bits = []
+    if hit:
+        bits.append("유의: " + ", ".join(
+            f"{e['label']} {e['ate']:+.3f}점({e['ate_sd']:+.2f}SD, "
+            f"95%CI {e['ci_low']:+.3f}~{e['ci_high']:+.3f})" for e in hit))
+    if miss:
+        # 비유의를 감추면 화면이 '유의한 것만 있는 세계'를 그린다. 그대로 남긴다.
+        bits.append("구분되지 않음(신뢰구간이 0을 포함): " + ", ".join(e["label"] for e in miss))
+    if not bits:
+        return None
+    src = rel.get("source", "")
+    return (f"관계 인과효과({src}, 직전 같은 문항 통제) — " + " / ".join(bits))
+
+
 def _coverage(kind: str, layers: list[str], survival, effect, wb_meta: dict,
-              su_meta: dict | None = None) -> str:
+              su_meta: dict | None = None, rel: dict | None = None) -> str:
     """무엇이 적용됐고 무엇이 왜 빠졌는지 한 줄로. 빈 자리는 이유까지 적는다."""
     parts = [f"{kind}: " + "·".join(layers)]
     if kind == "진학":
@@ -254,10 +285,13 @@ def _coverage(kind: str, layers: list[str], survival, effect, wb_meta: dict,
         # 레이어(L2 유사인물·L3 임금인과·L4 근속생존·L5 소득궤적)는 이 질문에
         # 해당하지 않는다. 아무 말도 안 하면 '왜 비었는지' 를 화면이 설명하지
         # 못하므로(기타는 그 문구가 있는데 이 유형들은 없었다) 여기서 밝힌다.
+        # 관계 인과효과가 붙기 전에는 이 유형이 통째로 '기술통계뿐' 이었다. 이제
+        # 축마다 성격이 갈린다 — 만족 축은 개인단위 인과(KOWEPS DML), 소득·나머지는
+        # 여전히 기술통계다. 뭉뚱그려 "인과가 아님" 이라고 쓰면 이제 거짓이 된다.
         parts.append(
             f"커리어 예측(L2·L3·L5) 미적용 — {kind}은 임금·근속 경로의 선택이 아님. "
-            "KOWEPS 최초 사건 전후의 기술통계(만족·건강·정신건강)를 참고하며 "
-            "인과효과나 개인예측이 아님. 근거는 artifacts/koweps_scenario_evidence.json"
+            "만족 축 외의 수치는 KOWEPS 최초 사건 전후의 기술통계이며 인과효과나 "
+            "개인예측이 아님. 근거는 artifacts/koweps_scenario_evidence.json"
         )
     elif kind == "창업":
         if survival is not None:
@@ -300,4 +334,6 @@ def _coverage(kind: str, layers: list[str], survival, effect, wb_meta: dict,
                      f"기준(관측 경로 — 선택의 순효과 아님)")
     elif wb_meta.get("reason"):
         parts.append(f"만족도 선택별 분기 미적용({wb_meta['reason']})")
+    if (rel_note := _relationship_note(rel)):
+        parts.append(rel_note)
     return " / ".join(parts)

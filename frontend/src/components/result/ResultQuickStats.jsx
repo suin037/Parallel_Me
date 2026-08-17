@@ -37,6 +37,9 @@ function metricValue(side, kind, futureYears) {
   }
   if (kind.startsWith("score:")) {
     const key = kind.slice(6);
+    // 근거가 없어 중립값(0.5)만 채워진 축은 값을 내지 않는다 — 0.5 를 '50점'으로
+    // 그리면 재지 않은 축이 '중간 정도'라는 측정 결과처럼 보인다.
+    if (side.indicator_unmeasured?.includes(key)) return null;
     const raw = side.indicator_scores?.[key];
     // 잴 재료가 없던 지표는 값이 아니라 '측정 안 됨' 으로 돌려준다. 그냥 비우면
     // 화면에서 "—" 가 되어, 못 잰 것과 값이 낮은 것이 같아 보인다.
@@ -131,20 +134,43 @@ export default function ResultQuickStats({ a, b, futureYears = 3 }) {
     { key: "wellbeing", label: "삶의 만족" },
     { key: "effect", label: "선택에 따른 변화 효과" },
     { key: "tenure", label: tenureLabel(a, b) },
-    { key: "score:경제적안정도", label: "경제적 안정도" },
-    { key: "score:성장가능성", label: "성장 가능성" },
-    { key: "score:삶의질", label: "삶의 질" },
+    // 5축 — 온보딩에서 사용자가 정렬한 가치축과 같은 이름·같은 순서다.
+    { key: "score:경제", label: "경제적 안정" },
+    { key: "score:성장", label: "성장 가능성" },
+    { key: "score:관계", label: "관계" },
+    { key: "score:자기실현", label: "자기실현" },
+    { key: "score:안정", label: "건강·안정" },
   ].map((row) => ({
     ...row,
     A: metricValue(a, row.key, futureYears),
     B: metricValue(b, row.key, futureYears),
   })).map((row) => withCausalBaseline(row, a, b)).filter((row) => row.A || row.B);
-  const comparableRows = rows
-    .filter((row) => row.A && row.B)
-    .map((row) => ({ ...row, shape: barShape(row.A, row.B) }));
-  const oneSidedRows = rows.filter((row) => !row.A || !row.B);
 
-  if (!rows.length) return null;
+  // 관계·건강처럼 선택별 모델이 없는 영역에서는 A와 B가 **같은 기준선**을 받는다.
+  // 소득 궤적은 프로필로만 계산되고(scenario_trajectories 가 빈 배열), 만족도는
+  // wellbeing_branch.branched=false 로 갈리지 않으며, 지표 3종은 그 둘을 섞어
+  // 만들어지므로 결국 A=B 가 된다. 그걸 A/B 비교표에 나란히 그리면 사용자는
+  // "두 선택의 차이가 없다"로 읽지만, 진실은 "이 질문은 이 수치로 구분되지
+  // 않는다"다. 백엔드는 quantitative_ok=false 로 이미 그렇게 말하고 있다.
+  const comparable = [a, b].some((side) => side?.quantitative_ok !== false);
+  const guardNote = a?.graph_guard_note || b?.graph_guard_note || null;
+
+  const comparableRows = comparable
+    ? rows.filter((row) => row.A && row.B).map((row) => ({ ...row, shape: barShape(row.A, row.B) }))
+    : [];
+  const oneSidedRows = comparable ? rows.filter((row) => !row.A || !row.B) : [];
+  // 비교가 성립하지 않을 때도 값 자체는 유효한 정보다(비슷한 사람들의 관측값).
+  // 버리지 않고 '두 선택 공통' 자리로 내려 단일 값으로 보여준다.
+  const sharedRows = comparable ? [] : rows.filter((row) => row.A || row.B);
+
+  // 잰 적 없는 축은 막대로 그릴 수 없다(막대는 '모름'을 표현하지 못한다). 대신
+  // 어떤 축이 왜 비었는지 각주로 말한다 — 조용히 빼면 없는 축은 화면에서 사라져
+  // 사용자가 온보딩에서 고른 가치가 무시된 것처럼 보인다.
+  const unmeasuredAxes = [...new Set([
+    ...(a?.indicator_unmeasured || []), ...(b?.indicator_unmeasured || []),
+  ])];
+
+  if (!rows.length && !unmeasuredAxes.length) return null;
 
   // 해외 선택 중 소득만 '입력값'으로 살아난 쪽(린의 런던 오퍼가 그렇다).
   const abroadInput = ["A", "B"]
@@ -159,14 +185,39 @@ export default function ResultQuickStats({ a, b, futureYears = 3 }) {
     <section className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0B1220]/85" aria-labelledby="quick-stats-title">
       <div className="flex flex-wrap items-end justify-between gap-2 border-b border-white/10 px-4 py-3">
         <div>
-          <h2 id="quick-stats-title" className="text-[13px] font-bold text-ink">A/B 기본 비교 통계</h2>
+          <h2 id="quick-stats-title" className="text-[13px] font-bold text-ink">
+            {comparable ? "A/B 기본 비교 통계" : "기본 통계 · 두 선택 공통"}
+          </h2>
           <p className="mt-0.5 text-[9px] text-mut">{futureYears}년 뒤를 기준으로, 연결된 관측값만 표시합니다.</p>
         </div>
-        <div className="flex gap-3 text-[10px] font-semibold">
-          <span style={{ color: COLORS.A }}>A · {labelOf(a.choice)}</span>
-          <span style={{ color: COLORS.B }}>B · {labelOf(b.choice)}</span>
-        </div>
+        {comparable && (
+          <div className="flex gap-3 text-[10px] font-semibold">
+            <span style={{ color: COLORS.A }}>A · {labelOf(a.choice)}</span>
+            <span style={{ color: COLORS.B }}>B · {labelOf(b.choice)}</span>
+          </div>
+        )}
       </div>
+
+      {sharedRows.length > 0 && (
+        <div className="px-4 py-3.5">
+          <p className="mb-2.5 rounded-lg bg-[#F5C86B]/[.07] px-3 py-2 text-[9.5px] leading-4 text-sub">
+            이 질문은 <b className="font-semibold">두 선택이 이 수치로 구분되지 않습니다.</b> 아래 값은 A·B 공통으로,
+            비슷한 조건인 사람들의 관측값입니다 — 어느 쪽을 골랐을 때의 예측이 아닙니다.
+            {guardNote && <span className="mt-1 block text-mut">{guardNote}</span>}
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {sharedRows.map((row) => (
+              <article key={row.key} className="flex items-baseline justify-between gap-2 rounded-xl border border-white/[.07] bg-white/[.025] px-3 py-2.5">
+                <span className="min-w-0 truncate text-[10px] text-sub">{row.label}</span>
+                <strong className="shrink-0 text-[13px] tabular-nums text-ink">{formatMetric(row.A || row.B)}</strong>
+              </article>
+            ))}
+          </div>
+          <p className="mt-2.5 text-[9px] leading-4 text-mut">
+            두 선택의 차이는 <b className="font-semibold text-sub">집단 관측</b>과 <b className="font-semibold text-sub">기록 근거</b> 탭에서 확인하세요.
+          </p>
+        </div>
+      )}
 
       {comparableRows.length > 0 && <div className="divide-y divide-white/[.07]">
         {comparableRows.map((row) => <StatRow key={row.key} row={row} futureYears={futureYears} />)}
@@ -193,6 +244,12 @@ export default function ResultQuickStats({ a, b, futureYears = 3 }) {
             {oneSidedRows.map((row) => <SingleSideMetric key={row.key} row={row} futureYears={futureYears} />)}
           </div>
         </div>
+      )}
+      {unmeasuredAxes.length > 0 && (
+        <p className="border-t border-white/[.07] px-4 py-2.5 text-[9px] leading-4 text-mut">
+          <b className="font-semibold text-sub">{unmeasuredAxes.join(" · ")}</b>
+          {" "}축은 이 선택을 측정한 검증 결과가 없어 비워 두었습니다 — 값이 낮다는 뜻이 아닙니다.
+        </p>
       )}
     </section>
   );

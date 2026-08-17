@@ -717,7 +717,7 @@ def relationship_analyze(req: RelAnalyzeReq):
     """
     from qmode import relationship as REL
 
-    # 1) 안전 게이트 — 위기 신호면 서사 대신 지원 안내
+    # 1) 안전 게이트(1차) — 텍스트 대화의 위기 신호
     safe = REL.safety_check(req.transcript or "")
     if safe["block"]:
         return {"blocked": True, "support": safe["support"], "level": safe["level"]}
@@ -727,6 +727,15 @@ def relationship_analyze(req: RelAnalyzeReq):
         images=req.images, transcript=req.transcript, relation_tag=req.relation_tag)
     if signals is None:
         return {"error": serr}
+
+    # 2-1) 안전 게이트(2차) — 스크린샷만 올라오면 1차가 빈 문자열을 검사하게 되어
+    #      위기 신호가 통째로 우회된다. 비전이 읽어낸 대사·정서 톤에 다시 건다.
+    #      서사 생성·저장 전에 막아야 위기 대화가 스냅샷으로 적립되지 않는다.
+    safe2 = REL.safety_check_signals(signals)
+    if safe2["level"] > safe["level"]:
+        safe = safe2
+    if safe["block"]:
+        return {"blocked": True, "support": safe["support"], "level": safe["level"]}
 
     # 3) 성향 + 히스토리 결합
     disposition = _load_disposition(req.uid)
@@ -1077,6 +1086,26 @@ def suggest_daily(req: SuggestReq):
     """최근 기록 → 오늘 해볼 만한 것 3개. 기록이 무거운 날엔 권하지 않고 care 로 답한다."""
     from qmode import suggest as SG
     return SG.suggest(req.records, mood_avg=req.moodAvg, speech=req.speech)
+
+
+class CompareKeywordReq(BaseModel):
+    """시뮬 추천 문구에 끼울 '요즘 튄 말'. LLM 을 안 부르는 유일한 suggest 계열이다."""
+    records: list[dict] = []          # [{date, text}] — 순서 무관, 전 기간
+    windowDays: int = 28
+    top: int = 8
+
+
+@app.post("/suggest/compare-keywords")
+def suggest_compare_keywords(req: CompareKeywordReq):
+    """일기 → 최근 창에서 튄 명사. 고정 사전에 없는 말(예: '팀장')을 잡는 게 목적이다.
+
+    LLM 을 안 쓰므로 지연·비용이 없다. 실패해도 예외를 내지 않고 ok=False 를
+    돌려주며, 프론트는 그때 choices.js 의 고정 문구를 그대로 쓴다.
+    """
+    from qmode import compare_keywords as CK
+    return CK.extract(req.records,
+                      window_days=max(7, min(180, req.windowDays or 28)),
+                      top=max(1, min(20, req.top or 8)))
 
 
 class OpportunityReq(BaseModel):
