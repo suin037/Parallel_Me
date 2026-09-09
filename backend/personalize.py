@@ -55,17 +55,20 @@ def mbti_narrative_directive(mbti_value: str | None) -> str:
     if not profile:
         return ""
 
-    decision = "근거와 장단점을 구조적으로 제시" if profile["decision_style"] == "analytic" else "가치와 체감 변화를 함께 설명"
-    risk = "불확실성과 안전장치를 먼저 설명" if profile["risk_tolerance"] < 0.5 else "가능성과 선택의 여지를 함께 설명"
-    flavor = " · ".join(profile.get("delivery_flavor") or [])
-    return "\n".join([
-        f"[MBTI 전달 방식 prior: {profile['mbti']}]",
-        f"· 결정 설명: {decision}",
-        f"· 위험 설명: {risk}",
-        f"· 표현 관점: {flavor}",
-        "· MBTI로 결과 수치, 성공 가능성, 적합도나 선택 권유를 바꾸지 말 것.",
-        "· 고정된 성격으로 단정하지 말고 설명 순서와 예시의 관점에만 약하게 반영할 것.",
-    ])
+    # 부분 선택(축 일부만 고름)이면 해당 축 값만 None/빈 값으로 온다 —
+    # 정해진 축만큼만 지시문에 싣는다(고르지 않은 축은 아예 언급하지 않음).
+    lines = [f"[MBTI 전달 방식 prior: {profile['mbti']}]"]
+    if profile["decision_style"] is not None:
+        decision = "근거와 장단점을 구조적으로 제시" if profile["decision_style"] == "analytic" else "가치와 체감 변화를 함께 설명"
+        lines.append(f"· 결정 설명: {decision}")
+    if profile["risk_tolerance"] is not None:
+        risk = "불확실성과 안전장치를 먼저 설명" if profile["risk_tolerance"] < 0.5 else "가능성과 선택의 여지를 함께 설명"
+        lines.append(f"· 위험 설명: {risk}")
+    if profile.get("delivery_flavor"):
+        lines.append(f"· 표현 관점: {' · '.join(profile['delivery_flavor'])}")
+    lines.append("· MBTI로 결과 수치, 성공 가능성, 적합도나 선택 권유를 바꾸지 말 것.")
+    lines.append("· 고정된 성격으로 단정하지 말고 설명 순서와 예시의 관점에만 약하게 반영할 것.")
+    return "\n".join(lines)
 
 
 # ── 가중치 변환 ──────────────────────────────────────────────────────

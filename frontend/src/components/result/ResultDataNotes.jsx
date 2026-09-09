@@ -33,7 +33,7 @@ function growthOf(side, futureYears) {
   return { value, year: Number(point.year), sample: point.sample_n ?? null };
 }
 
-// 지표마다 관측 천장이 다르다. 소득(KLIPS)은 10년까지 있는데 만족도(YP 청년패널)는
+// 지표마다 관측 천장이 다르다. 소득(KLIPS)은 15년까지 있는데 만족도(YP 청년패널)는
 // 패널이 4웨이브뿐이라 3년이 끝이다. 요청 시점이 천장을 넘으면 화면은 가장 가까운
 // 연차 값으로 조용히 스냅하는데, 그걸 안 밝히면 3년 관측치가 '10년 뒤 만족도'로 읽힌다.
 //

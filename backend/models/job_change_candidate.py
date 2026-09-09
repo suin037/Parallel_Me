@@ -113,10 +113,16 @@ def _personalization_panel() -> pd.DataFrame:
     return df
 
 
+MIN_SAMPLE_N = 30  # 표본 하나의 우연이 비율처럼 보이지 않도록 — build_job_change_observed_outcomes.py와 동일 기준.
+# employment_improved는 '상용직으로 옮겼는가'라 정의상 자영업 전환은 항상 0%다.
+# 실측이 아니라 분류 규칙이 만든 가짜 0%라 창업 시나리오에서는 계산 자체를 건너뛴다.
+SCENARIO_EXCLUDE_METRIC = {"startup": {"employment_improved"}}
+
+
 def _summary(values: pd.Series, kind: str) -> dict:
     values = pd.to_numeric(values, errors="coerce").dropna()
-    if values.empty:
-        return {"n": 0, "available": False}
+    if len(values) < MIN_SAMPLE_N:
+        return {"n": int(len(values)), "available": False}
     result = {"n": int(len(values)), "available": True}
     if kind == "rate":
         return {**result, "rate": round(float(values.mean()), 4)}
@@ -131,11 +137,20 @@ def _summary(values: pd.Series, kind: str) -> dict:
     }
 
 
+def _scenario_pool(df: pd.DataFrame, scenario: str) -> pd.DataFrame:
+    if scenario == "startup":
+        # 임금근로(1~3)에서 자영업·고용주(4~5)로 넘어간 이직만 창업으로 본다.
+        # build_job_change_observed_outcomes.py의 SCENARIO_MASKS와 정의를 맞춘다.
+        return df[df.moved_t1.eq(1) & ~df.employment_status_t.isin([4, 5])
+                  & df.employment_status_t1.isin([4, 5])]
+    moved = 1 if scenario == "move" else 0
+    return df[df.moved_t1.eq(moved)]
+
+
 def _matched_cases(profile: dict, scenario: str, minimum_n: int = 40) -> tuple[pd.DataFrame, list[str], list[str]]:
     """표본을 보존하면서 현재 상태와 일치하는 조건을 단계적으로 적용한다."""
     df = _personalization_panel()
-    moved = 1 if scenario == "move" else 0
-    pool = df[df.moved_t1.eq(moved)].copy()
+    pool = _scenario_pool(df, scenario).copy()
     age = pd.to_numeric(profile.get("age"), errors="coerce")
     applied, relaxed = [], []
     if pd.notna(age):
@@ -183,10 +198,13 @@ def _observed_outcomes(choice_kind: str, profile: dict) -> dict:
     if not report or not KLIPS_PANEL.exists():
         return {"status": "unavailable",
                 "reason": "관측 결과 패널(data/clean)이 배포에 포함되지 않았습니다"}
-    scenario = "move" if choice_kind == "이직" else "stay"
+    scenario = {"이직": "move", "유지": "stay", "창업": "startup"}[choice_kind]
     cases, applied, relaxed = _matched_cases(profile, scenario)
+    excluded = SCENARIO_EXCLUDE_METRIC.get(scenario, ())
     domains: dict[str, list[dict]] = {}
     for metric in report.get("metrics", []):
+        if metric["column"] in excluded:
+            continue
         personalized = _summary(cases[metric["column"]], metric["kind"])
         population = metric["scenarios"][scenario]
         domains.setdefault(metric["domain"], []).append({
@@ -343,10 +361,20 @@ def financial_impact(profile: dict) -> dict:
 
 
 def prediction_for_choice(choice_kind: str, profile: dict) -> dict:
-    if choice_kind not in {"이직", "유지"}:
+    if choice_kind not in {"이직", "유지", "창업"}:
         return {
             "status": "not_applicable",
-            "reason": "현재 검증된 후보는 이직과 현상 유지 비교에만 적용됩니다.",
+            "reason": "현재 검증된 후보는 이직·유지·창업 비교에만 적용됩니다.",
+        }
+    if choice_kind == "창업":
+        # 재정 영향(financial_impact)은 임금근로 이직자 대상 모델이라 자영업 전환에는
+        # 그대로 못 쓴다 — 관측 경로(observed_outcomes·parallel_trajectory)만 제공한다.
+        return {
+            "status": "not_applicable",
+            "reason": "재정 영향 모델은 임금근로 이직만 검증되어 있어 창업에는 적용되지 않습니다.",
+            "selected_scenario": "startup",
+            "observed_outcomes": _observed_outcomes(choice_kind, profile),
+            "parallel_trajectory": trajectory_for_choice(choice_kind, profile),
         }
     result = financial_impact(profile)
     result["selected_scenario"] = "move" if choice_kind == "이직" else "stay"

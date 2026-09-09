@@ -127,7 +127,7 @@ tests/          # 테스트
 pip install -r backend/requirements.txt
 
 cd backend
-python -m uvicorn main:app --reload
+uvicorn main:app --reload --port 8000
 ```
 
 ### Frontend

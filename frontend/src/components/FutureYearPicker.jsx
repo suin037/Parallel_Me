@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { FUTURE_YEAR_OPTIONS } from "../data/futureYears.js";
 
-// 1~10년 전부를 알약 버튼으로 늘어놓으면 좁은 폭에서 두 줄로 꺾여 부산해
-// 보였다. 자주 쓰는 값(1·3·5·10)만 기본 노출하고 나머지는 "더보기"로 펼친다.
+// 1~15년 전부를 알약 버튼으로 늘어놓으면 좁은 폭에서 두 줄로 꺾여 부산해
+// 보였다. 자주 쓰는 값(1·3·5·10·15)만 기본 노출하고 나머지는 "더보기"로 펼친다.
 // 지금 선택된 값이 기본 세트에 없어도(예: 확장해서 7년을 골랐다가 접은 경우)
 // 사라지지 않도록 항상 표시 목록에 끼워 넣는다.
 const QUICK_YEARS = [1, 3, 5, 10, 15];
@@ -42,8 +42,8 @@ export default function FutureYearPicker({
             type="button"
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
-            aria-label={expanded ? "년도 선택 접기" : "1~10년 전체 보기"}
-            title={expanded ? "간단히 보기" : "1~10년 전체 보기"}
+            aria-label={expanded ? "년도 선택 접기" : "1~15년 전체 보기"}
+            title={expanded ? "간단히 보기" : "1~15년 전체 보기"}
             className="tap !min-h-0 rounded-full px-2 py-1 text-[10px] font-bold text-mut hover:bg-white/[.06] hover:text-sub"
           >
             {expanded ? "접기" : "더보기"}

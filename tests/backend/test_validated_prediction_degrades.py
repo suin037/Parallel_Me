@@ -34,8 +34,8 @@ def test_데이터가_없으면_예외_대신_상태로_알린다(monkeypatch):
     assert "배포에 포함되지 않아" in got["reason"]
 
 
-@pytest.mark.parametrize("kind", ["창업", "휴식", "진학", "기타"])
-def test_이직_유지가_아니면_해당없음이다(kind):
+@pytest.mark.parametrize("kind", ["휴식", "진학", "기타"])
+def test_이직_유지_창업이_아니면_해당없음이다(kind):
     """'못 쟀다' 와 '해당 없다' 는 다른 말이다."""
     assert traj.trajectory_for_choice(kind, {})["status"] == "not_applicable"
 

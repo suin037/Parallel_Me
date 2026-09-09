@@ -292,21 +292,19 @@ export default function InputScreen() {
   }, [persona, intakeA.domain, intakeB.domain, intakeA.event, intakeB.event, setScenarioContexts]);
 
   async function startComparison() {
-    const fallback = (choice) => {
-      if (["이직", "유지"].includes(choice)) return ["career"];
-      if (choice === "진학") return ["education"];
-      if (choice === "창업") return ["business"];
-      // 쉬어가기는 일만의 결정이 아니다 — 대개 건강·소진이 같이 걸려 있어
-      // 두 영역을 함께 켠다(9영역 근거가 한쪽만 붙으면 판단 재료가 반쪽이 된다).
-      if (choice === "휴식") return ["career", "health"];
-      return ["long_term_values"];
-    };
     // 영역을 먼저 확정하고, 그 영역으로 intake 를 다시 계산한다. 순서가 반대면
     // 전송되는 choice_*_context.domain 이 영역 태그와 어긋난다(백엔드는 이 값을
     // 서사 프롬프트와 KOWEPS 사건 판정에 쓴다).
+    //
+    // inheritedDomains 가 비는 경우는 A·B 둘 다 detectPrimaryLifeDomain(free text) 이
+    // 아무 도메인도 못 잡았을 때뿐이다 — 이 시점의 choices.a/b 는 그 실패한 원문과
+    // 같은 문자열이라(onText 가 타이핑마다 choices 를 텍스트로 덮어씀), "이직"·"창업"
+    // 같은 리터럴과 비교해봤자 걸릴 입력이 없다(걸렸다면애초에 detectPrimaryLifeDomain
+    // 이 먼저 잡아 이 분기에 오지 않았을 것). 도메인을 못 정했다는 사실 자체가
+    // long_term_values 로 보내는 신호이므로, 헷갈리는 죽은 분기 대신 그대로 쓴다.
     let resolved = {
-      a: inheritedDomains.a.length ? inheritedDomains.a : fallback(choices.a),
-      b: inheritedDomains.b.length ? inheritedDomains.b : fallback(choices.b),
+      a: inheritedDomains.a.length ? inheritedDomains.a : ["long_term_values"],
+      b: inheritedDomains.b.length ? inheritedDomains.b : ["long_term_values"],
     };
     let resolvedA = questionsForChoice(textA, resolved.a);
     let resolvedB = questionsForChoice(textB, resolved.b);
@@ -604,8 +602,8 @@ function DiaryContextSection({ diary, setDiary, emotions }) {
   );
 }
 
-// 1~10년 전부 고를 수 있다(소득 궤적은 매 연차 실측이 있다). 기본은 자주 쓰는
-// 값(1·3·5·10)만 보여주고 "더보기"로 펼친다 — 열 개를 다 늘어놓으면 좁은
+// 1~15년 전부 고를 수 있다(소득 궤적은 매 연차 실측이 있다). 기본은 자주 쓰는
+// 값(1·3·5·10·15)만 보여주고 "더보기"로 펼친다 — 다 늘어놓으면 좁은
 // 폭에서 두 줄로 꺾여 부산했다.
 function CompactFuturePicker({ futureYears, setFutureYears }) {
   const beyondWellbeing = futureYears > WELLBEING_MAX_YEAR;
@@ -619,7 +617,7 @@ function CompactFuturePicker({ futureYears, setFutureYears }) {
       titleFor={(years) => `${years}년 후 비교`}
       note={
         // 만족도만 관측 천장이 낮다 — 고르기 전에 미리 알린다. 막지는 않는다:
-        // 소득·재직기간은 10년까지 실측이 있어서 함께 막으면 그쪽이 손해다.
+        // 소득·재직기간은 15년까지 실측이 있어서 함께 막으면 그쪽이 손해다.
         beyondWellbeing && (
           <p className="mt-1.5 text-[9px] leading-4 text-mut sm:text-right">
             삶의 만족은 {WELLBEING_MAX_YEAR}년까지만 관측돼요 — 소득·재직기간은 {futureYears}년 기준으로 나옵니다.

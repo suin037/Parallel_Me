@@ -84,10 +84,13 @@ def prepare() -> pd.DataFrame:
     return df
 
 
+MIN_SAMPLE_N = 30  # 이보다 적으면 표본 하나의 우연이 비율처럼 보일 수 있어 unavailable 처리한다.
+
+
 def summarize(values: pd.Series, kind: str) -> dict:
     values = pd.to_numeric(values, errors="coerce").dropna()
-    if values.empty:
-        return {"n": 0, "available": False}
+    if len(values) < MIN_SAMPLE_N:
+        return {"n": int(len(values)), "available": False}
     base = {"n": int(len(values)), "available": True}
     if kind == "rate":
         return {**base, "rate": round(float(values.mean()), 4)}
@@ -109,6 +112,21 @@ def direction(summary: dict, kind: str) -> int | None:
     return 0 if abs(value) < 1e-9 else (1 if value > 0 else -1)
 
 
+# '창업' = 이직 중에서도 임금근로(1~3)에서 자영업·고용주(4~5)로 넘어간 부분집합.
+# KLIPS 종사상지위 코드 재사용 — build_career_sequences.py의 self_employed 정의와 같다.
+SCENARIO_MASKS = {
+    "move": lambda df: df.moved_t1.eq(1),
+    "stay": lambda df: df.moved_t1.eq(0),
+    "startup": lambda df: df.moved_t1.eq(1)
+        & ~df.employment_status_t.isin([4, 5]) & df.employment_status_t1.isin([4, 5]),
+}
+
+# employment_improved는 '상용직으로 옮겼는가'라 정의상 자영업 전환은 항상 0%다
+# (자영업은애초에 종사상지위 1=상용직 코드가 아니다). 표본이 있어도 실측이 아니라
+# 분류 규칙이 만든 가짜 0%라 창업 시나리오에서는 아예 빼고 결측으로 남긴다.
+SCENARIO_EXCLUDE_METRIC = {"startup": {"employment_improved"}}
+
+
 def build() -> dict:
     df = prepare()
     results = []
@@ -116,8 +134,14 @@ def build() -> dict:
         if column not in df:
             continue
         groups = {}
-        for moved, scenario in ((1, "move"), (0, "stay")):
-            group = df[df.moved_t1.eq(moved)]
+        for scenario, mask_fn in SCENARIO_MASKS.items():
+            if column in SCENARIO_EXCLUDE_METRIC.get(scenario, ()):
+                groups[scenario] = {"all_years": {"n": 0, "available": False},
+                                     "early_years": {"n": 0, "available": False},
+                                     "recent_years": {"n": 0, "available": False},
+                                     "direction_stable": None}
+                continue
+            group = df[mask_fn(df)]
             full = summarize(group[column], kind)
             early = summarize(group.loc[group.year_t <= CUTOFF, column], kind)
             recent = summarize(group.loc[group.year_t > CUTOFF, column], kind)
@@ -140,8 +164,9 @@ def main() -> None:
     OUTPUT.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[완료] {OUTPUT}")
     for item in result["metrics"]:
-        a, b = item["scenarios"]["move"]["all_years"], item["scenarios"]["stay"]["all_years"]
-        print(item["label"], "move", a, "stay", b)
+        s = item["scenarios"]
+        print(item["label"], "move", s["move"]["all_years"], "stay", s["stay"]["all_years"],
+              "startup", s["startup"]["all_years"])
 
 
 if __name__ == "__main__":

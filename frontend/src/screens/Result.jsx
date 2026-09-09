@@ -404,7 +404,10 @@ function ThirdPath({ a, b }) {
 function PersonaScenario({ a, b }) {
   const { profile } = useResult();
   const { entries } = useDiary();
-  const jc = a.choice === "이직" ? a : b.choice === "이직" ? b : null;
+  // choice 는 사용자가 자유롭게 적은 원문이라("워라밸을 위해 이직한다") "이직" 과
+  // 문자 그대로 같은 경우가 거의 없다 — 분류된 유형은 kind 에 있다. 이 비교가
+  // choice 로 돼 있어서 실질적으로 이 컴포넌트가 항상 null 을 반환하고 있었다.
+  const jc = a.kind === "이직" ? a : b.kind === "이직" ? b : null;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [res, setRes] = useState(null);

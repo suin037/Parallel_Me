@@ -289,6 +289,13 @@ function SampleDecay({ series }) {
  * 좁히고 양 끝 눈금을 항상 적는다. 길이가 아니라 **위치**를 읽는 그림이라
  * 0에서 시작하지 않아도 값을 부풀리지 않는다.
  */
+// 점 두 개가 이 % 이내로 가까우면 화면에서 사실상 겹친다(점 지름이 축 폭의
+// 약 3~4%). 값이 우연히 같은 경우(다운의 은우 facet처럼 매칭 코호트가 동일할
+// 때 실제로 발생한다)뿐 아니라 그냥 가까운 값도 뒤에 그려진 A가 B를 완전히
+// 가려서 "한쪽 데이터가 없다"처럼 보였다 — 값은 둘 다 있는데 그림이 하나만
+// 보여준 것. 겹칠 때는 위아래로 살짝 갈라 둘 다 보이게 한다.
+const OVERLAP_PCT = 3.5;
+
 function FacetPair({ row, domain }) {
   const gap = facetLevelGap(row);
   const lead = gap > 0 ? "A" : "B";
@@ -297,30 +304,39 @@ function FacetPair({ row, domain }) {
     return ((value - domain.min) / (domain.max - domain.min)) * 100;
   };
   const meaningful = Math.abs(gap) >= 0.05;
+  const posA = at(row.A.start);
+  const posB = at(row.B.start);
+  const overlapping = Math.abs(posA - posB) < OVERLAP_PCT;
   return (
     <div className="rounded-xl border border-white/[.06] bg-white/[.02] px-3 py-2.5">
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <span className="min-w-0 truncate text-[10.5px] font-semibold text-sub">{row.label}</span>
-        {meaningful && (
+        {meaningful ? (
           <span className="shrink-0 text-[9px] font-bold tabular-nums" style={{ color: SIDE[lead].color }}>
             {lead}가 {Math.abs(gap).toFixed(2)}점 높게 출발
           </span>
+        ) : (
+          <span className="shrink-0 text-[9px] font-semibold text-mut">A·B 거의 동일하게 출발</span>
         )}
       </div>
 
-      {/* 두 점과 그 사이를 잇는 선 — 선의 길이가 곧 두 집단의 차이다. */}
+      {/* 두 점과 그 사이를 잇는 선 — 선의 길이가 곧 두 집단의 차이다.
+          겹치는 구간에서는 점을 위아래로 갈라 둘 다 보이게 한다. */}
       <div className="relative h-5">
         <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/[.10]" />
         <div
           className="absolute top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-white/25"
-          style={{ left: `${Math.min(at(row.A.start), at(row.B.start))}%`,
-                   width: `${Math.abs(at(row.A.start) - at(row.B.start))}%` }}
+          style={{ left: `${Math.min(posA, posB)}%`, width: `${Math.abs(posA - posB)}%` }}
         />
         {["B", "A"].map((side) => (
           <span
             key={side}
-            className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[#0B1424]"
-            style={{ left: `${at(row[side].start)}%`, background: SIDE[side].color }}
+            className="absolute left-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[#0B1424]"
+            style={{
+              left: `${side === "A" ? posA : posB}%`,
+              top: overlapping ? (side === "A" ? "35%" : "65%") : "50%",
+              background: SIDE[side].color,
+            }}
             aria-label={`${side} ${row[side].start}`}
           />
         ))}

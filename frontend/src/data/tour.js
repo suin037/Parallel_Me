@@ -178,7 +178,7 @@ export const TOUR_STEPS = [
   {
     id: "shot-result-trajectory", core: true, shot: "/tour/result-trajectory.png",
     mascot: "cosmo", chapter: "결과",
-    shotCaption: "1·3·5·10년 뒤 관측 변화",
+    shotCaption: "1·3·5·10·15년 뒤 관측 변화",
     title: "한 시점이 아니라 흐름으로",
     body: "3년엔 앞서다 10년엔 뒤집히기도 해요. 교차하는 지점이 핵심이에요.",
     lines: ["보라선이 A, 노란선이 B — 가처분소득 · 직업 만족 · 생활 만족을 각각 그려요."],

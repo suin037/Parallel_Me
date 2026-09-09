@@ -35,7 +35,9 @@ export default function Landing() {
     <div className="relative flex min-h-full flex-col overflow-hidden">
       <div className="absolute inset-0 bg-[#050914]">
         <video
-          className="absolute inset-0 h-full w-full object-cover"
+          // 원본이 720p라 큰 화면에서 object-cover로 확대되면 압축 블록이 도드라진다.
+          // scale로 여유를 두고 살짝 blur를 걸어 확대 시 눈에 띄는 블록/뭉개짐을 완화한다.
+          className="absolute inset-0 h-full w-full scale-105 object-cover blur-[1.5px]"
           src="/space-intro.mp4"
           autoPlay
           loop

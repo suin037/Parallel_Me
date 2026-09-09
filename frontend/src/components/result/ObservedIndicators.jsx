@@ -12,7 +12,7 @@ export default function ObservedIndicators({ a, b }) {
   return (
     <div className="mb-5">
       <h2 className="mb-1 text-base font-semibold">두 선택에서 관측된 변화</h2>
-      <Caption>현재 조건이 비슷한 KLIPS 사례를 이직과 유지로 나눠 비교합니다.</Caption>
+      <Caption>현재 조건이 비슷한 KLIPS 사례를 이직·창업·유지로 나눠 비교합니다.</Caption>
       <GrowthCard a={a} b={b} />
       <QualityCard a={a} b={b} />
     </div>

@@ -86,7 +86,14 @@ def _closest_cluster(profile: dict) -> dict:
 
 def _matched_rows(profile: dict, choice: str, cluster_id: int, minimum: int = 35) -> tuple[pd.DataFrame, list[str], list[str]]:
     rows = _future_rows()
-    pool = rows[rows.choice.eq(choice)].copy()
+    if choice == "startup":
+        # career_future_panel엔 창업 전용 choice 라벨이 없다 — 이직(move) 중 1년 안에
+        # 자영업 상태로 넘어간 행만 골라 근사한다. job_change_candidate._scenario_pool
+        # 과 같은 정의를 KLIPS 종사상지위 대신 이 패널의 state 라벨로 재현한 것.
+        pool = rows[rows.choice.eq("move") & rows.state.ne("self_employed")
+                    & rows.state_y1.eq("self_employed")].copy()
+    else:
+        pool = rows[rows.choice.eq(choice)].copy()
     applied, relaxed = [], []
     clustered = pool[pool.cluster_id.eq(cluster_id)]
     if len(clustered) >= minimum:
@@ -130,12 +137,12 @@ def _number_distribution(values: pd.Series) -> dict:
 
 
 def trajectory_for_choice(choice_kind: str, profile: dict) -> dict:
-    if choice_kind not in {"이직", "유지"}:
+    if choice_kind not in {"이직", "유지", "창업"}:
         return {"status": "not_applicable"}
     if not data_available():
         # 없는 것만 없다고 말한다. 예외를 던지면 호출부가 재정 영향까지 버린다.
         return {"status": "unavailable", "reason": MISSING_DATA_REASON}
-    choice = "move" if choice_kind == "이직" else "stay"
+    choice = {"이직": "move", "유지": "stay", "창업": "startup"}[choice_kind]
     trajectory_type = _closest_cluster(profile)
     rows, applied, relaxed = _matched_rows(profile, choice, trajectory_type["id"])
     timeline = []

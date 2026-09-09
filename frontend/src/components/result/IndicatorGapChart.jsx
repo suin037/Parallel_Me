@@ -86,7 +86,9 @@ function buildGapRows(a, b) {
     : NaN);
   const candidates = [
     { name: "예상 월소득", unit: "만원", av: num(a.expected_wage), bv: num(b.expected_wage) },
-    { name: "소득 변화 효과", unit: "%", av: num(a.causal_effect), bv: num(b.causal_effect) },
+    // 단위는 만원이다(EconML ATE = ate_manwon). ResultQuickStats.jsx와 같은 값을
+    // 쓰면서 여기만 "%"로 찍혀 두 화면이 서로 다른 단위로 같은 숫자를 보여줬다.
+    { name: "소득 변화 효과", unit: "만원", av: num(a.causal_effect), bv: num(b.causal_effect) },
     { name: "예상 지속 기간", unit: "개월", av: num(a.survival_months), bv: num(b.survival_months) },
     { name: "5년 뒤 삶의 만족", unit: "점", av: last(a.wellbeing_trajectory), bv: last(b.wellbeing_trajectory) },
   ];

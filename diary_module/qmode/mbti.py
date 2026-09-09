@@ -17,36 +17,51 @@
 
 from __future__ import annotations
 
-_VALID = set("EISNTFJP")
+_AXES = ("EI", "SN", "TF", "JP")
+_UNSET = "·"  # 온보딩에서 축을 안 고르면 이 자리표시자로 채워 보낸다.
 
 
 def parse(mbti):
-    """'INTJ' 등 → 4글자 대문자 or None."""
+    """'INTJ', 'I··P' 등 → 4글자(각 자리는 해당 축 글자 또는 미정 '·') or None.
+    최소 한 축이라도 정해져 있어야 유효 — 전부 미정이면 None."""
     if not mbti:
         return None
     s = str(mbti).strip().upper()
-    if len(s) != 4 or any(c not in _VALID for c in s):
+    if len(s) != 4:
         return None
-    if not (s[0] in "EI" and s[1] in "SN" and s[2] in "TF" and s[3] in "JP"):
+    out = []
+    for ch, letters in zip(s, _AXES):
+        if ch == _UNSET:
+            out.append(_UNSET)
+        elif ch in letters:
+            out.append(ch)
+        else:
+            return None
+    if all(c == _UNSET for c in out):
         return None
-    return s
+    return "".join(out)
 
 
 def prior(mbti):
-    """MBTI → 스타일 prior dict (파싱 실패 시 None)."""
+    """MBTI → 스타일 prior dict (파싱 실패 시 None). 축이 미정이면 그 축 관련
+    값만 None/생략되고, 정해진 축만큼만 반영된다(부분 선택 허용)."""
     s = parse(mbti)
     if not s:
         return None
     ei, sn, tf, jp = s
 
-    decision_style = "analytic" if tf == "T" else "intuitive"
-    risk_tolerance = 0.4 if jp == "J" else 0.6          # 중앙 0.5에서 약하게만
+    decision_style = "analytic" if tf == "T" else "intuitive" if tf == "F" else None
+    risk_tolerance = 0.4 if jp == "J" else 0.6 if jp == "P" else None  # 중앙 0.5에서 약하게만
 
     flavor = []
-    flavor.append("외향형: 함께 나누고 사회적 지지를 넛지" if ei == "E"
-                  else "내향형: 혼자 정리할 여백을 먼저")
-    flavor.append("직관형: 의미·가능성 프레임으로" if sn == "N"
-                  else "감각형: 구체·현실적 근거로")
+    if ei == "E":
+        flavor.append("외향형: 함께 나누고 사회적 지지를 넛지")
+    elif ei == "I":
+        flavor.append("내향형: 혼자 정리할 여백을 먼저")
+    if sn == "N":
+        flavor.append("직관형: 의미·가능성 프레임으로")
+    elif sn == "S":
+        flavor.append("감각형: 구체·현실적 근거로")
 
     return {
         "mbti": s,
@@ -59,7 +74,7 @@ def prior(mbti):
 
 
 if __name__ == "__main__":
-    for m in ["INTJ", "ENFP", "ISFJ", "estp", "XXXX", "", None]:
+    for m in ["INTJ", "ENFP", "ISFJ", "estp", "XXXX", "I·F·", "···P", "····", "", None]:
         p = prior(m)
         if p:
             print(f"{p['mbti']}: 결정={p['decision_style']} 위험={p['risk_tolerance']} "

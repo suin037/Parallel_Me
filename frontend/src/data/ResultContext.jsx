@@ -284,7 +284,8 @@ export function ResultProvider({ children }) {
           const signals = [
             side.choice,
             side.expected_wage != null ? `예상 소득 ${Math.round(side.expected_wage).toLocaleString()}만원` : "",
-            side.causal_effect != null ? `추정 변화 ${Number(side.causal_effect).toFixed(1)}%` : "",
+            // 단위는 만원이다(EconML ATE = ate_manwon) — IndicatorGapChart·ResultQuickStats와 동일.
+            side.causal_effect != null ? `추정 변화 ${Number(side.causal_effect).toFixed(1)}만원` : "",
             side.risk_label || side.coverage || "",
           ].filter(Boolean);
           return signals.join(" · ");
