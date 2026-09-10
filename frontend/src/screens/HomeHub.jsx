@@ -35,10 +35,10 @@ export default function HomeHub() {
         <div data-tour="pet-peek"><PetPeek /></div>
       </header>
 
-      <div className="grid items-start gap-8 border-t border-white/[.08] pt-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,.65fr)] lg:gap-10 lg:pt-8">
+      <div className="grid grid-cols-1 items-start gap-8 border-t border-white/[.08] pt-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,.65fr)] lg:gap-10 lg:pt-8">
         <main data-tour="diary" className="min-w-0 lg:pr-2"><DiaryToday /></main>
 
-        <aside data-tour="recent" className="space-y-4 lg:sticky lg:top-[100px]">
+        <aside data-tour="recent" className="min-w-0 space-y-4 lg:sticky lg:top-[100px]">
           <section className="rounded-[20px] border border-white/[.08] bg-white/[.025] p-4">
             <div className="flex items-center gap-2 text-[12px] font-bold text-ink"><LockKeyhole size={15} className="text-violet-300" /> 기록은 이렇게 활용돼요</div>
             <ul className="mt-3 space-y-2.5 text-[10px] leading-4 text-sub">
