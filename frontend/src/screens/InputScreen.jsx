@@ -784,7 +784,7 @@ function ChoicePanel({ inputId, side, text, domains, domainAuto, intake, context
   const accentText = isA ? "text-[#8B6CCF]" : "text-[#FFB85C]";
 
   return (
-    <section onClick={onFocus} className="relative min-h-0 min-w-0 flex-1 basis-0 overflow-hidden px-4 py-4 lg:px-7 lg:py-6 xl:px-9">
+    <section onClick={onFocus} className="relative min-w-0 overflow-hidden px-4 py-4 lg:min-h-0 lg:flex-1 lg:basis-0 lg:px-7 lg:py-6 xl:px-9">
       <div className={`text-[11px] font-black tracking-[.12em] ${accentText}`}>CHOICE {side}</div>
       <textarea
         id={inputId}

@@ -61,6 +61,20 @@ export default function Landing() {
             나와 비슷한 실제 사람들의 데이터로
             <br />두 선택 이후의 가능성을 살펴봅니다.
           </p>
+          {/* 로그아웃하며 보관해 둔 기록이 있을 때만 — 로그인이 없어서 '이 기기에
+              남아 있는 마지막 계정'이라는 뜻이고, 문구도 그렇게 적는다.
+              바깥의 justify-between 행에 세 번째 자식으로 두면(이전 버전) mine===true일 때
+              가운데의 체험하기/계정 버튼이 화면 중앙으로 밀려버린다 — 제목 블록 안에 둬서
+              justify-between 은 항상 자식 2개(제목, 버튼 묶음)만 보게 한다. */}
+          {mine && (
+            <button
+              type="button"
+              onClick={continueMyAccount}
+              className="tap mt-3 block text-[12px] text-white/70 underline underline-offset-4 hover:text-white lg:mt-4"
+            >
+              이 기기에 남아 있는 내 기록으로 이어서 하기
+            </button>
+          )}
         </div>
 
         <div className="mt-5 flex flex-col gap-3 lg:mt-0 lg:w-auto lg:min-w-[380px] lg:flex-row-reverse lg:items-center lg:justify-end lg:gap-3">
@@ -71,17 +85,6 @@ export default function Landing() {
             나만의 계정 만들기
           </Button>
         </div>
-        {/* 로그아웃하며 보관해 둔 기록이 있을 때만 — 로그인이 없어서 '이 기기에
-            남아 있는 마지막 계정'이라는 뜻이고, 문구도 그렇게 적는다. */}
-        {mine && (
-          <button
-            type="button"
-            onClick={continueMyAccount}
-            className="tap mt-3 self-start text-[12px] text-white/70 underline underline-offset-4 hover:text-white lg:mt-4"
-          >
-            이 기기에 남아 있는 내 기록으로 이어서 하기
-          </button>
-        )}
       </div>
     </div>
   );
