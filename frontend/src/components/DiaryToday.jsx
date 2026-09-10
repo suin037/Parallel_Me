@@ -10,15 +10,13 @@ import HomeCalendar from "./HomeCalendar.jsx";
 import { loadActiveGoal, saveActionResponse } from "../data/actionBridge.js";
 import { logExperiment } from "../data/myUniverse.js";
 
-// 마스코트는 result.js MASCOTS 의 역할 분담을 따른다 — ChatDiary 의 AREAS · 설정 화면 ·
-// 가이드 조언(guideAdvice.js)과 같은 배정이어야 한다.
-//   · 루미(별빛 가이드)   기록을 돌본다 → 오늘의 일상 · 몸과 마음
+// 마스코트는 result.js MASCOTS 의 역할 분담을 따른다 — ChatDiary 의 AREAS · 설정의
+// '내 생활 관리 친구'(PetMascot) · diarySignals.js 의 GUIDE_DOMAIN 과 같은 배정이어야 한다.
+//   · 노바(유성 가이드)   기회와 변화를 전한다 → 오늘의 일상
 //   · 코스모(행성 탐험가) 데이터와 선택을 분석한다 → 고민과 선택
-//   · 노바(유성 가이드)   기회와 변화를 전한다 → 시뮬레이션(여기엔 나오지 않는다)
-// 예전엔 '오늘의 일상'만 노바였다. 카드에는 노바가 서 있는데 대화를 열면 루미가
-// 답하고, 안내에서는 또 노바라고 말해 셋이 서로 다른 소리를 했다.
+//   · 루미(별빛 가이드)   기록을 돌본다 → 몸과 마음
 const GUIDES = [
-  { key: "daily", mascot: "lumi", name: "루미", topic: "오늘의 일상", color: "#FFD97A", prompt: "오늘 있었던 일, 나와 같이 돌아볼래요?" },
+  { key: "daily", mascot: "nova", name: "노바", topic: "오늘의 일상", color: "#FF9EC0", prompt: "오늘 있었던 일, 나와 같이 돌아볼래요?" },
   { key: "disposition", mascot: "cosmo", name: "코스모", topic: "고민과 선택", color: "#8B6CCF", prompt: "고민 중인 갈림길, 같이 비춰볼까요?" },
   { key: "health", mascot: "lumi", name: "루미", topic: "몸과 마음", color: "#FFD97A", prompt: "몸과 마음의 신호를 천천히 살펴봐요." },
 ];
