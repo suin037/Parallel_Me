@@ -66,3 +66,60 @@
     }
   }
 }
+/* Result / 숫자를 읽는 배경
+   기본 상태에서는 결론과 실제 수치만 남기고 긴 해설은 사용자가 원할 때 펼친다. */
+.data-notes-collapsed > div:not(:first-child) > p,
+.data-notes-collapsed > div:not(:first-child) > ul {
+  display: none;
+}
+
+.data-notes-collapsed > div:not(:first-child) {
+  position: relative;
+  min-height: 54px;
+  padding-left: 2.75rem;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.data-notes-collapsed > div:not(:first-child)::before {
+  content: "i";
+  position: absolute;
+  left: 1rem;
+  top: 0.9rem;
+  display: grid;
+  width: 1.15rem;
+  height: 1.15rem;
+  place-items: center;
+  border: 1px solid rgba(141, 232, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(141, 232, 255, 0.08);
+  color: #8de8ff;
+  font-size: 0.55rem;
+  font-weight: 800;
+  font-style: normal;
+}
+
+.data-notes-collapsed > div:not(:first-child):has(.text-\[\#F5C86B\])::before {
+  content: "!";
+  border-color: rgba(245, 200, 107, 0.28);
+  background: rgba(245, 200, 107, 0.1);
+  color: #f5c86b;
+}
+
+.data-notes-collapsed > div:not(:first-child) h3 {
+  line-height: 1.45;
+}
+
+@media (min-width: 640px) {
+  .data-notes-collapsed {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .data-notes-collapsed > div:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .data-notes-collapsed > div:not(:first-child) {
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+  }
+}

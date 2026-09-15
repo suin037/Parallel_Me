@@ -10,9 +10,9 @@ const SIDE = {
 // 생겨서 무엇에 대한 이야기인지 다 읽어야 알 수 있었다. 아이콘과 이름표를
 // 앞에 세워 훑기만 해도 종류가 구분되게 한다.
 const KIND = {
-  gap: { icon: ArrowLeftRight, label: "격차" },
-  spread: { icon: Maximize2, label: "결과 범위" },
-  sample: { icon: Users, label: "표본" },
+  gap: { icon: ArrowLeftRight, label: "소득 격차" },
+  spread: { icon: Maximize2, label: "소득 분포 범위" },
+  sample: { icon: Users, label: "자료 신뢰도" },
 };
 
 const number = (value) => {
@@ -64,7 +64,7 @@ function spreadInsight(a, b, futureYears) {
     const point = closest(side.trajectory, futureYears);
     const low = number(point?.income_p25);
     const high = number(point?.income_p75);
-    return low == null || high == null ? null : { width: high - low, year: point.year };
+    return low == null || high == null ? null : { low, high, width: high - low, year: point.year };
   };
   const left = make(a);
   const right = make(b);
@@ -74,15 +74,15 @@ function spreadInsight(a, b, futureYears) {
   return {
     kind: "spread",
     side: wider,
-    metric: `${Math.round(Math.abs(left.width - right.width))}만원`,
-    caption: `중간 50% 범위 차이 · ${Math.min(left.year, right.year)}년 관측`,
+    metric: `${wider}가 ${Math.round(Math.abs(left.width - right.width))}만원 더 넓음`,
+    caption: `유사집단 중간 50%의 월소득 구간 · ${Math.min(left.year, right.year)}년 관측`,
     // 두 값을 나란히 보여줘야 '넓다/좁다'가 감이 온다.
     pair: [
-      { tag: "A", text: `${Math.round(left.width)}만원` },
-      { tag: "B", text: `${Math.round(right.width)}만원` },
+      { tag: "A", text: `${Math.round(left.low)}~${Math.round(left.high)}만원` },
+      { tag: "B", text: `${Math.round(right.low)}~${Math.round(right.high)}만원` },
     ],
-    body: `${wider}의 결과 범위가 더 넓고, ${narrow}가 상대적으로 좁은 분포를 보입니다.`,
-    note: "범위가 넓다는 것은 성공 가능성이 높다는 뜻이 아니라 관측 편차가 크다는 뜻입니다.",
+    body: `${wider}를 선택한 유사집단은 사람마다 관측된 월소득 차이가 더 컸고, ${narrow}는 상대적으로 비슷한 범위에 모였습니다.`,
+    note: "위 금액은 예상 소득이 아니라 실제 관측된 사람들 가운데 중간 절반이 분포한 구간입니다. 넓을수록 성공 가능성이 높은 것이 아니라 결과의 편차가 크다는 뜻입니다.",
   };
 }
 
@@ -116,13 +116,14 @@ function sampleInsight(a, b) {
   return {
     kind: "sample",
     side: worst.tag,
-    metric: `−${worst.drop}%`,
-    caption: `${worst.label} · 장기 관측 표본 감소폭`,
+    metric: `100명 중 ${per100}명 남음`,
+    caption: `${worst.label} · ${worst.year}년 차까지 추적된 비율`,
     // 연차별 남은 인원. 카드가 이걸 막대로 그려 "얼마나 큰 감소인지"를 보여준다.
     series: worst.series,
     body: `시작 ${worst.first.toLocaleString()}명 중 ${worst.year}년 차까지 남은 사람은 `
       + `${worst.last.toLocaleString()}명입니다 — 100명이면 ${per100}명. `
       + `그 시점 수치는 이 ${worst.last.toLocaleString()}명의 중앙값입니다.`,
+    note: "오래 뒤의 결과일수록 남은 표본이 적으면 일부 사람의 값에 더 크게 흔들릴 수 있어, 결과의 확실성을 낮춰 읽어야 합니다.",
   };
 }
 
@@ -200,9 +201,9 @@ function InsightCard({ insight }) {
       {side && <span className="absolute inset-y-0 left-0 w-[3px]" style={{ background: side.color }} aria-hidden="true" />}
 
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-[9.5px] font-bold tracking-[.08em] text-mut">
-          <span className="flex h-5 w-5 items-center justify-center rounded-md bg-white/[.06] text-violet-300">
-            <Icon size={11} strokeWidth={2.2} />
+        <span className="flex items-center gap-2 text-[12px] font-bold tracking-[.04em] text-sub">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[.07] text-violet-200">
+            <Icon size={15} strokeWidth={2.2} />
           </span>
           {meta.label}
         </span>
@@ -216,17 +217,17 @@ function InsightCard({ insight }) {
         )}
       </div>
 
-      <strong className="mt-2 block text-[24px] font-bold leading-none tracking-[-.02em] tabular-nums text-ink">
+      <strong className="mt-3 block text-[25px] font-bold leading-tight tracking-[-.025em] tabular-nums text-ink">
         {insight.metric}
       </strong>
-      <p className="mt-1.5 text-[9.5px] leading-4 text-mut">{insight.caption}</p>
+      <p className="mt-1.5 text-[11px] font-medium leading-5 text-mut">{insight.caption}</p>
 
       {insight.pair && (
         <div className="mt-2.5 flex items-center gap-1.5">
           {insight.pair.map((item) => (
             <span key={item.tag} className="flex min-w-0 flex-1 items-baseline justify-between gap-1 rounded-lg bg-white/[.035] px-2 py-1.5">
-              <span className="truncate text-[8.5px] text-mut">{item.tag}</span>
-              <b className="shrink-0 text-[10px] tabular-nums text-sub">{item.text}</b>
+              <span className="truncate text-[10px] font-bold text-mut">{item.tag}</span>
+              <b className="shrink-0 text-[11px] tabular-nums text-sub">{item.text}</b>
             </span>
           ))}
         </div>
@@ -234,9 +235,9 @@ function InsightCard({ insight }) {
 
       {insight.series && <SampleDecay series={insight.series} />}
 
-      <p className="mt-2.5 text-[10.5px] leading-[1.65] text-sub">{insight.body}</p>
+      <p className="mt-3 text-[12px] leading-[1.7] text-sub">{insight.body}</p>
       {insight.note && (
-        <p className="mt-2.5 border-t border-white/[.06] pt-2 text-[9px] leading-4 text-mut">{insight.note}</p>
+        <p className="mt-2.5 border-t border-white/[.06] pt-2 text-[10.5px] leading-[1.65] text-mut">{insight.note}</p>
       )}
     </article>
   );
@@ -374,7 +375,7 @@ function SectionHead({ title, desc }) {
   );
 }
 
-export default function DetailedInsights({ a, b, futureYears = 3 }) {
+export default function DetailedInsights({ a, b, futureYears = 3, mode = "all" }) {
   const facets = facetPairs(a, b);
   // 항목이 공유하는 축. 실제 관측 범위에 약간의 여백만 둔다 — 1~5 전체를 쓰면
   // 값이 전부 3.4~4.1 에 몰려 다섯 항목이 같은 자리에 겹친다.
@@ -395,37 +396,48 @@ export default function DetailedInsights({ a, b, futureYears = 3 }) {
     if (gaps.every((gap) => gap < 0)) return "B";
     return null;
   })();
+  const closeFacetCount = facets.filter((row) => Math.abs(facetLevelGap(row)) < 0.05).length;
+  const facetSummary = !facets.length ? null
+    : closeFacetCount >= Math.ceil(facets.length * 0.6)
+      ? "두 집단의 출발 상태가 대체로 비슷해 이후 변화를 비교하기에 비교적 공정합니다. 다만 이것만으로 예측이 더 정확해지는 것은 아닙니다."
+      : leanSide
+        ? `${leanSide} 집단이 선택 전부터 전반적으로 더 높은 만족도에서 시작했습니다. 이후 차이를 전부 선택의 효과로 보기는 어렵습니다.`
+        : "항목마다 두 집단의 출발 상태가 달랐습니다. 이후 차이에는 선택 효과뿐 아니라 원래 집단 차이도 섞여 있을 수 있습니다.";
   const education = [...educationRows(a, "A"), ...educationRows(b, "B")]
     .filter((item, index, rows) => rows.findIndex((candidate) => candidate.tag === item.tag && candidate.indicator === item.indicator) === index);
   const insights = [comparisonInsight(a, b, futureYears), spreadInsight(a, b, futureYears), sampleInsight(a, b)].filter(Boolean);
-  if (!facets.length && !education.length && !insights.length) return null;
+  const showInsights = mode !== "details";
+  const showDetails = mode !== "summary";
+  if (!(showInsights && insights.length) && !(showDetails && (facets.length || education.length))) return null;
 
   return (
     <section className="mb-5 overflow-hidden rounded-[22px] border border-white/10 bg-[#0B1424]/90" aria-labelledby="detailed-insights-title">
       <div className="border-b border-white/[.07] px-4 py-3.5">
-        <p className="text-[9px] font-bold tracking-[.16em] text-violet-300">DETAILED INSIGHTS</p>
-        <h2 id="detailed-insights-title" className="mt-1 text-[15px] font-bold text-ink">결과에서 더 읽을 수 있는 것</h2>
-        <p className="mt-1 text-[10px] leading-4 text-mut">새 점수를 만들지 않고, 연결된 관측값의 변화·범위·표본을 해석합니다.</p>
+        <p className="text-[9px] font-bold tracking-[.16em] text-violet-300">{mode === "summary" ? "KEY INSIGHTS" : "DATA NOTES"}</p>
+        <h2 id="detailed-insights-title" className="mt-1 text-[15px] font-bold text-ink">
+          {mode === "summary" ? "핵심 비교 인사이트" : "수치 해석과 주의할 점"}
+        </h2>
+        <p className="mt-1 text-[10px] leading-4 text-mut">
+          {mode === "summary" ? "두 선택의 격차·분포·자료 신뢰도를 한눈에 봅니다." : "선택 이전의 집단 차이와 참고 통계의 의미를 확인합니다."}
+        </p>
       </div>
 
       <div className="space-y-4 p-4">
-        {insights.length > 0 && (
+        {showInsights && insights.length > 0 && (
           <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
             {insights.map((insight) => <InsightCard key={insight.kind} insight={insight} />)}
           </div>
         )}
 
-        {facets.length > 0 && (
+        {showDetails && facets.length > 0 && (
           <div>
             <SectionHead
-              title="만족도 세부 항목 · 두 집단의 출발점"
-              desc="각 선택을 한 유사인 집단이 관측 시작 시점에 어느 수준이었는지입니다(1~5점 척도). 선택의 효과가 아니라 '어떤 사람들이 그 선택을 했는가'를 보여줍니다."
+              title="선택하기 전 만족도 차이"
+              desc="각 선택을 한 유사인 집단이 선택 이전부터 얼마나 달랐는지 보여줍니다(1~5점). 미래 결과나 선택의 효과가 아니라, 두 집단의 원래 성향 차이를 확인하는 항목입니다."
             />
-            {leanSide && (
-              <p className="mb-2 rounded-lg bg-white/[.03] px-3 py-2 text-[9.5px] leading-4 text-sub">
-                <b style={{ color: SIDE[leanSide].color }}>{leanSide}</b> 집단이 <b className="font-semibold">모든 항목에서</b> 높게 출발했습니다.
-                항목별 차이라기보다 두 집단의 성격 차이로, <b className="font-semibold">선택이 만든 결과가 아니라 선택 이전의 상태</b>입니다
-                — 지금 만족도가 낮은 쪽이 그 선택을 택하는 경향으로 읽는 편이 안전합니다.
+            {facetSummary && (
+              <p className="mb-3 rounded-xl border border-[#8DE8FF]/15 bg-[#8DE8FF]/[.055] px-3 py-2.5 text-[11px] font-medium leading-[1.65] text-sub">
+                {facetSummary}
               </p>
             )}
             <div className="grid gap-2 sm:grid-cols-2">
@@ -434,7 +446,7 @@ export default function DetailedInsights({ a, b, futureYears = 3 }) {
           </div>
         )}
 
-        {education.length > 0 && (
+        {showDetails && education.length > 0 && (
           <div className="border-t border-white/[.07] pt-4">
             <SectionHead title="진학 이후 참고 경로" desc="해당 계열 졸업자 집단 통계이며 개인 취업 확률이 아닙니다." />
             {/* 예전엔 값까지 통째로 들어간 알약이 줄바꿈되며 흘러서, 지표 이름과

@@ -8,8 +8,17 @@ import { labelOf } from "../../data/prediction.js";
 // 종단 궤적(L5) — 각 갈래의 실제 소득 분포(p25~p75 밴드+중앙값) + 만족도 궤적.
 // '예측'이 아니라 '관찰된 분포'. sample_n 감소 = 불확실.
 export default function TrajectoryView({ a, b }) {
-  const wb = a.wellbeing_trajectory || [];
-  const wbData = wb.map((p) => ({ year: `${p.year}년`, 만족도: p.satis_p50 }));
+  const wbByYear = new Map();
+  for (const [side, rows] of [["A", a.wellbeing_trajectory || []], ["B", b.wellbeing_trajectory || []]]) {
+    for (const point of rows) {
+      const year = Number(point.year);
+      if (!Number.isFinite(year)) continue;
+      wbByYear.set(year, { ...(wbByYear.get(year) || { year }), [side]: point.satis_p50 });
+    }
+  }
+  const wbData = [...wbByYear.values()]
+    .sort((left, right) => left.year - right.year)
+    .map((point) => ({ ...point, yearLabel: `${point.year}년` }));
 
   return (
     <div>
@@ -28,14 +37,15 @@ export default function TrajectoryView({ a, b }) {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={wbData} margin={{ top: 8, right: 12, left: -14, bottom: 0 }}>
                 <CartesianGrid stroke="#1E2740" vertical={false} />
-                <XAxis dataKey="year" tick={{ fill: "#7E8DAB", fontSize: 11 }} axisLine={{ stroke: "#2A3550" }} tickLine={false} />
+                <XAxis dataKey="yearLabel" tick={{ fill: "#7E8DAB", fontSize: 11 }} axisLine={{ stroke: "#2A3550" }} tickLine={false} />
                 <YAxis domain={[1, 5]} tick={{ fill: "#7E8DAB", fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: "#141B2E", border: "1px solid #28324D", borderRadius: 10, fontSize: 12, color: "#EAF0FB" }} />
-                <Line type="monotone" dataKey="만족도" stroke="#7FE0D4" strokeWidth={2} dot={{ r: 2.5 }} />
+                <Line type="monotone" dataKey="A" name={`A · ${labelOf(a.choice)}`} stroke={A_COLOR} strokeWidth={2} dot={{ r: 2.5 }} connectNulls />
+                <Line type="monotone" dataKey="B" name={`B · ${labelOf(b.choice)}`} stroke={B_COLOR} strokeWidth={2} dot={{ r: 2.5 }} connectNulls />
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <Caption>종합 만족도(1~5)의 시간 변화. 청년패널(YP) 기준이라 청년 범위 밖이면 제공되지 않습니다.</Caption>
+          <Caption>A와 B 유사집단의 종합 만족도(1~5) 변화입니다. 청년패널(YP) 기준이라 청년 범위 밖이면 제공되지 않습니다.</Caption>
         </Card>
       )}
     </div>

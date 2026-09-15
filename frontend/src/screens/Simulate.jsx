@@ -82,9 +82,9 @@ export default function Simulate() {
   const planetB = PLANET_TEXTURES[toPlanetKey(scenarioDomains.b) || "growth"];
 
   return (
-    <div className="relative mx-auto flex min-h-full max-w-[1180px] flex-col pb-3 pt-5 lg:min-h-[calc(100vh-40px)] lg:flex-row lg:items-center lg:px-10 lg:py-10">
-      {/* 우주 배경. 음수 inset으로 main의 패딩까지 덮고, app-shell의 overflow-hidden이 잘라준다. */}
-      <div className="pointer-events-none absolute -inset-x-6 -inset-y-5 -z-10 overflow-hidden" aria-hidden="true">
+    <div className="relative isolate mx-auto flex min-h-full max-w-[1180px] flex-col pb-3 pt-5 lg:min-h-[calc(100vh-40px)] lg:flex-row lg:items-center lg:px-10 lg:py-10">
+      {/* 콘텐츠 폭과 무관하게 로딩 연출이 뷰포트 전체를 채우도록 고정한다. */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
         <div className="absolute left-[-10%] top-[-15%] h-[70%] w-[75%] animate-nebula-drift rounded-full bg-[#8B6CCF] opacity-[.13] blur-[90px]" />
         <div className="absolute bottom-[-20%] right-[-12%] h-[65%] w-[70%] animate-nebula-drift rounded-full bg-[#FF9F32] opacity-[.09] blur-[100px] [animation-delay:-7s]" />
         <div className="absolute left-1/2 top-1/2 h-[45%] w-[55%] -translate-x-1/2 -translate-y-1/2 animate-nebula-drift rounded-full bg-[#3E7BD4] opacity-[.10] blur-[80px] [animation-delay:-3.5s]" />
@@ -203,11 +203,14 @@ function ChoiceOrb({ side, src, className }) {
 
 function ChoiceCard({ side, choice, detail }) {
   const isA = side === "A";
+  const choiceLabel = labelOf(choice).trim().replace(/\s+/g, " ");
+  const detailLabel = detail?.trim().replace(/\s+/g, " ") || "";
+  const hasDistinctDetail = detailLabel && detailLabel !== choiceLabel;
   return (
     <div className={`min-w-0 rounded-[16px] border bg-card px-3 py-3 ${isA ? "border-cyan/25" : "border-gold/25"}`}>
       <div className={`text-[10px] font-bold ${isA ? "text-cyan" : "text-gold"}`}>선택 {side}</div>
-      <div className="mt-1 truncate text-[13px] font-semibold text-ink">{labelOf(choice)}</div>
-      {detail?.trim() && <p className="mt-1 truncate text-[10px] text-mut">{detail.trim()}</p>}
+      <div className="mt-1 truncate text-[13px] font-semibold text-ink">{choiceLabel}</div>
+      {hasDistinctDetail && <p className="mt-1 truncate text-[10px] text-mut">{detailLabel}</p>}
     </div>
   );
 }

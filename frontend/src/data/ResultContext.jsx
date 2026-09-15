@@ -317,7 +317,7 @@ export function ResultProvider({ children }) {
       const avatarBlob = await avatarToPngBlob(profile.avatarConfig);
       return generateSceneImages({
         avatarBlob,
-        avatarSpec: avatarGenerationSpec(profile.avatarConfig, profile.sex),
+        avatarSpec: avatarGenerationSpec(profile.avatarConfig, profile.sex, profile.age),
         choiceA,
         choiceB,
         futureYears: requestArgs.futureYears,
@@ -390,7 +390,7 @@ export function ResultProvider({ children }) {
       const avatarBlob = await avatarToPngBlob(profile.avatarConfig);
       const visual = await generateSceneImages({
         avatarBlob,
-        avatarSpec: avatarGenerationSpec(profile.avatarConfig, profile.sex),
+        avatarSpec: avatarGenerationSpec(profile.avatarConfig, profile.sex, profile.age),
         choiceA: result.a.choice,
         choiceB: result.b.choice,
         futureYears: result.futureYears ?? futureYears,

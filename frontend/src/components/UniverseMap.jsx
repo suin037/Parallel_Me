@@ -17,6 +17,8 @@ const PLANET_SIZES = [1.05, 1.5, .95, .82, 1.15];
 const INITIAL_CAMERA = new THREE.Vector3(0, 3.7, 14.4);
 const INTRO_CAMERA = new THREE.Vector3(0, 8.2, 27.5);
 const UNIVERSE_TARGET = new THREE.Vector3(0, -1.1, 0);
+// Keep the establishing shot without making the canvas feel locked on entry.
+const INTRO_DURATION = 1.15;
 
 // 행성은 매 프레임 제 궤도를 돈다. 별자리·시나리오도 반드시 같은 식을 써야 행성을 따라간다.
 // (전에는 이 셋이 PLANET_POSITIONS 를 '고정 위치'로 읽어, 행성만 궤도를 돌고 별자리는
@@ -83,7 +85,7 @@ function Nebulae({ reduced }) {
 function Galaxy({ reduced }) {
   const ref = useRef();
   const geometry = useMemo(() => {
-    const count = reduced ? 3000 : 7200;
+    const count = reduced ? 2200 : 4800;
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     const random = seeded(17.31);
@@ -201,7 +203,7 @@ function BackdropConstellations({ count = 14 }) {
   </group>)}</group>;
 }
 
-function Planet({ planet, index, selected, onSelect, skin }) {
+function Planet({ planet, index, selected, onSelect, skin, reduced }) {
   const group = useRef();
   const mesh = useRef();
   const position = PLANET_POSITIONS[index];
@@ -215,7 +217,7 @@ function Planet({ planet, index, selected, onSelect, skin }) {
   const texture = useMemo(() => {
     sourceTexture.wrapS = THREE.RepeatWrapping;
     sourceTexture.colorSpace = THREE.SRGBColorSpace;
-    sourceTexture.anisotropy = 8;
+    sourceTexture.anisotropy = reduced ? 2 : 4;
     sourceTexture.needsUpdate = true;
     return sourceTexture;
   }, [sourceTexture]);
@@ -229,7 +231,7 @@ function Planet({ planet, index, selected, onSelect, skin }) {
       <meshBasicMaterial transparent opacity={0} depthWrite={false}/>
     </mesh>
     <mesh ref={mesh} onClick={selectPlanet} onDoubleClick={selectPlanet} onPointerOver={showPointer} onPointerOut={hidePointer}>
-      <sphereGeometry args={[size, 64, 64]}/>
+      <sphereGeometry args={[size, reduced ? 32 : 40, reduced ? 32 : 40]}/>
       <meshPhysicalMaterial
         map={texture}
         bumpMap={texture}
@@ -246,7 +248,7 @@ function Planet({ planet, index, selected, onSelect, skin }) {
         emissiveIntensity={skin === "glow" ? .05 : selected ? .022 : .006}
       />
     </mesh>
-    <mesh scale={1.028}><sphereGeometry args={[size,48,48]}/><meshBasicMaterial color={planet.to} side={THREE.BackSide} transparent opacity={skin === "glow" ? surface.atmos + .04 : surface.atmos} blending={THREE.AdditiveBlending} depthWrite={false}/></mesh>
+    <mesh scale={1.028}><sphereGeometry args={[size,reduced ? 24 : 32,reduced ? 24 : 32]}/><meshBasicMaterial color={planet.to} side={THREE.BackSide} transparent opacity={skin === "glow" ? surface.atmos + .04 : surface.atmos} blending={THREE.AdditiveBlending} depthWrite={false}/></mesh>
     {/* 행성마다 달던 점광원과 가짜 하이라이트는 뺐다 — 그 둘이 밤면을 밝혀
         명암 경계를 지우고, 플라스틱 구슬처럼 번들거리게 만들던 원인이다.
         고른 사람만 살짝 밝혀 어느 걸 골랐는지 알 수 있게 남긴다. */}
@@ -385,9 +387,9 @@ function UniverseIntro({ controlsRef, reducedMotion, onComplete }) {
       controls.update();
     }
 
-    if (reducedMotion || elapsed.current >= 2.8) return;
-    elapsed.current = Math.min(2.8, elapsed.current + delta);
-    const progress = elapsed.current / 2.8;
+    if (reducedMotion || elapsed.current >= INTRO_DURATION) return;
+    elapsed.current = Math.min(INTRO_DURATION, elapsed.current + delta);
+    const progress = elapsed.current / INTRO_DURATION;
     const eased = progress < .5
       ? 4 * progress * progress * progress
       : 1 - Math.pow(-2 * progress + 2, 3) / 2;
@@ -449,14 +451,14 @@ function Scene({ planets, groups, scenarios = [], selectedKey, onPlanetSelect, o
     <hemisphereLight color="#9fb0dc" groundColor="#04050d" intensity={.14}/>
     <directionalLight position={[-9,10,13]} color="#fff1dc" intensity={3.9}/>
     <Nebulae reduced={reduced}/>
-    <StarLayer count={reduced?700:1500} radius={48} size={.025} opacity={.38} seed={2} color="#bfc9e8"/>
-    <StarLayer count={reduced?320:760} radius={27} size={.052} opacity={.58} seed={7} color="#e1e8ff"/>
+    <StarLayer count={reduced?520:1050} radius={48} size={.025} opacity={.38} seed={2} color="#bfc9e8"/>
+    <StarLayer count={reduced?240:520} radius={27} size={.052} opacity={.58} seed={7} color="#e1e8ff"/>
     {/* 가장 가까운 배경 별층. 예전엔 opacity .78 로 기록 별자리의 별(.72)보다 밝아서,
         사용자의 일기가 된 별이 아무 뜻 없는 배경 별에 밀렸다. 배경은 배경답게 물린다. */}
-    <StarLayer count={reduced?95:260} radius={14} size={.078} opacity={.52} seed={13} color="#fff5df"/>
-    <Sparkles count={reduced?22:48} scale={[25,14,25]} size={.72} speed={.045} opacity={.16} color="#bac8ff" noise={1.8}/>
+    <StarLayer count={reduced?72:180} radius={14} size={.078} opacity={.52} seed={13} color="#fff5df"/>
+    <Sparkles count={reduced?16:32} scale={[25,14,25]} size={.72} speed={.045} opacity={.16} color="#bac8ff" noise={1.8}/>
     <Galaxy reduced={reduced}/><OrbitRings/><BackdropConstellations count={reduced?8:14}/>
-    {planets.map((planet,i)=><Planet key={planet.key} planet={planet} index={i} selected={planet.key===selectedKey} onSelect={onPlanetSelect} skin={skin}/>) }
+    {planets.map((planet,i)=><Planet key={planet.key} planet={planet} index={i} selected={planet.key===selectedKey} onSelect={onPlanetSelect} skin={skin} reduced={reduced}/>) }
     {/* 자르지 않는다 — 여기서 잘라내면 띄운 별 수가 실제 기록 수와 어긋난다.
         (전에는 .slice(-5) 로 별자리를 5개만 그려 오래된 기록이 조용히 사라졌다.) */}
     {groups.map((group,i)=>{
@@ -484,9 +486,10 @@ function Scene({ planets, groups, scenarios = [], selectedKey, onPlanetSelect, o
 
 export default function UniverseMap({ planets, groups=[], scenarios=[], selectedKey, onPlanetSelect, onConstellationOpen, onScenarioOpen, skin="basic" }) {
   const [resetSignal,setResetSignal]=useState(0);
-  const reduced = typeof window!=="undefined" && (window.innerWidth<760 || (navigator.hardwareConcurrency||8)<=4);
+  const reduced = typeof window!=="undefined" && (window.innerWidth<900 || (navigator.hardwareConcurrency||8)<=6);
+  const dpr = typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, reduced ? 1 : 1.25);
   return <div className="relative h-[calc(100dvh-112px)] min-h-[540px] w-full overflow-hidden bg-[#01040c] md:h-[calc(100dvh-104px)] md:min-h-[600px]">
-    <Canvas dpr={reduced?[1,1.25]:[1,1.75]} camera={{position:INITIAL_CAMERA.toArray(),fov:48,near:.1,far:100}} gl={{antialias:!reduced,powerPreference:"high-performance"}} onPointerMissed={()=>onPlanetSelect?.(null)}>
+    <Canvas dpr={dpr} performance={{ min: .55, debounce: 250 }} camera={{position:INITIAL_CAMERA.toArray(),fov:48,near:.1,far:100}} gl={{antialias:!reduced,powerPreference:"high-performance"}} onPointerMissed={()=>onPlanetSelect?.(null)}>
       <Suspense fallback={null}><Scene planets={planets} groups={groups} scenarios={scenarios} selectedKey={selectedKey} onPlanetSelect={onPlanetSelect} onConstellationOpen={onConstellationOpen} onScenarioOpen={onScenarioOpen} resetSignal={resetSignal} reduced={reduced} skin={skin}/></Suspense>
     </Canvas>
     <div className="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-[#050914]/70 px-4 py-2 text-[9px] tracking-[.08em] text-white/55 backdrop-blur">왼쪽 드래그 회전 · Shift+드래그/오른쪽 드래그 이동 · 휠/핀치 접근</div>

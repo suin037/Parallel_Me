@@ -6,6 +6,7 @@
 // 위 표 전체를 어떻게 읽어야 하는지에 대한 단서다. 비교표에 밀어넣는 대신
 // '이 숫자들을 어떻게 읽을지' 한 자리에 묶었다.
 
+import { useState } from "react";
 import { labelOf } from "../../data/prediction.js";
 
 const COLORS = { A: "#B79BF5", B: "#F5C86B" };
@@ -117,6 +118,7 @@ function cumulativeAt(side, futureYears) {
 }
 
 export default function ResultDataNotes({ a, b, futureYears = 3 }) {
+  const [expanded, setExpanded] = useState(false);
   // 소득 궤적은 **선택이 아니라 프로필**로 계산된다. 그래서 관계·건강처럼 소득과
   // 상관없는 질문에도 값이 채워져 온다 — '연인과 대화하기 vs 거리 두기'에 소득
   // 증감 −1.9% 가 붙는 식이다. 백엔드는 그런 영역에 quantitative_ok=false 와
@@ -152,6 +154,10 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
   const hasGap = [a, b].some((side) => side?.applied_conditions?.gap_months
     || side?.applied_conditions?.startup_cost_manwon);
   const showCumulative = hasGap && cumulative.A && cumulative.B;
+  const noteCount = [scopeSides.length > 0, asym, conditions.length > 0, showCumulative,
+    breakSide, extrap, gaps.length > 0, hasGrowth].filter(Boolean).length;
+  const cautionCount = [scopeSides.length > 0, asym, breakSide, extrap?.active,
+    gaps.length > 0].filter(Boolean).length;
 
   // 그릴 게 하나도 없으면 카드 자체를 내보내지 않는다. 여기에 렌더하지 않는
   // 값(건강 실측 등)을 조건에 남겨두면 제목만 있는 빈 카드가 뜬다.
@@ -159,10 +165,45 @@ export default function ResultDataNotes({ a, b, futureYears = 3 }) {
       && !asym && !showCumulative && !scopeSides.length && !extrap) return null;
 
   return (
-    <section className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0B1220]/85" aria-labelledby="data-notes-title">
-      <div className="border-b border-white/10 px-4 py-3">
-        <h2 id="data-notes-title" className="text-[13px] font-bold text-ink">숫자를 읽는 배경</h2>
-        <p className="mt-0.5 text-[9px] text-mut">위 비교표의 수치가 어떤 조건에서 나온 값인지 함께 봅니다.</p>
+    <section
+      className={`mt-4 overflow-hidden rounded-2xl border border-white/10 bg-[#0B1220]/85 ${
+        expanded ? "" : "data-notes-collapsed"
+      }`}
+      aria-labelledby="data-notes-title"
+    >
+      <div className="border-b border-white/10 bg-gradient-to-r from-[#121A2C] to-[#0B1220] px-4 py-3.5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#8DE8FF]/10 text-[13px]" aria-hidden="true">⌁</span>
+              <div>
+                <h2 id="data-notes-title" className="text-[13px] font-bold text-ink">숫자를 읽는 배경</h2>
+                <p className="mt-0.5 text-[9px] text-mut">비교 전에 알아둘 핵심 조건</p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1.5" aria-label={`읽을 내용 ${noteCount}개`}>
+              <span className="rounded-full border border-white/10 bg-white/[.04] px-2 py-1 text-[8.5px] text-sub">
+                확인할 내용 <b className="ml-0.5 text-ink">{noteCount}</b>
+              </span>
+              {cautionCount > 0 && (
+                <span className="rounded-full border border-[#F5C86B]/20 bg-[#F5C86B]/10 px-2 py-1 text-[8.5px] text-[#F5C86B]">
+                  주의해서 볼 내용 <b className="ml-0.5">{cautionCount}</b>
+                </span>
+              )}
+              <span className="rounded-full border border-[#8DE8FF]/15 bg-[#8DE8FF]/[.07] px-2 py-1 text-[8.5px] text-[#8DE8FF]">
+                기준 시점 {futureYears}년 뒤
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setExpanded((value) => !value)}
+            aria-expanded={expanded}
+            className="shrink-0 rounded-lg border border-white/10 bg-white/[.04] px-2.5 py-1.5 text-[9px] font-semibold text-sub transition hover:border-[#8DE8FF]/30 hover:text-ink focus:outline-none focus:ring-2 focus:ring-[#8DE8FF]/30"
+          >
+            {expanded ? "간단히 보기 ↑" : "설명 펼치기 ↓"}
+          </button>
+        </div>
       </div>
 
       {scopeSides.length > 0 && (

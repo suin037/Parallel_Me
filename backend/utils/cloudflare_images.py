@@ -28,7 +28,7 @@ def _is_content_flag(response) -> bool:
     return "flagged" in (response.text or "").lower()
 
 
-VISUAL_PROMPT_VERSION = "cinematic-3d-responsive-v6-gender"
+VISUAL_PROMPT_VERSION = "cinematic-3d-responsive-v10-gender-body-lock"
 
 
 def configured() -> bool:
@@ -41,15 +41,35 @@ def build_visual_prompt(choice: str, narrative: str, visual_scene: dict | None =
     scene = json.dumps(visual_scene or {}, ensure_ascii=False, indent=2)
     identity = json.dumps(avatar_spec or {}, ensure_ascii=False, indent=2)
     selected_gender = (avatar_spec or {}).get("gender", "unspecified")
+    current_age = (avatar_spec or {}).get("currentAge")
+    age_instruction = (
+        f"The user's current age is {int(current_age)} and the target age in this scene is exactly "
+        f"{int(current_age) + int(future_years)}. Judge appearance from that ABSOLUTE target age, "
+        "not from the word 'future' and not from the number of elapsed years alone. Depict an "
+        f"age-appropriate {int(current_age) + int(future_years)}-year-old. A future scene does not "
+        "mean an elderly person. Preserve the reference identity and existing age markers; change "
+        "them only as much as is realistic between the current and target ages. Do not invent gray "
+        "hair, deep wrinkles, age spots, sagging skin, or frailty unless they are appropriate for "
+        "the absolute target age or already present in input image 0."
+        if isinstance(current_age, (int, float)) else
+        "No current age was provided. Preserve the character's apparent age from input image 0; "
+        "do not infer that a future scene means old age and do not invent dramatic aging."
+    )
     if selected_gender == "male":
         gender_instruction = (
-            "The user explicitly selected male. Depict this same character as male in both A and B "
-            "scenes while preserving every visible identity attribute from input image 0."
+            "The user explicitly selected male. Depict this same character unambiguously as an adult "
+            "male in both A and B scenes while preserving every visible identity attribute from input "
+            "image 0. Keep a natural male torso and a flat male chest silhouette under the clothing. "
+            "Do not add breasts, cleavage, a bust contour, feminine chest shaping, or a feminine body "
+            "silhouette. Use ordinary non-sexualized clothing with a cut and drape appropriate to the "
+            "male character. Hair length, eyelashes, color, pose, or clothing color must never override "
+            "the explicitly selected male gender."
         )
     elif selected_gender == "female":
         gender_instruction = (
             "The user explicitly selected female. Depict this same character as female in both A and B "
-            "scenes while preserving every visible identity attribute from input image 0."
+            "scenes while preserving every visible identity attribute from input image 0. Use natural, "
+            "non-sexualized proportions and do not exaggerate the chest or body shape."
         )
     else:
         gender_instruction = (
@@ -83,6 +103,7 @@ cinematic lighting language, lens treatment, and overall production style.
 Future choice: {choice}
 Exact future timepoint: {future_years} years from the present. Depict the character at that
 specific point in time, not an unspecified distant future and not a different time horizon.
+{age_instruction}
 Story to visualize: {narrative[:700]}
 Scene direction:
 {scene}

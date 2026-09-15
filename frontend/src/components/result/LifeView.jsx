@@ -149,7 +149,6 @@ function EvidenceSummary({ a, b, domains }) {
     }
   }
   const total = tally[1] + tally[2] + tally[3];
-  const strongest = tally[3] > 0 ? 3 : tally[2] > 0 ? 2 : tally[1] > 0 ? 1 : 0;
 
   return (
     <details className="group my-2.5 rounded-[18px] bg-card px-4 py-3.5">
@@ -157,13 +156,11 @@ function EvidenceSummary({ a, b, domains }) {
           예전엔 "개인모델 검증 2 · 집단통계 3 · 참고 통계만 1" 이라는 숫자 나열이라
           한눈에 강한지 약한지 판단이 안 됐다. */}
       <summary className="flex cursor-pointer list-none items-center gap-2.5">
-        <span className="shrink-0 text-[13px] font-semibold text-ink">이 숫자의 근거</span>
+        <span className="shrink-0 text-[13px] font-semibold text-ink">지표별 데이터 신뢰도</span>
         {total > 0 ? (
           <span className="flex min-w-0 flex-1 items-center gap-2">
             <StrengthMix tally={tally} total={total} />
-            <span className="truncate text-[10.5px] text-mut">
-              {total}개 항목 · 최고 {STRENGTH_NAME[strongest]}
-            </span>
+            <span className="truncate text-[10.5px] text-mut">숫자마다 출처와 검증 수준이 달라요</span>
           </span>
         ) : (
           <span className="min-w-0 flex-1 truncate text-[10.5px] text-mut">근거 정보 없음</span>

@@ -17,7 +17,7 @@ import { logExperiment } from "../data/myUniverse.js";
 //   · 루미(별빛 가이드)   기록을 돌본다 → 몸과 마음
 const GUIDES = [
   { key: "daily", mascot: "nova", name: "노바", topic: "오늘의 일상", color: "#FF9EC0", prompt: "오늘 있었던 일, 나와 같이 돌아볼래요?" },
-  { key: "disposition", mascot: "cosmo", name: "코스모", topic: "고민과 선택", color: "#8B6CCF", prompt: "고민 중인 갈림길, 같이 비춰볼까요?" },
+  { key: "disposition", mascot: "cosmo", name: "코스모", topic: "고민과 선택", color: "#57C8E8", prompt: "고민 중인 갈림길, 같이 비춰볼까요?" },
   { key: "health", mascot: "lumi", name: "루미", topic: "몸과 마음", color: "#FFD97A", prompt: "몸과 마음의 신호를 천천히 살펴봐요." },
 ];
 

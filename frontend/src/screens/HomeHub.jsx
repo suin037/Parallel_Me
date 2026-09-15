@@ -35,7 +35,7 @@ export default function HomeHub() {
         <div data-tour="pet-peek"><PetPeek /></div>
       </header>
 
-      <div className="grid grid-cols-1 items-start gap-8 border-t border-white/[.08] pt-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,.65fr)] lg:gap-10 lg:pt-8">
+      <div className="grid grid-cols-1 items-start gap-8 border-t border-white/[.08] pt-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)] lg:gap-10 lg:pt-8">
         <main data-tour="diary" className="min-w-0 lg:pr-2"><DiaryToday /></main>
 
         <aside data-tour="recent" className="min-w-0 space-y-4 lg:sticky lg:top-[100px]">

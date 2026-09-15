@@ -97,7 +97,15 @@ export default function Layout() {
             ? "sm:h-screen sm:max-h-none sm:max-w-none sm:rounded-none sm:border-0 sm:ring-0 sm:shadow-none md:aspect-auto md:h-screen md:max-h-none md:max-w-none md:rounded-none lg:max-w-none"
             : ""
         }`}
-        style={{ backgroundImage: "radial-gradient(circle at 85% 8%, rgba(47,111,232,.12), transparent 32%), linear-gradient(180deg, #0B1423 0%, #08101D 100%)" }}
+        style={{
+          backgroundImage: isOnboarding
+            ? "linear-gradient(180deg, rgba(8,16,29,.55) 0%, rgba(8,16,29,.88) 100%), url(/space.png)"
+            : "radial-gradient(circle at 85% 8%, rgba(47,111,232,.12), transparent 32%), linear-gradient(180deg, #0B1423 0%, #08101D 100%)",
+          backgroundSize: isOnboarding ? "cover" : undefined,
+          backgroundPosition: isOnboarding ? "center" : undefined,
+          backgroundRepeat: isOnboarding ? "no-repeat" : undefined,
+          backgroundAttachment: isOnboarding ? "fixed" : undefined,
+        }}
       >
         {/* 서비스 헤더 */}
         {!isLanding && <header className={`z-20 flex h-14 shrink-0 items-center justify-between border-b border-transparent px-5 lg:h-[76px] lg:border-line/70 lg:px-10 xl:px-14 ${useFullDesktop ? "lg:sticky lg:top-0 lg:bg-[#091321]/90 lg:backdrop-blur-xl" : ""}`}>

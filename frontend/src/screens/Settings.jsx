@@ -17,7 +17,7 @@ import { LEVEL_TITLES, XP_RULES, universeSummary } from "../data/myUniverse.js";
 import { LEVEL_REWARDS } from "../data/unlocks.js";
 import PetMascot from "../components/PetMascot.jsx";
 import PetShop from "../components/PetShop.jsx";
-import { Bell, ChevronRight, ClipboardCheck, Compass, LockKeyhole, Palette, Smartphone, UserRound, LogOut } from "lucide-react";
+import { Bell, ChevronRight, ClipboardCheck, Clock3, Compass, Coins, Info, ListChecks, LockKeyhole, Palette, Scale, ShieldCheck, Smartphone, Sprout, UserRound, LogOut } from "lucide-react";
 import { toChoiceDomains } from "../data/choices.js";
 import { logoutAccount } from "../data/personaSlots.js";
 import { openGuide } from "../data/tour.js";
@@ -112,11 +112,19 @@ const NOTIF_LABELS = {
 };
 const SETTINGS_META = {
   profile: ["프로필", "나를 표현하고 시뮬레이션 개인화에 사용할 정보를 관리합니다."],
-  careerValues: ["직업 가치관", "한 번 검사한 직업 가치관을 이후 모든 커리어 비교에 활용합니다."],
+  careerValues: ["직업 가치관", "간단한 질문으로 나에게 중요한 직업 가치를 알아보고 앞으로의 커리어 비교에 활용할 수 있어요."],
   security: ["개인정보 · 보안", "저장된 개인정보의 보호 상태를 확인합니다."],
   personalize: ["개인화", "우주와 가이드, 탐험 경험을 내 취향에 맞게 설정합니다."],
   notifications: ["알림 · 가이드", "필요한 알림과 함께할 가이드 캐릭터를 설정합니다."],
 };
+
+const CAREER_VALUE_PREVIEW = [
+  { label: "성장", desc: "배우고 발전할 기회", icon: Sprout, color: "#65D5B2" },
+  { label: "안정", desc: "예측 가능한 일과 미래", icon: ShieldCheck, color: "#6CB7FF" },
+  { label: "보상", desc: "연봉과 경제적 보상", icon: Coins, color: "#B58CFF" },
+  { label: "균형", desc: "일과 개인 생활의 조화", icon: Scale, color: "#F08CB7" },
+  { label: "자율성", desc: "내 방식으로 일할 자유", icon: Compass, color: "#E7BE68" },
+];
 
 function LevelRule({ label, xp }) {
   return (
@@ -444,40 +452,49 @@ export default function Settings() {
       </section>}
 
       {activeSection === "careerValues" && <section className="animate-fade">
-      <Card>
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="text-xs font-semibold text-mut">직업 가치관</div>
-            {(profile.career_values || []).length > 0 ? (
-              <>
-                <p className="mt-1 text-[12px] font-semibold text-ink">{profile.career_values.slice(0, 3).map((value) => value.name).join(" > ")}</p>
-                <p className="mt-1 text-[10px] leading-4 text-mut">공고 분석과 직업 비교 결과 설명의 강조 순서에 계속 반영돼요.</p>
-              </>
-            ) : (
-              <p className="mt-1 text-[10px] leading-4 text-mut">28문항을 한 번 완료하면 이후 모든 직업 비교에 재사용해요. 예측 숫자는 바꾸지 않습니다.</p>
-            )}
+        <section className="relative overflow-hidden rounded-[28px] border border-violet-400/30 bg-[linear-gradient(120deg,#182955_0%,#141C42_52%,#11162F_100%)] p-5 shadow-[0_24px_70px_rgba(20,31,78,.34)] sm:p-7 lg:p-9">
+          <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full border-[42px] border-violet-400/[.08]" />
+          <div className="pointer-events-none absolute -bottom-28 right-[20%] h-52 w-52 rounded-full bg-violet-500/15" />
+          <div className="relative grid items-center gap-7 lg:grid-cols-[1fr_auto]">
+            <div className="max-w-[590px]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-300/20 bg-violet-400/20 px-3 py-1.5 text-[10px] font-bold text-violet-100"><ClipboardCheck size={13}/> 직업 가치관 검사</span>
+              <h2 className="mt-4 text-[26px] font-bold tracking-[-.04em] text-white sm:text-[32px]">직업 가치관 알아보기</h2>
+              <p className="mt-3 text-[12px] leading-6 text-white/75 sm:text-[13px]">내가 일에서 중요하게 생각하는 기준을 알아보세요.<br className="hidden sm:block"/> 검사 결과는 이후 모든 커리어 비교의 설명에 활용됩니다.</p>
+              {(profile.career_values || []).length > 0 && (
+                <div className="mt-4 rounded-xl border border-white/10 bg-black/15 px-3.5 py-2.5">
+                  <p className="text-[9px] font-semibold text-violet-200">현재 나의 상위 가치</p>
+                  <p className="mt-1 text-[12px] font-bold text-white">{profile.career_values.slice(0, 3).map((value) => value.name).join("  ·  ")}</p>
+                </div>
+              )}
+              <div className="mt-5 flex flex-wrap items-center gap-4 text-[11px] text-white/70">
+                <span className="flex items-center gap-1.5"><Clock3 size={15} className="text-violet-200"/> 약 3분</span><span className="h-4 w-px bg-white/15"/><span className="flex items-center gap-1.5"><ListChecks size={15} className="text-violet-200"/> 총 28문항</span>
+              </div>
+            </div>
+            <button type="button" onClick={() => setCareerTestOpen(true)} className="tap flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#7557E8] to-[#A273F4] px-7 py-4 text-[13px] font-bold text-white shadow-[0_14px_34px_rgba(117,87,232,.35)] lg:w-auto">
+              {(profile.career_values || []).length > 0 ? "결과 보기·재검사" : "검사 시작하기"} <ChevronRight size={16}/>
+            </button>
           </div>
-          <button type="button" onClick={() => setCareerTestOpen(true)} className="tap shrink-0 rounded-xl border border-violet-400/35 bg-violet-500/10 px-4 text-[11px] font-bold text-violet-200">
-            {(profile.career_values || []).length > 0 ? "결과·재검사" : "검사 시작"}
-          </button>
-        </div>
-        {profile.career_values_updated_at && <p className="mt-2 text-[9px] text-mut">마지막 검사: {new Date(profile.career_values_updated_at).toLocaleDateString("ko-KR")}</p>}
-        {profile.career_values_report && <a href={profile.career_values_report} target="_blank" rel="noreferrer" className="mt-2 inline-block text-[10px] text-violet-300">커리어넷 공식 결과지 ↗</a>}
-      </Card>
-      <Card>
-        <div className="text-xs font-semibold text-mut">어디에 반영되나요?</div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <div className="rounded-xl border border-white/[.07] bg-black/15 p-3">
-            <p className="text-[11px] font-semibold text-sub">직업 비교 설명</p>
-            <p className="mt-1 text-[10px] leading-4 text-mut">성장·안정·보상처럼 내가 중요하게 보는 기준을 먼저 설명해요.</p>
+        </section>
+
+        <section className="mt-4 rounded-[26px] border border-white/[.09] bg-[#0B1628]/88 p-5 sm:p-6">
+          <h2 className="text-[16px] font-bold text-ink">이런 직업 가치를 알아봐요</h2>
+          <p className="mt-1 text-[10px] text-mut">두 가치 중 더 중요한 쪽을 고르며 나만의 우선순위를 찾습니다.</p>
+          <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
+            {CAREER_VALUE_PREVIEW.map(({ label, desc, icon: Icon, color }) => (
+              <article key={label} className="rounded-2xl border border-white/[.09] bg-[#0E1A30] p-3.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full" style={{ color, backgroundColor: `${color}20` }}><Icon size={17}/></span>
+                <h3 className="mt-3 text-[12px] font-bold text-ink">{label}</h3><p className="mt-1 text-[9.5px] leading-4 text-mut">{desc}</p>
+              </article>
+            ))}
           </div>
-          <div className="rounded-xl border border-white/[.07] bg-black/15 p-3">
-            <p className="text-[11px] font-semibold text-sub">채용 공고 분석</p>
-            <p className="mt-1 text-[10px] leading-4 text-mut">공고 조건과 내 가치가 맞는 지점·부딪히는 지점을 찾아요.</p>
+          <div className="mt-5 overflow-hidden rounded-2xl border border-violet-400/15 bg-[linear-gradient(100deg,rgba(54,76,151,.24),rgba(58,39,112,.2))] p-4 sm:flex sm:items-center sm:gap-5 sm:p-5">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/20 text-violet-200"><Info size={18}/></span>
+            <div className="mt-3 min-w-0 flex-1 sm:mt-0"><h3 className="text-[13px] font-bold text-ink">검사 결과는 이렇게 활용돼요</h3><p className="mt-1 text-[10px] leading-5 text-sub">커리어 A/B 비교에서는 내가 중요하게 보는 기준부터 설명하고, 채용 공고에서는 내 가치와 맞는 지점과 부딪힐 지점을 찾아줍니다.</p><p className="mt-1 text-[9px] leading-4 text-mut">예측 소득·인과효과·재직기간 같은 숫자를 바꾸지는 않습니다.</p></div>
+            <div className="mt-4 flex shrink-0 items-center justify-center gap-2 sm:mt-0"><span className="rounded-xl border border-violet-300/20 bg-violet-500/15 px-3 py-2 text-[10px] font-bold text-violet-200">A 선택</span><span className="text-violet-300">↔</span><span className="rounded-xl border border-orange-300/20 bg-orange-400/10 px-3 py-2 text-[10px] font-bold text-orange-200">B 선택</span></div>
           </div>
-        </div>
-        <p className="mt-3 text-[10px] leading-4 text-mut">예측 소득·인과효과·재직기간 같은 숫자는 바꾸지 않습니다.</p>
-      </Card>
+          <p className="mt-4 flex items-start gap-2 rounded-xl border border-violet-400/20 bg-violet-500/[.07] px-3.5 py-3 text-[10px] leading-4 text-violet-200"><Info size={14} className="mt-px shrink-0"/> 검사는 선택 사항이에요. 검사하지 않아도 기본 조건으로 미래를 비교할 수 있습니다.</p>
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] text-mut">{profile.career_values_updated_at && <span>마지막 검사: {new Date(profile.career_values_updated_at).toLocaleDateString("ko-KR")}</span>}{profile.career_values_report && <a href={profile.career_values_report} target="_blank" rel="noreferrer" className="text-violet-300 hover:text-violet-200">커리어넷 공식 결과지 ↗</a>}</div>
+        </section>
       </section>}
 
       {/* 가치 우선순위 — 성향 개인화 입력 (백엔드 personalize 로 전달) */}

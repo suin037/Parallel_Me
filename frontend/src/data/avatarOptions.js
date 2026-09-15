@@ -210,12 +210,22 @@ export function normalizeAvatar(config) {
 // 예전에는 이 함수가 인자를 **하나만** 받았는데 호출부(ResultContext)는 sex 를 같이
 // 넘기고 있었다. 두 번째 인자가 조용히 버려져서 늘 unspecified 로 나갔고, 두 이미지가
 // 따로 생성되다 보니 남성 페르소나인데 A 는 남성 B 는 여성으로 나오는 일이 있었다.
-export function avatarGenerationSpec(config, sex) {
+export function avatarGenerationSpec(config, sex, age) {
   const c = normalizeAvatar(config);
   const hair = hairStyleById(c.hairStyle);
   const labelOf = (items, id) => items.find((item) => item.id === id)?.label || id;
+  // 프로필 저장 시점에 따라 성별 코드가 문자열 또는 숫자로 들어올 수 있다.
+  // 엄격 비교만 하면 숫자 1/2가 unspecified로 빠져 이미지 모델이 다시 추측한다.
+  const genderCode = String(sex ?? "");
+  const gender = genderCode === "1" ? "male" : genderCode === "2" ? "female" : "unspecified";
   return {
-    gender: sex === "1" ? "male" : sex === "2" ? "female" : "unspecified",
+    gender,
+    bodyPresentation: gender === "male"
+      ? "adult male body; flat male chest silhouette; no breasts or cleavage"
+      : gender === "female"
+        ? "adult female body; natural non-exaggerated proportions"
+        : "preserve the reference character's body presentation without guessing gender",
+    ...(Number(age) > 0 ? { currentAge: Number(age) } : {}),
     // gender 를 명시할 때는 여기에 'gender-neutral' 을 같이 보내면 안 된다 —
     // 스펙 전체가 프롬프트에 그대로 실려 지시끼리 부딪힌다.
     characterType: "illustrated avatar character",

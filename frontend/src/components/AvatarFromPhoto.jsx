@@ -269,43 +269,47 @@ export default function AvatarFromPhoto({ current, onResult, onClose }) {
     : [];
 
   return (
-    <div className="mt-3 rounded-2xl border border-violet-400/20 bg-[#0B1423] p-3">
+    <div className="w-full">
       <div className="flex items-center justify-between">
-        <strong className="text-[12px] text-ink">카메라로 맞추기</strong>
-        <button type="button" onClick={close} className="tap text-[11px] text-sub">
+        <strong className="text-[16px] text-ink sm:text-[18px]">카메라로 맞추기</strong>
+        <button type="button" onClick={close} className="tap rounded-full border border-white/10 bg-white/[.04] px-3 py-1.5 text-[11px] text-sub">
           닫기
         </button>
       </div>
 
       {status === "review" ? (
         <>
-          <p className="mt-2 text-[11px] text-sub">이렇게 시작해볼까요?</p>
-          <div className="mt-2 flex items-center justify-center gap-3">
+          <p className="mt-5 text-center text-[18px] font-bold text-ink sm:text-[22px]">이렇게 시작해볼까요?</p>
+          <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center justify-center gap-2 sm:gap-6">
             <figure className="m-0 text-center">
               <img
                 src={shot}
                 alt="방금 찍은 사진"
-                className="h-[104px] w-[104px] rounded-xl object-cover"
+                className="mx-auto h-[150px] w-[150px] rounded-[22px] object-cover shadow-[0_14px_34px_rgba(0,0,0,.34)] sm:h-[220px] sm:w-[220px]"
                 style={{ transform: "scaleX(-1)" }}
               />
-              <figcaption className="mt-1 text-[9px] text-mut">사진</figcaption>
+              <figcaption className="mt-2 text-[11px] font-semibold text-mut">사진</figcaption>
             </figure>
-            <span className="text-[16px] text-mut">→</span>
+            <span className="text-[20px] text-violet-300 sm:text-[28px]">→</span>
             <figure className="m-0 text-center">
-              <Avatar config={{ ...current, ...result }} size={104} ring={false} />
-              <figcaption className="mt-1 text-[9px] text-mut">아바타</figcaption>
+              <span className="mx-auto flex h-[150px] w-[150px] items-center justify-center rounded-[22px] bg-white/[.035] shadow-[0_14px_34px_rgba(0,0,0,.34)] sm:hidden">
+                <Avatar config={{ ...current, ...result }} size={150} ring={false} />
+              </span>
+              <span className="mx-auto hidden h-[220px] w-[220px] items-center justify-center rounded-[22px] bg-white/[.035] shadow-[0_14px_34px_rgba(0,0,0,.34)] sm:flex">
+                <Avatar config={{ ...current, ...result }} size={220} ring={false} />
+              </span>
+              <figcaption className="mt-2 text-[11px] font-semibold text-mut">아바타</figcaption>
             </figure>
           </div>
 
-          <p className="mt-2 text-[10px] leading-relaxed text-mut">
+          <p className="mx-auto mt-4 max-w-[520px] text-center text-[11px] leading-relaxed text-mut">
             {changed.length
               ? `바뀌는 항목 ${changed.length}개 · ${changed.map((k) => FIELD_LABELS[k]).join(" · ")}`
               : "바뀌는 항목이 없습니다."}
             <br />
-            선택지가 정해져 있어서 똑같이 생기진 않습니다. 적용한 뒤 화살표로 고치시면 됩니다.
           </p>
 
-          <div className="mt-2 flex gap-2">
+          <div className="mx-auto mt-4 flex max-w-[520px] gap-2">
             <button
               type="button"
               onClick={apply}
@@ -324,17 +328,17 @@ export default function AvatarFromPhoto({ current, onResult, onClose }) {
         </>
       ) : (
         <>
-          <div className="relative mt-2 overflow-hidden rounded-xl bg-black/40">
+          <div className="relative mt-4 overflow-hidden rounded-[22px] bg-black/40">
             <video
               ref={videoRef}
               playsInline
               muted
-              className="block h-[260px] w-full object-cover"
+              className="block h-[320px] w-full object-cover sm:h-[420px]"
               style={{ transform: "scaleX(-1)" }} // 거울처럼 보이게
             />
             {/* 얼굴 맞추는 가이드. 이 안에 얼굴을 채우면 잘린 사진이 줄어든다. */}
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="h-[200px] w-[155px] rounded-[50%] border-2 border-dashed border-violet-300/60 shadow-[0_0_0_9999px_rgba(0,0,0,.35)]" />
+              <div className="h-[240px] w-[185px] rounded-[50%] border-2 border-dashed border-violet-300/60 shadow-[0_0_0_9999px_rgba(0,0,0,.35)] sm:h-[310px] sm:w-[240px]" />
             </div>
             <p className="pointer-events-none absolute inset-x-0 bottom-1.5 text-center text-[10px] text-white/80">
               얼굴을 원 안에 맞춰주세요

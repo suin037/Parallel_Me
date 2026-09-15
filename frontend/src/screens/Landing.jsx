@@ -34,17 +34,10 @@ export default function Landing() {
   return (
     <div className="relative flex min-h-full flex-col overflow-hidden">
       <div className="absolute inset-0 bg-[#050914]">
-        <video
-          // 원본이 720p라 큰 화면에서 object-cover로 확대되면 압축 블록이 도드라진다.
-          // scale로 여유를 두고 살짝 blur를 걸어 확대 시 눈에 띄는 블록/뭉개짐을 완화한다.
-          className="absolute inset-0 h-full w-full scale-105 object-cover blur-[1.5px]"
-          src="/space-intro.mp4"
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          aria-label="별과 행성이 펼쳐지는 우주 인트로"
+        <img
+          className="absolute inset-0 h-full w-full object-cover"
+          src="/space.png"
+          alt="별과 고리 행성이 펼쳐진 우주"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#030712]/15 via-[#050914]/25 to-[#07101E]/95" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_68%_38%,transparent_0%,rgba(3,7,18,.08)_35%,rgba(3,7,18,.48)_100%)]" />

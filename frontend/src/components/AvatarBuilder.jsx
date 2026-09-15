@@ -334,7 +334,7 @@ export default function AvatarBuilder({ config, onChange }) {
             if (event.target === event.currentTarget) setCamera(false);
           }}
         >
-          <div className="w-full max-w-[460px] animate-sheet-up rounded-t-[28px] border border-white/10 bg-[#0D1727] p-3 shadow-[0_-22px_70px_rgba(0,0,0,.55)] sm:animate-fade sm:rounded-[28px]">
+          <div className="w-full max-w-[720px] animate-sheet-up rounded-t-[30px] border border-white/10 bg-[#0D1727] p-5 shadow-[0_-22px_70px_rgba(0,0,0,.55)] sm:animate-fade sm:rounded-[30px] sm:p-7">
             <AvatarFromPhoto
               current={avatar}
               onResult={(cfg) => {

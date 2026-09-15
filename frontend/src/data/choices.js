@@ -109,6 +109,24 @@ const KEYWORD_PROMPTS = {
   long_term_values: { a: (k) => `${k} 기준으로 장기 방향 정하기`, b: (k) => `${k} 그대로 두고 지금 가치 유지하기` },
 };
 
+// 행성에서 시작하는 비교는 그 영역의 대표 갈림길을 처음부터 채워
+// 일반 시뮬레이션 진입과 분명히 구분한다.
+export function domainCompareDefaults(key) {
+  const primaryDomain = {
+    career: "career",
+    growth: "education",
+    health: "health",
+    relation: "relationship",
+    life: "lifestyle",
+  }[key] || key;
+  const pair = COMPARE_PROMPTS[primaryDomain];
+  return pair ? { ...pair } : null;
+}
+
+// 형태소 분석 결과가 이미 브라우저에 캐시돼 있어도 추천 문장에 끼우면 안 되는
+// 일반 명사. 서버의 compare_keywords._STOP 과 함께 막아 기존 캐시까지 안전하게 거른다.
+const GENERIC_COMPARE_KEYWORDS = new Set(["이름"]);
+
 const VALUE_TO_DOMAINS = {
   money: ["finance"], status: ["career"], family: ["relationship"], friends: ["relationship"],
   growth: ["education", "career"], freedom: ["lifestyle"], meaning: ["long_term_values"],
@@ -194,7 +212,7 @@ function keywordPrompts({ keywords = [], side = "a", allow = null, limit = 2 } =
   for (const item of keywords || []) {
     if (out.length >= limit) break;
     const word = String(item?.word || "").trim();
-    if (!word) continue;
+    if (!word || GENERIC_COMPARE_KEYWORDS.has(word)) continue;
     const domain = keywordDomain(item);
     if (!domain || (allow && !allow.has(domain))) continue;
     const text = KEYWORD_PROMPTS[domain][side === "b" ? "b" : "a"](word);

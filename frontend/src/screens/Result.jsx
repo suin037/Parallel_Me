@@ -68,6 +68,7 @@ export default function Result() {
       ? [{ key: "numbers", label: "수치 비교", View: (p) => <>
           <ChangeView {...p} />
           <LifeView {...p} />
+          <ResultDataNotes a={p.a} b={p.b} futureYears={result.futureYears ?? 3} />
         </> }]
       : []),
     { key: "record", label: "기록 근거", View: () => <>
@@ -178,7 +179,6 @@ export default function Result() {
       />
       <div className="mt-4 min-w-0 [&>section]:mt-0">
         <ResultQuickStats a={a} b={b} futureYears={result.futureYears ?? 3} />
-        <ResultDataNotes a={a} b={b} futureYears={result.futureYears ?? 3} />
       </div>
       {hasKowepsObservation && (
         <div className="mt-4 min-w-0 [&>.bg-card]:mt-0">
@@ -369,8 +369,8 @@ function ThirdPath({ a, b }) {
   }
 
   return (
-    <details className="group mb-3 rounded-2xl border border-gold/35 bg-[#211a10] px-3.5 py-3">
-      <summary className="cursor-pointer list-none text-[12px] font-bold text-gold">
+    <details className="group mb-3 rounded-2xl border border-[#8DE8FF]/20 bg-[#0B1D29] px-3.5 py-3">
+      <summary className="cursor-pointer list-none text-[12px] font-bold text-[#8DE8FF]">
         💡 A와 B 모두 확신이 없다면
         <span className="ml-1 text-[10px] font-normal text-mut group-open:hidden">· 제3의 길 보기</span>
       </summary>
@@ -379,7 +379,7 @@ function ThirdPath({ a, b }) {
         <button
           onClick={run}
           disabled={busy}
-          className="tap shrink-0 rounded-xl bg-gold px-3 py-1.5 text-[11px] font-bold text-[#2a1e05] disabled:opacity-60"
+          className="tap shrink-0 rounded-xl bg-[#8DE8FF] px-3 py-1.5 text-[11px] font-bold text-[#09202A] disabled:opacity-60"
         >
           {busy ? "찾는 중…" : res ? "다시" : "제안 받기"}
         </button>

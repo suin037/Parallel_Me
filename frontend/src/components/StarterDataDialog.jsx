@@ -74,26 +74,21 @@ export default function StarterDataDialog({ open, name, busy, onSample, onEmpty 
 
         <p className="mt-3 text-[12px] leading-relaxed text-sub sm:text-[13px]">
           두 미래 비교는 <b className="text-ink">지금 바로</b> 해볼 수 있어요. 다만 아직 일기 기록이
-          없어서, <b className="text-ink">나에게 맞춘 해석의 정확도는 낮습니다.</b> 감정·가치 신호를
-          뽑아낼 기록이 없어 설명이 일반적인 톤으로 나가고, ‘나의 우주’와 주간 리포트는 비어 있어요.
-        </p>
-        <p className="mt-2 text-[11px] leading-relaxed text-mut">
-          예측 숫자(소득 궤적·인과효과·생존곡선)는 프로필만으로 계산되므로 어느 쪽을 고르든 같습니다.
-          달라지는 건 그 숫자를 <b className="text-sub">얼마나 내 이야기로 풀어주는가</b> 예요.
+          없어서, 나에게 맞춘 해석의 정확도는 낮을 수 있습니다.
         </p>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <Option
             icon={Sparkles}
             tone="primary"
-            title="예시 기록 1년치로 시작"
-            lead="기록이 쌓인 상태가 어떤 모습인지 모든 화면에서 바로 볼 수 있어요."
+            title="지원의 1년 기록으로 시작"
+            lead="지원의 기록이 쌓인 상태를 불러와 모든 화면을 바로 둘러볼 수 있어요."
             points={[
               "나의 우주 · 별자리 · 주간 리포트가 채워짐",
               "성향 맞춤 해석이 작동하는 모습을 확인",
               "언제든 설정에서 지우고 처음부터 시작 가능",
             ]}
-            note="넣는 기록은 지원(29세, 프로덕트 디자이너)의 합성 1년치예요. 방금 입력하신 정보와 일기 내용이 어긋나는 게 정상이며 ‘예시 데이터’ 배지가 붙습니다."
+            note="넣는 기록은 지원(29세, 프로덕트 디자이너)의 합성 1년치예요. ‘예시 데이터’ 배지가 붙습니다."
             disabled={busy}
             onClick={onSample}
           />
@@ -106,7 +101,7 @@ export default function StarterDataDialog({ open, name, busy, onSample, onEmpty 
               "기록이 쌓일수록 해석이 나에게 맞춰짐",
               "나의 우주가 오늘 첫 별부터 시작",
             ]}
-            note="일기가 없는 동안에는 맞춤 해석 대신 일반 해석이 나갑니다. 며칠치만 쌓여도 달라져요."
+            note="일기가 없는 동안에는 맞춤 해석 대신 일반 해석이 나갑니다. 꾸준히 기록을 쌓아주세요."
             disabled={busy}
             onClick={onEmpty}
           />

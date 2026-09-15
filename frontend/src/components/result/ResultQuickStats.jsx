@@ -188,7 +188,7 @@ export default function ResultQuickStats({ a, b, futureYears = 3 }) {
           <h2 id="quick-stats-title" className="text-[13px] font-bold text-ink">
             {comparable ? "A/B 기본 비교 통계" : "기본 통계 · 두 선택 공통"}
           </h2>
-          <p className="mt-0.5 text-[9px] text-mut">{futureYears}년 뒤를 기준으로, 연결된 관측값만 표시합니다.</p>
+          <p className="mt-0.5 text-[9px] text-mut">{futureYears}년 뒤를 기준으로, 연결된 관측값 표시</p>
         </div>
         {comparable && (
           <div className="flex gap-3 text-[10px] font-semibold">
@@ -232,7 +232,7 @@ export default function ResultQuickStats({ a, b, futureYears = 3 }) {
             <b className="font-bold">{abroadInput.side} {abroadInput.label}</b>의 소득은
             {" "}<b className="font-bold">해외 오퍼를 세전 환율로 환산한 값</b>입니다 —
             {" "}현지 <b className="font-bold">월세·세금이 빠져 있어</b> 실제 손에 쥐는 돈은
-            {" "}이 막대보다 훨씬 적을 수 있습니다. 두 막대를 그대로 비교하지 마세요.
+            {" "}이 막대보다 훨씬 적을 수 있습니다.
           </p>
         </div>
       )}
@@ -248,7 +248,7 @@ export default function ResultQuickStats({ a, b, futureYears = 3 }) {
       {unmeasuredAxes.length > 0 && (
         <p className="border-t border-white/[.07] px-4 py-2.5 text-[9px] leading-4 text-mut">
           <b className="font-semibold text-sub">{unmeasuredAxes.join(" · ")}</b>
-          {" "}축은 이 선택을 측정한 검증 결과가 없어 비워 두었습니다 — 값이 낮다는 뜻이 아닙니다.
+          {" "}축은 이 선택을 측정한 검증 결과가 없어 비워 두었습니다.
         </p>
       )}
     </section>

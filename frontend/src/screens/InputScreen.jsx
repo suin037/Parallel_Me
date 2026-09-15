@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useResult } from "../data/ResultContext.jsx";
 import { LIFE_DOMAINS, detectPrimaryLifeDomain, domainLabel, suggestComparePrompts } from "../data/choices.js";
 import { OCCUPATION_GROUPS } from "../data/profileOptions.js";
@@ -56,6 +56,7 @@ function latestConversationFutures() {
 
 export default function InputScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     profile, setProfile, choices, setChoices,
     scenarioTexts, setScenarioTexts, scenarioDomains, setScenarioDomains,
@@ -70,6 +71,10 @@ export default function InputScreen() {
   // 단, choices 기본값이 {이직, 유지}라 아무것도 안 썼을 때 직업으로 오인된다 —
   // 실제로 무언가 적었을 때만 영역 입력을 편다.
   const typed = Boolean(scenarioTexts.a?.trim() || scenarioTexts.b?.trim());
+  const planetEntryKey = location.state?.source === "planet" ? location.state.planetKey : null;
+  const planetEntry = planetEntryKey
+    ? { key: planetEntryKey, label: location.state?.planetLabel || domainLabel(planetEntryKey), emoji: "🪐" }
+    : null;
   const allDomains = [...(scenarioDomains.a || []), ...(scenarioDomains.b || [])];
   const isRelationship = typed && allDomains.includes("relationship");
   const textA = scenarioTexts.a;
@@ -377,11 +382,17 @@ export default function InputScreen() {
     <div className="-mx-5 -mt-1 min-h-full px-5 pb-7 pt-3 lg:mx-auto lg:px-4 lg:pb-12 lg:pt-0 xl:px-6">
       <section className="relative overflow-hidden py-7 lg:grid lg:min-h-[310px] lg:grid-cols-[.9fr_1.1fr] lg:items-center lg:gap-10 lg:py-10">
         <div className="relative z-10 max-w-[630px]">
-          <div className="text-[11px] font-bold tracking-[.08em] text-violet-300 lg:text-[13px]">두 미래를 비교하고, 더 나은 선택을 발견하세요</div>
+          <div className="text-[11px] font-bold tracking-[.08em] text-violet-300 lg:text-[13px]">
+            {planetEntry ? `${planetEntry.emoji} ${planetEntry.label} 행성에서 시작한 비교` : "두 미래를 비교하고, 더 나은 선택을 발견하세요"}
+          </div>
           <h1 className="mt-2 text-[32px] font-medium leading-[1.15] tracking-[-.055em] text-ink sm:text-[38px] lg:text-[48px] xl:text-[54px]">
-            오늘은 어떤 갈림길을<br className="hidden sm:block" /> 비춰볼까요?
+            {planetEntry ? <>{planetEntry.label} 영역의 두 미래를<br className="hidden sm:block" /> 비춰볼까요?</> : <>오늘은 어떤 갈림길을<br className="hidden sm:block" /> 비춰볼까요?</>}
           </h1>
-          <p className="mt-3 max-w-[540px] text-[12px] leading-6 text-sub lg:text-[14px]">두 가지 선택지의 미래를 시뮬레이션하고, 나에게 더 잘 맞는 길을 데이터와 이야기로 비교해보세요.</p>
+          <p className="mt-3 max-w-[540px] text-[12px] leading-6 text-sub lg:text-[14px]">
+            {planetEntry
+              ? `${planetEntry.label} 행성에 쌓인 기록을 바탕으로 대표 갈림길을 먼저 채웠어요. 그대로 비교하거나 내 상황에 맞게 고쳐보세요.`
+              : "두 가지 선택지의 미래를 시뮬레이션하고, 나에게 더 잘 맞는 길을 데이터와 이야기로 비교해보세요."}
+          </p>
           <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
             <button type="button" data-tour="simulate-start" onClick={focusFirstChoice} className="tap flex items-center justify-center gap-2 rounded-xl border border-violet-300/50 bg-gradient-to-r from-[#7250DB] to-[#8B61E8] px-6 py-3.5 text-[13px] font-bold text-white shadow-[0_12px_34px_rgba(114,80,219,.28)]">
               <Sparkles size={16} /> 시뮬레이션 시작
@@ -396,7 +407,7 @@ export default function InputScreen() {
           <div className="absolute left-1/2 top-1/2 h-[170px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border border-violet-300/25 [transform:translate(-50%,-50%)_rotate(-8deg)]" />
           <div className="absolute left-1/2 top-1/2 h-[110px] w-[510px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border border-[#F5C86B]/20 [transform:translate(-50%,-50%)_rotate(8deg)]" />
           <div className="absolute left-1/2 top-1/2 h-44 w-44 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border border-violet-200/40 bg-[#17102D] shadow-[0_0_35px_rgba(139,108,207,.62),18px_2px_35px_rgba(245,180,107,.28)]">
-            <img src="/planet-textures/career.png" alt="" className="h-full w-full object-cover" />
+            <img src={`/planet-textures/${planetEntryKey || "career"}.png`} alt="" className="h-full w-full object-cover" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_28%,rgba(255,255,255,.28),transparent_24%),linear-gradient(105deg,transparent_45%,rgba(0,0,0,.7)_88%)]" />
           </div>
           <div className="absolute left-[13%] top-[38%] h-9 w-9 overflow-hidden rounded-full border border-violet-300/40 shadow-[0_0_18px_rgba(139,108,207,.45)]"><img src="/planet-textures/growth.png" alt="" className="h-full w-full object-cover" /></div>
@@ -492,65 +503,6 @@ export default function InputScreen() {
 
       {duplicate && <Caption className="text-danger">두 미래가 같아요. 회사·조건·상황 중 하나를 다르게 적어주세요.</Caption>}
 
-      {needJobDetails && (
-        <section className="mt-4 animate-fade rounded-[22px] border border-cyan/30 bg-[#0B1729]/90 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-[13px] font-bold text-ink">일과 관련된 비교를 더 정확히 하려면</div>
-              <div className="mt-1 text-[11px] leading-relaxed text-muted">이직·쉬어가기처럼 일이 걸린 시뮬레이션에서 쓰는 값이라 한 번만 입력하면 돼요. 다음 비교에도 다시 사용할 수 있어요.</div>
-              <p className="mt-1 text-[11px] leading-relaxed text-mut">유사 조건 비교에 사용하며, 선택 결과를 확정하는 정보는 아니에요.</p>
-            </div>
-            <span className="shrink-0 rounded-full bg-cyan/15 px-2 py-1 text-[9px] font-bold text-cyan">선택 입력</span>
-          </div>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <JobField label="현재 직종 대분류">
-              <select value={profile.occupation_group ?? ""} onChange={(event) => setProfile((prev) => ({ ...prev, occupation_group: event.target.value === "" ? null : Number(event.target.value) }))} className="tap w-full rounded-xl border border-line bg-[#0E1424] px-3 py-2.5 text-[12px] text-ink outline-none focus:border-cyan">
-                <option value="">선택해주세요</option>
-                {OCCUPATION_GROUPS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
-            </JobField>
-
-            <JobField label="고용 형태 · 선택">
-              <select value={profile.employment_status ?? ""} onChange={(event) => setProfile((prev) => ({ ...prev, employment_status: event.target.value === "" ? null : Number(event.target.value) }))} className="tap w-full rounded-xl border border-line bg-[#0E1424] px-3 py-2.5 text-[12px] text-ink outline-none focus:border-cyan">
-                <option value="">선택해주세요</option>
-                {EMPLOYMENT_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
-            </JobField>
-
-            <JobField label="현 일자리 근속기간 · 선택">
-              <div className="flex items-center gap-2">
-                <input type="number" min="0" max="50" step="0.5" value={profile.tenure_years ?? ""} placeholder="예: 2.5" onChange={(event) => setProfile((prev) => ({ ...prev, tenure_years: event.target.value === "" ? null : Number(event.target.value) }))} className="w-full rounded-xl border border-line bg-[#0E1424] px-3 py-2.5 text-[12px] text-ink outline-none placeholder:text-mut focus:border-cyan" />
-                <span className="shrink-0 text-[11px] text-mut">년</span>
-              </div>
-            </JobField>
-
-            <JobField label="회사 규모 · 선택">
-              <select value={profile.firm_size ?? ""} onChange={(event) => setProfile((prev) => ({ ...prev, firm_size: event.target.value === "" ? null : Number(event.target.value) }))} className="tap w-full rounded-xl border border-line bg-[#0E1424] px-3 py-2.5 text-[12px] text-ink outline-none focus:border-cyan">
-                <option value="">입력하지 않아도 돼요</option>
-                {FIRM_SIZES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
-            </JobField>
-          </div>
-        </section>
-      )}
-
-      {needMajor && (
-        <details className="group mt-3 w-fit max-w-full rounded-xl border border-white/10 bg-[#0B1423]/80">
-          <summary className="tap flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-[11px] font-semibold text-sub [&::-webkit-details-marker]:hidden">
-            <span>전공 계열</span>
-            <span className="font-normal text-mut">{profile.major || "선택사항"}</span>
-            <span className="text-[9px] text-mut transition-transform group-open:rotate-180">▼</span>
-          </summary>
-          <div className="border-t border-white/10 p-2.5">
-            <select value={profile.major || ""} onChange={(event) => setProfile((prev) => ({ ...prev, major: event.target.value }))} className="tap min-w-[180px] rounded-lg border border-line bg-[#0E1424] px-3 py-2 text-[12px] text-ink outline-none focus:border-cyan">
-              <option value="">선택하지 않음</option>
-              {MAJOR_FIELDS.map((major) => <option key={major} value={major}>{major}</option>)}
-            </select>
-          </div>
-        </details>
-      )}
-
       {/* 지원하려는 공고가 있으면 붙여넣기 → 요구역량 + 내 성향과의 접점·마찰점.
           공고 수집은 약관 문제가 커서 크롤링 대신 붙여넣기로 받는다. */}
       {/* 선택지가 어느 영역인지에 따라 담는 재료가 달라진다.
@@ -558,12 +510,55 @@ export default function InputScreen() {
       {/* 관계면 대화·연락 내역 하나만. */}
       {isRelationship && <RelationshipInput talks={talks} setTalks={setTalks} />}
 
+      {needMajor && (
+        <EducationContextSection
+          major={profile.major || ""}
+          onMajorChange={(major) => setProfile((prev) => ({ ...prev, major }))}
+        />
+      )}
+
       {normalizedA && normalizedB && (isCareer ? (
-        <section className="mt-4 animate-fade rounded-[22px] border border-white/10 bg-[#0B1423]/80 p-4">
+        <div className="mt-4 grid items-start gap-3 lg:grid-cols-2">
+          {needJobDetails && (
+            <section className="animate-fade rounded-[22px] border border-dashed border-violet-400/30 bg-[#151329]/65 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-[13px] font-bold text-ink">일과 관련된 비교를 더 정확히 하려면</h2>
+                </div>
+                <span className="shrink-0 rounded-full bg-violet-500/15 px-2 py-1 text-[9px] font-bold text-violet-200">선택 입력</span>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <JobField label="현재 직종 대분류">
+                  <select value={profile.occupation_group ?? ""} onChange={(event) => setProfile((prev) => ({ ...prev, occupation_group: event.target.value === "" ? null : Number(event.target.value) }))} className="tap w-full rounded-xl border border-line bg-[#0E1424] px-3 py-2.5 text-[12px] text-ink outline-none focus:border-cyan">
+                    <option value="">선택 사항</option>
+                    {OCCUPATION_GROUPS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </JobField>
+                <JobField label="고용 형태 · 선택">
+                  <select value={profile.employment_status ?? ""} onChange={(event) => setProfile((prev) => ({ ...prev, employment_status: event.target.value === "" ? null : Number(event.target.value) }))} className="tap w-full rounded-xl border border-line bg-[#0E1424] px-3 py-2.5 text-[12px] text-ink outline-none focus:border-cyan">
+                    <option value="">선택 사항</option>
+                    {EMPLOYMENT_STATUSES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </JobField>
+                <JobField label="현 일자리 근속기간 · 선택">
+                  <div className="flex items-center gap-2">
+                    <input type="number" min="0" max="50" step="0.5" value={profile.tenure_years ?? ""} placeholder="예: 2.5" onChange={(event) => setProfile((prev) => ({ ...prev, tenure_years: event.target.value === "" ? null : Number(event.target.value) }))} className="w-full rounded-xl border border-line bg-[#0E1424] px-3 py-2.5 text-[12px] text-ink outline-none placeholder:text-mut focus:border-cyan" />
+                    <span className="shrink-0 text-[11px] text-mut">년</span>
+                  </div>
+                </JobField>
+                <JobField label="회사 규모 · 선택">
+                  <select value={profile.firm_size ?? ""} onChange={(event) => setProfile((prev) => ({ ...prev, firm_size: event.target.value === "" ? null : Number(event.target.value) }))} className="tap w-full rounded-xl border border-line bg-[#0E1424] px-3 py-2.5 text-[12px] text-ink outline-none focus:border-cyan">
+                    <option value="">선택 사항</option>
+                    {FIRM_SIZES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </JobField>
+              </div>
+            </section>
+          )}
+          <section className={`animate-fade rounded-[22px] border border-dashed border-violet-400/30 bg-[#151329]/65 p-4 ${needJobDetails ? "" : "lg:col-span-2"}`}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-[13px] font-bold text-ink">더 정교하게 보고 싶다면</h2>
-              <p className="mt-1 text-[10px] text-mut">선택 사항 · 입력하지 않아도 바로 비교할 수 있어요.</p>
             </div>
             <span className="rounded-full bg-violet-500/15 px-2.5 py-1 text-[10px] font-bold text-violet-200">{personalizationCount} / {isJobMove ? 3 : 2} 추가됨</span>
           </div>
@@ -573,7 +568,8 @@ export default function InputScreen() {
             <DiaryContextSection diary={diary} setDiary={setDiary} emotions={emotions} />
           </div>
           <p className="mt-3 text-[10px] text-violet-200">현재 개인화 수준: {personalizationCount >= (isJobMove ? 3 : 2) ? "정교함" : personalizationCount > 0 ? "상세" : "기본"}</p>
-        </section>
+          </section>
+        </div>
       ) : (
         <DiaryContextSection diary={diary} setDiary={setDiary} emotions={emotions} />
       ))}
@@ -585,6 +581,30 @@ export default function InputScreen() {
   );
 }
 
+function EducationContextSection({ major, onMajorChange }) {
+  return (
+    <section className="mt-4 rounded-[22px] border border-cyan/20 bg-[#0B1726]/80 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <GraduationCap size={16} className="text-cyan" />
+            <h2 className="text-[13px] font-bold text-ink">교육 비교에 필요한 정보</h2>
+          </div>
+          <p className="mt-1 text-[10px] leading-relaxed text-mut">전공 계열은 관련 취업률과 진학률을 찾는 데 사용됩니다.</p>
+        </div>
+        <span className="shrink-0 rounded-full bg-cyan/10 px-2 py-1 text-[9px] font-bold text-cyan">선택 입력</span>
+      </div>
+      <label className="mt-3 block">
+        <span className="mb-1.5 block text-[11px] font-semibold text-sub">진학하거나 공부하려는 전공 계열</span>
+        <select value={major} onChange={(event) => onMajorChange(event.target.value)} className="tap w-full rounded-xl border border-line bg-[#0E1424] px-3 py-2.5 text-[12px] text-ink outline-none focus:border-cyan sm:max-w-[320px]">
+          <option value="">선택하지 않음</option>
+          {MAJOR_FIELDS.map((field) => <option key={field} value={field}>{field}</option>)}
+        </select>
+      </label>
+    </section>
+  );
+}
+
 function DiaryContextSection({ diary, setDiary, emotions }) {
   return (
     <details className="smooth-details mt-3 rounded-2xl border border-white/10 bg-[#0B1423]/80 px-3.5 py-3">
@@ -593,7 +613,6 @@ function DiaryContextSection({ diary, setDiary, emotions }) {
       </summary>
       <div className="details-body">
         <div className="details-body-inner pt-2">
-          <p className="text-[10px] leading-4 text-mut">예측 숫자나 A/B 결과는 바꾸지 않아요. 감정에 맞는 심리 근거, 설명의 어조와 주의 안내에만 반영해요.</p>
           <input value={diary} onChange={(event) => setDiary(event.target.value)} placeholder="왜 이 선택이 망설여지는지 한 줄로 적어보세요" className="mt-3 w-full rounded-xl border border-line bg-bg px-3 py-2.5 text-xs text-ink outline-none focus:border-cyan" />
           {emotions.length > 0 && <Caption>감정은 결과 설명의 말투와 맥락에 반영됩니다.</Caption>}
         </div>
@@ -615,15 +634,11 @@ function CompactFuturePicker({ futureYears, setFutureYears }) {
       label="몇 년 뒤?"
       ariaLabel="미래 비교 시점"
       titleFor={(years) => `${years}년 후 비교`}
-      note={
-        // 만족도만 관측 천장이 낮다 — 고르기 전에 미리 알린다. 막지는 않는다:
-        // 소득·재직기간은 15년까지 실측이 있어서 함께 막으면 그쪽이 손해다.
-        beyondWellbeing && (
-          <p className="mt-1.5 text-[9px] leading-4 text-mut sm:text-right">
-            삶의 만족은 {WELLBEING_MAX_YEAR}년까지만 관측돼요 — 소득·재직기간은 {futureYears}년 기준으로 나옵니다.
-          </p>
-        )
-      }
+      note={beyondWellbeing && (
+        <p className="mt-1.5 text-[9px] leading-4 text-mut sm:text-right">
+          삶의 만족은 {WELLBEING_MAX_YEAR}년까지만 관측돼요 — 소득·재직기간은 {futureYears}년 기준으로 나옵니다.
+        </p>
+      )}
     />
   );
 }
@@ -683,7 +698,7 @@ function ChoiceConditions({ side, intake, context, hints, onChange, sharedHandle
             <span className="mt-1 block truncate text-[9px] text-mut">
               {offered.length
                 ? `이 인물의 조건 ${offered.length}개를 추천해요 · 눌러서 채울 수 있어요`
-                : "금액·기간·상황 등 · 입력하지 않아도 비교할 수 있어요"}
+                : "금액·기간·상황 등"}
             </span>
           )}
           {hasAnswers && !open && (

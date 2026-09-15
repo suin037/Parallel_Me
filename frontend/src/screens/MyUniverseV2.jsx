@@ -17,6 +17,7 @@ import { planetSkin } from "../data/petShop.js";
 import { PLANET_TEXTURES } from "../data/planetSurface.js";
 import { josa, hasFinalConsonant } from "../lib/josa.js";
 import { MOOD_COLORS as MOOD_RAMP } from "../data/moodColors.js";
+import { domainCompareDefaults, toChoiceDomains } from "../data/choices.js";
 
 // 오른쪽에 열리는 패널 폭. 예전엔 50vw 였는데, 1920px 짜리 화면에서 960px —
 // 지도(주인공)와 창이 정확히 반반이 되면서 읽을 것도 없는 패널이 화면을 삼켰다.
@@ -51,7 +52,7 @@ function dateLabel(date) { const [, month, day] = String(date).split("-"); retur
 
 export default function MyUniverseV2() {
   const navigate = useNavigate();
-  const { profile, setChoices, setScenarioTexts, setScenarioDomains } = useResult();
+  const { profile, setChoices, setScenarioTexts, setScenarioDomains, setScenarioContexts } = useResult();
   const [state, setState] = useState(loadUniverse);
   const [planet, setPlanet] = useState(null);
   // 3D 에서 별자리를 누르면 그 별자리 하나를 펼쳐 본다(모양·상태·그 안의 기록).
@@ -87,7 +88,8 @@ export default function MyUniverseV2() {
     // 왜 이 길이 나왔는지는 카드에서 이미 읽었으니 여기서 되풀이하지 않는다.
     setChoices({ a: item.choiceA, b: item.choiceB });
     setScenarioTexts({ a: item.choiceA, b: item.choiceB });
-    setScenarioDomains({ a: [planet.key], b: [planet.key] });
+    const choiceDomains = toChoiceDomains(planet.key);
+    setScenarioDomains({ a: choiceDomains, b: choiceDomains });
     setPlanet(null);
     setCluster(null);
     navigate("/input");
@@ -155,7 +157,7 @@ export default function MyUniverseV2() {
       </div>
       {/* 별자리도 누를 수 있다는 걸 여기서 말해 주지 않으면 아무도 안 눌러 본다. */}
       <p className="pointer-events-none absolute bottom-5 left-1/2 z-20 w-[min(92%,640px)] -translate-x-1/2 text-center text-[10px] leading-relaxed text-white/40">
-        행성을 누르면 그 영역의 흐름과 미래가 열려요 · <span className="text-white/60">별자리를 누르면 그 주의 기록을 볼 수 있어요</span> · 드래그 회전 · 휠/핀치 확대
+        행성을 누르면 그 영역의 흐름과 미래가 열려요 · <span className="text-white/60">별자리를 누르면 그 주의 기록을 볼 수 있어요</span>
       </p>
 
       {/* 시나리오 마름모·카드는 모두 그 행성 모달로 모은다.
@@ -164,9 +166,17 @@ export default function MyUniverseV2() {
           행성 모달이 그 영역의 기록·기회·N년 뒤를 실제 데이터로 다 보여준다. */}
       {cluster && <ClusterPanel group={cluster} planet={planet} onClose={()=>setCluster(null)} onWhole={()=>setCluster(null)} />}
       {planet && !cluster && <PlanetModal planet={planet} state={state} profile={profile} onPickOpportunity={pickOpportunity} onClose={() => setPlanet(null)} onSimulate={() => {
-        setScenarioDomains({ a: [planet.key], b: [planet.key] });
+        const defaults = domainCompareDefaults(planet.key);
+        if (defaults) {
+          setChoices(defaults);
+          setScenarioTexts(defaults);
+        }
+        const choiceDomains = toChoiceDomains(planet.key);
+        setScenarioDomains({ a: choiceDomains, b: choiceDomains });
+        setScenarioContexts({ a: {}, b: {} });
+        const planetKey = planet.key;
         setPlanet(null);
-        navigate("/input");
+        navigate("/input", { state: { source: "planet", planetKey, planetLabel: planet.label } });
       }} />}
     </div>
   );
@@ -273,8 +283,8 @@ function MonthlyBars({ planetKey, state }) {
   if (months.length < 2) return null;   // 한 달치로는 '추이'가 아니다
 
   return (
-    <div className="mt-4 rounded-[18px] border border-white/[.07] bg-black/20 p-4">
-      <p className="text-[11px] font-bold">언제 많이 기록했나</p>
+    <div className="mt-6">
+      <h3 className="text-[14px] font-bold">언제 많이 기록했나</h3>
       <div className="mt-2.5 flex items-end gap-1.5">
         {months.map((m) => {
           const n = m.analysis.n || 0;
@@ -734,11 +744,6 @@ function RelationMixChart({ mix, accent }) {
       <p className="mt-3 border-t border-white/[.07] pt-2.5 text-[10px] leading-relaxed text-sub">
         <b className="font-semibold text-ink">{mix.top}</b> 이야기가 가장 자주 나왔어요.
       </p>
-      {mix.unknown > 0 && (
-        <p className="mt-1 text-[9px] leading-relaxed text-mut">
-          누구인지 안 적힌 기록 {mix.unknown}개는 세지 않았어요.
-        </p>
-      )}
     </div>
   );
 }

@@ -17,7 +17,6 @@ import { DivergePoint, HalfBar, SIDE_COLORS, divergingShape } from "./DivergingB
  */
 export default function IndicatorGapChart({ a, b, domains = { a: [], b: [] } }) {
   const selected = [...new Set([...(domains.a || []), ...(domains.b || [])])];
-  const gaps = buildGapRows(a, b);
   const shared = buildSharedRows(a, b, selected);
   // 공유 축 — 가장 크게 벗어난 지표가 트랙을 채운다. 바닥값 1은 확대경 방지용이다
   // (전부 0.2%p 차이인 표에서 최대값에 맞춰 늘리면 미미한 차이가 압도적으로 보인다).
@@ -26,37 +25,21 @@ export default function IndicatorGapChart({ a, b, domains = { a: [], b: [] } }) 
       ? Math.abs(row.value - row.baseline) : 0
   )));
 
-  if (!gaps.length && !shared.length) return null;
+  // A/B 격차는 1단계 ResultQuickStats에서 이미 같은 수치로 보여준다. 여기서 다시
+  // 그리면 유지 선택의 0 기준선 처리가 빠져 "B는 예측 없음"으로 보이는 데다,
+  // 사용자는 같은 숫자를 새 분석으로 오해한다. 이 카드는 선택과 무관한 참고값만 맡는다.
+  if (!shared.length) return null;
 
   return (
     <Card className="mb-4">
-      <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold text-ink">지표별 격차</div>
-        <div className="flex items-center gap-3 text-[10px] text-mut">
-          <Legend color={SIDE_COLORS.A} label="A" />
-          <Legend color={SIDE_COLORS.B} label="B" />
-        </div>
+      <div>
+        <div className="text-sm font-semibold text-ink">또래 집단 참고값</div>
+        <Caption>선택 결과가 아니라, 내 조건과 비슷한 사람들의 관측값입니다.</Caption>
       </div>
 
-      {gaps.length > 0 ? (
-        <>
-          <Caption>두 선택에서 예측값이 갈리는 지표입니다.</Caption>
-          {/* 예전엔 지표 하나당 68px 원형 게이지 두 개(최대 8개)를 그리고, 그
-              아래 같은 내용을 알약으로 한 번 더 썼다. 원은 길이 비교가 안 되는
-              데다 게이지 최댓값이 max(|A|,|B|) 라 이긴 쪽은 항상 꽉 찬 원이었다
-              — 격차가 1이든 100이든 그림이 똑같았다는 뜻이다. 이제 다른 카드와
-              같은 발산 막대를 쓰고, 중복이던 알약 줄은 없앴다. */}
-          <div className="mt-3 divide-y divide-white/[.06]">
-            {gaps.map((row) => <GapRow key={row.name} row={row} a={a} b={b} />)}
-          </div>
-        </>
-      ) : (
-        <NoGapNotice a={a} b={b} />
-      )}
-
       {shared.length > 0 && (
-        <div className="mt-5 border-t border-line pt-4">
-          <div className="text-[12px] font-semibold text-ink">두 선택 공통 · 참고 기준</div>
+        <div className="mt-4 border-t border-line pt-4">
+          <div className="text-[12px] font-semibold text-ink">두 선택에 공통으로 적용되는 기준</div>
           <Caption>
             선택과 무관한 또래 집단 통계입니다. A·B가 같은 값이라 한 줄로 표시하며,
             막대는 <b className="font-semibold text-sub">전체 평균 대비 차이</b>입니다 — 가운데가 전체 평균.
@@ -310,10 +293,6 @@ function SharedRow({ row, domain }) {
            그 길이가 곧 판단처럼 읽힌다(예전 화면이 그랬다). */
         <div className="mt-1 text-[9px] text-mut">비교할 전체 기준값이 없어 수치만 표시합니다.</div>
       )}
-
-      <div className="mt-1 text-[9px] text-mut">
-        {row.source}{row.lowerIsBetter ? " · 낮을수록 좋음" : ""}
-      </div>
     </div>
   );
 }

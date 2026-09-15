@@ -162,7 +162,14 @@ export default function PetMascot({ onCompare }) {
   }
 
   return (
-    <div className="mb-2 mt-3 overflow-hidden rounded-[22px] border border-white/10 bg-[#101A2A]/70 p-4 backdrop-blur">
+    <div
+      className="relative isolate mb-2 mt-3 overflow-hidden rounded-[24px] border border-white/[.16] bg-[linear-gradient(145deg,rgba(27,43,69,.96),rgba(10,17,31,.97)_58%,rgba(19,17,43,.96))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.14),inset_0_-18px_38px_rgba(0,0,0,.18),0_22px_52px_rgba(0,0,0,.38),0_5px_14px_rgba(0,0,0,.28)] backdrop-blur-xl"
+      style={{ perspective: "700px" }}
+    >
+      {/* 카드 뒤쪽의 빛과 전면 유리 광택을 분리해 패널 자체에 깊이를 준다. */}
+      <span className="pointer-events-none absolute -right-16 -top-20 -z-10 h-44 w-44 rounded-full blur-3xl" style={{ background: guide.glow, opacity: .28 }} />
+      <span className="pointer-events-none absolute -bottom-24 -left-16 -z-10 h-48 w-48 rounded-full bg-violet-600/20 blur-3xl" />
+      <span className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
       <style>{`
         @keyframes pm-bob { 0%,100%{ transform: translateY(0) } 50%{ transform: translateY(-6px) } }
         @keyframes pm-squish {
@@ -209,7 +216,7 @@ export default function PetMascot({ onCompare }) {
       {/* 말풍선 — 폭이 카드 전체(374px)라 98px 캐릭터의 말로 보이지 않았다.
           캐릭터 무대(220px)에 가깝게 좁히고 가운데 정렬하고, 아래로 꼬리를 달아
           누가 하는 말인지 모양으로 드러낸다. */}
-      <div className="relative mx-auto mt-3 max-w-[268px] rounded-2xl border border-white/10 bg-[#0B1423]/80 px-3.5 py-2.5 text-center text-[11px] leading-relaxed text-sub">
+      <div className="relative mx-auto mt-3 max-w-[268px] rounded-2xl border border-white/[.16] bg-[#0B1423]/90 px-3.5 py-2.5 text-center text-[11px] leading-relaxed text-sub shadow-[inset_0_1px_0_rgba(255,255,255,.09),0_10px_24px_rgba(0,0,0,.3)]">
         <span className="mr-1 font-bold" style={{ color: guide.color }}>{guide.name}</span>
         {guideMessage}
         {showNudge && (
@@ -233,13 +240,14 @@ export default function PetMascot({ onCompare }) {
       </div>
 
       {/* 무대 — 말랑한 마스코트 */}
-      <div className="relative mx-auto mt-2 flex h-[118px] w-full max-w-[220px] items-end justify-center">
+      <div className="relative mx-auto mt-2 flex h-[118px] w-full max-w-[220px] items-end justify-center" style={{ transform: "rotateX(1.5deg)", transformStyle: "preserve-3d" }}>
         {/* 상점 배경 — 후광보다 뒤에 깔린다 */}
         {bgItem && <div className="pointer-events-none absolute inset-0 rounded-[18px]" style={{ background: bgItem.render }} />}
         {/* 배경 후광 */}
         <div className="pointer-events-none absolute inset-0" style={{ background: `radial-gradient(circle at 50% 44%, ${guide.glow}, transparent 62%)` }} />
         {/* 바닥 그림자 */}
-        <div className="absolute bottom-3 h-3 w-24 rounded-[50%] bg-black/40 blur-md" />
+        <div className="absolute bottom-1 h-8 w-36 rounded-[50%] border border-white/[.06] bg-[radial-gradient(ellipse,rgba(139,108,207,.2),rgba(5,8,16,.5)_58%,transparent_72%)] shadow-[inset_0_2px_8px_rgba(255,255,255,.04),0_10px_18px_rgba(0,0,0,.34)]" style={{ transform: "rotateX(66deg)" }} />
+        <div className="absolute bottom-3 h-3 w-24 rounded-[50%] bg-black/55 blur-md" />
         {/* 하트 */}
         {hearts.map((h) => (
           <span key={h.id} className="pointer-events-none absolute bottom-[96px] whitespace-nowrap text-[18px]" style={{ left: `calc(50% + ${h.dx}px)`, transform: "translateX(-50%)", animation: "pm-heart .9s ease-out forwards" }}>
@@ -326,15 +334,15 @@ export default function PetMascot({ onCompare }) {
         <button
           onClick={pat}
           disabled={pattedToday}
-          className="tap flex-1 rounded-xl border border-white/12 bg-white/5 py-2 text-[12px] font-semibold text-ink disabled:opacity-45"
+          className="tap flex-1 rounded-xl border border-white/[.16] bg-[linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.035))] py-2 text-[12px] font-semibold text-ink shadow-[inset_0_1px_0_rgba(255,255,255,.13),0_5px_12px_rgba(0,0,0,.22)] disabled:opacity-45"
         >
           {pattedToday ? "☑ 오늘 쓰다듬기 완료" : "✋ 쓰다듬기"}
         </button>
         <button
           onClick={feed}
           disabled={pet.snacks <= 0 || eating}
-          className="tap flex-1 rounded-xl py-2 text-[12px] font-semibold text-[#04203a] disabled:opacity-40"
-          style={{ background: `linear-gradient(90deg, ${guide.color}, #ffffffcc)` }}
+          className="tap flex-1 rounded-xl border border-white/20 py-2 text-[12px] font-semibold text-[#04203a] shadow-[inset_0_1px_0_rgba(255,255,255,.55),inset_0_-2px_5px_rgba(0,0,0,.14),0_6px_14px_rgba(0,0,0,.25)] disabled:opacity-40"
+          style={{ background: `linear-gradient(180deg, #ffffffee, ${guide.color})` }}
         >
           🍪 간식 주기 ({pet.snacks})
         </button>

@@ -32,21 +32,36 @@ export default function ValueRankingInput({ value = [], onChange, max = 8 }) {
         {VALUE_CARDS.map((c) => {
           const i = rankOf(c.id);
           const on = i !== -1;
+          // 각 카드 안에는 그라데이션을 넣지 않는다. 대신 1→8순위의 단색이
+          // 밝은 보라에서 어두운 청보라로 이어져, 여덟 칸 전체가 하나의 색 흐름으로 보인다.
+          // 고정된 8단계 척도를 써서 일부만 골라도 같은 순위는 같은 색으로 보인다.
+          const strength = on ? 1 - i / Math.max(1, max - 1) : 0;
+          const hue = Math.round(232 + strength * 34);
+          const saturation = Math.round(42 + strength * 24);
+          const lightness = Math.round(20 + strength * 18);
+          const selectedStyle = on ? {
+            borderColor: `hsl(${hue} ${saturation}% ${lightness + 20}%)`,
+            backgroundColor: `hsl(${hue} ${saturation}% ${lightness}%)`,
+            boxShadow: `0 0 ${Math.round(6 + strength * 12)}px hsla(${hue}, ${saturation}%, 55%, ${(.03 + strength * .08).toFixed(2)})`,
+          } : undefined;
+          const rankColor = on ? `hsl(${hue} ${Math.min(82, saturation + 16)}% ${Math.round(70 + strength * 12)}%)` : undefined;
           return (
             <button
               key={c.id}
               type="button"
               onClick={() => toggle(c.id)}
-              className={`tap relative rounded-xl border px-3 py-2.5 text-left transition-colors ${
-                on ? "border-cyan bg-[#1D1730]" : "border-line bg-[#0E1424]"
+              style={selectedStyle}
+              className={`tap relative overflow-hidden rounded-xl border px-3 py-2.5 text-left transition-all ${
+                on ? "" : "border-line bg-[#0E1424]"
               }`}
             >
+              {on && <span className="pointer-events-none absolute inset-y-0 left-0 w-1" style={{ background: rankColor, opacity: .45 + strength * .45 }} />}
               {on && (
-                <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-cyan text-[11px] font-bold text-[#0A0E1A]">
+                <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold text-[#0A0E1A] shadow-[0_2px_10px_rgba(0,0,0,.24)]" style={{ background: rankColor }}>
                   {i + 1}
                 </span>
               )}
-              <div className={`text-[13px] font-semibold ${on ? "text-cyan" : "text-ink"}`}>
+              <div className={`relative text-[13px] font-semibold ${on ? "" : "text-ink"}`} style={on ? { color: rankColor } : undefined}>
                 {c.emoji} {c.label}
               </div>
               <div className="mt-0.5 text-[10px] leading-snug text-mut">{c.desc}</div>

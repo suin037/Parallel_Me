@@ -46,8 +46,14 @@ export default function AvatarComparison({ avatar, a, b, visuals, narrative, nar
             if (event.target === event.currentTarget) setExpanded(null);
           }}
         >
-          <div className="max-h-[88dvh] w-full max-w-[600px] animate-sheet-up overflow-y-auto rounded-t-[28px] border border-white/10 bg-[#0D1727] shadow-[0_-22px_70px_rgba(0,0,0,.55)] sm:animate-fade sm:rounded-[28px]">
-            <StoryDetail side={expanded} story={expanded === "A" ? narrative?.a : narrative?.b} onClose={() => setExpanded(null)} />
+          <div className="max-h-[90dvh] w-full max-w-[760px] animate-sheet-up overflow-y-auto rounded-t-[30px] border border-white/10 bg-[#09111F] shadow-[0_-28px_90px_rgba(0,0,0,.68)] sm:animate-fade sm:rounded-[30px]">
+            <StoryDetail
+              side={expanded}
+              story={expanded === "A" ? narrative?.a : narrative?.b}
+              image={expanded === "A" ? visuals?.a : visuals?.b}
+              choice={expanded === "A" ? a?.choice : b?.choice}
+              onClose={() => setExpanded(null)}
+            />
           </div>
         </div>,
         document.body,
@@ -129,29 +135,37 @@ function StoryCard({ side, result, image, story, storyLoading, avatar, open, onT
   );
 }
 
-function StoryDetail({ side, story, onClose }) {
+function StoryDetail({ side, story, image, choice, onClose }) {
   if (!story || typeof story !== "object") return null;
   const detail = story.detail || {};
-  const color = side === "A" ? "text-cyan" : "text-gold";
+  const isA = side === "A";
+  const color = isA ? "text-violet-200" : "text-orange-200";
+  const accent = isA ? "#9B72F2" : "#F39A4A";
   return (
-    <div className="p-5 text-[12px] leading-relaxed sm:p-6">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <p className={`text-[10px] font-bold tracking-[.14em] ${color}`}>UNIVERSE {side}</p>
-          <h3 className="mt-1 text-lg font-bold text-ink">{story.title || "상세 이야기"}</h3>
-          {story.summary && <p className="mt-1.5 text-[11px] leading-relaxed text-sub">{story.summary}</p>}
+    <div className="relative text-[12px] leading-relaxed">
+      <div className="relative h-[220px] overflow-hidden sm:h-[290px]">
+        {image && <img src={image} alt="" className="h-full w-full object-cover" />}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#09111F] via-[#09111F]/25 to-black/15" />
+        <div className="absolute inset-0 opacity-40" style={{ background: `radial-gradient(circle at 20% 15%, ${accent}88, transparent 42%)` }} />
+        <button type="button" onClick={onClose} aria-label="상세 설명 닫기" className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/35 text-xl text-white/80 backdrop-blur-md transition hover:bg-black/55 hover:text-white">×</button>
+        <div className="absolute inset-x-0 bottom-0 px-5 pb-5 sm:px-7 sm:pb-7">
+          <p className={`text-[10px] font-bold tracking-[.18em] ${color}`}>UNIVERSE {side} · {labelOf(choice)}</p>
+          <h3 className="mt-1 max-w-[560px] text-[22px] font-bold leading-tight tracking-[-.035em] text-white sm:text-[28px]">{story.title || "상세 이야기"}</h3>
         </div>
-        <button type="button" onClick={onClose} aria-label="상세 설명 닫기" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[.04] text-lg text-sub transition hover:bg-white/10 hover:text-ink">×</button>
       </div>
-      <div className="space-y-3 border-t border-white/[.07] pt-4">
-        <StoryBeat label="지금" text={detail.present} />
-        <StoryBeat label="변화 과정" text={detail.transition} />
-        <StoryBeat label="그 이후" text={detail.future} />
-        <StoryBeat label="불확실한 점" text={story.uncertainty} />
+
+      <div className="relative -mt-1 px-4 pb-6 sm:px-7 sm:pb-8">
+        {story.summary && <p className="rounded-2xl border border-white/10 bg-white/[.055] px-4 py-3.5 text-[12px] leading-6 text-white/80 shadow-[0_14px_40px_rgba(0,0,0,.22)] backdrop-blur-xl sm:px-5">{story.summary}</p>}
+        <div className="relative mt-5 space-y-2.5 before:absolute before:bottom-4 before:left-[15px] before:top-4 before:w-px before:bg-gradient-to-b before:from-violet-400/55 before:via-white/15 before:to-transparent">
+          <StoryBeat index="01" label="지금" text={detail.present} accent={accent} />
+          <StoryBeat index="02" label="변화 과정" text={detail.transition} accent={accent} />
+          <StoryBeat index="03" label="그 이후" text={detail.future} accent={accent} />
+          <StoryBeat index="?" label="불확실한 점" text={story.uncertainty} accent={accent} />
+        </div>
         {(story.gain || story.cost) && (
-          <div className="grid grid-cols-2 gap-2 rounded-lg bg-[#0E1424] p-2.5 text-[11px]">
-            {story.gain && <p><b className="text-cyan">얻게 될 수 있는 것</b><br /><span className="text-sub">{story.gain}</span></p>}
-            {story.cost && <p><b className="text-gold">감수할 수 있는 것</b><br /><span className="text-sub">{story.cost}</span></p>}
+          <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
+            {story.gain && <p className="rounded-2xl border border-violet-400/20 bg-violet-500/[.07] p-4"><b className="text-violet-200">＋ 얻게 될 수 있는 것</b><br /><span className="mt-1.5 block text-sub">{story.gain}</span></p>}
+            {story.cost && <p className="rounded-2xl border border-orange-300/20 bg-orange-400/[.06] p-4"><b className="text-orange-200">− 감수할 수 있는 것</b><br /><span className="mt-1.5 block text-sub">{story.cost}</span></p>}
           </div>
         )}
       </div>
@@ -159,9 +173,14 @@ function StoryDetail({ side, story, onClose }) {
   );
 }
 
-function StoryBeat({ label, text }) {
+function StoryBeat({ index, label, text, accent }) {
   if (!text) return null;
-  return <p><b className="text-ink">{label}</b><br /><span className="text-sub">{text}</span></p>;
+  return (
+    <div className="relative grid grid-cols-[32px_1fr] gap-3 rounded-2xl border border-white/[.07] bg-[#0E192A]/80 p-3.5 shadow-[0_10px_28px_rgba(0,0,0,.16)]">
+      <span className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full border bg-[#0A1322] text-[9px] font-bold" style={{ color: accent, borderColor: `${accent}66`, boxShadow: `0 0 18px ${accent}22` }}>{index}</span>
+      <p className="pt-0.5"><b className="text-[11px] tracking-[.04em] text-ink">{label}</b><br /><span className="mt-1 block leading-5 text-sub">{text}</span></p>
+    </div>
+  );
 }
 
 function Comparison({ story }) {
